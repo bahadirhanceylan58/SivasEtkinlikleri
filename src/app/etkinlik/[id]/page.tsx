@@ -9,6 +9,7 @@ import { db } from '@/lib/firebase';
 import { Calendar, MapPin, Clock, Share2, Phone, Navigation, X, ZoomIn } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import SocialShare from '@/components/SocialShare';
 
 export default function EventDetailPage() {
     const { id } = useParams();
@@ -185,23 +186,28 @@ export default function EventDetailPage() {
                                 </div>
                             </div>
                             {/* Organizatör / İletişim */}
-                            <div className="bg-neutral-900 border border-neutral-800 p-5 rounded-2xl flex items-center justify-between">
-                                <div className="flex items-center">
-                                    <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-500 font-bold">
-                                        SE
-                                    </div>
-                                    <div className="ml-3">
-                                        <div className="text-white text-sm font-bold">Sivas Etkinlikleri</div>
-                                        <div className="text-xs text-gray-500">Resmi Organizatör</div>
+                            <div className="bg-neutral-900 border border-neutral-800 p-5 rounded-2xl">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center">
+                                        <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-500 font-bold">
+                                            SE
+                                        </div>
+                                        <div className="ml-3">
+                                            <div className="text-white text-sm font-bold">Sivas Etkinlikleri</div>
+                                            <div className="text-xs text-gray-500">Resmi Organizatör</div>
+                                        </div>
                                     </div>
                                 </div>
-                                <button
-                                    className="text-neutral-400 hover:text-white"
-                                    aria-label="Paylaş"
-                                    title="Paylaş"
-                                >
-                                    <Share2 className="w-5 h-5" />
-                                </button>
+
+                                {/* Sosyal Medya Paylaşım */}
+                                <div className="pt-3 border-t border-neutral-800">
+                                    <p className="text-xs text-gray-400 mb-2">Paylaş:</p>
+                                    <SocialShare
+                                        eventTitle={event.title}
+                                        eventUrl={typeof window !== 'undefined' ? window.location.href : `https://sivasetkinlikleri.com/etkinlik/${event.id}`}
+                                        eventImage={event.imageUrl}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
