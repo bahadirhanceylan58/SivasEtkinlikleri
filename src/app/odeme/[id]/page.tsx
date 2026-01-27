@@ -2,24 +2,35 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, getDoc, updateDoc, arrayUnion, setDoc, addDoc, collection, increment } from 'firebase/firestore';
+import { doc, getDoc, arrayUnion, setDoc, addDoc, collection } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import Image from 'next/image';
-import { Phone, User, Ticket, Tag, TrendingDown, Users as UsersIcon, Armchair } from 'lucide-react';
+import { Phone, User, Ticket, Users as UsersIcon, Armchair } from 'lucide-react';
 import DiscountCodeInput from '@/components/DiscountCodeInput';
 import SeatMap, { Seat } from '@/components/SeatMap';
 import { DiscountValidationResult } from '@/types/ticketing';
-import { markCodeAsUsed } from '@/lib/discountValidator';
 import { calculateGroupDiscount, getNextTierInfo } from '@/lib/groupTickets';
-import { generateSimpleVenue, calculateSeatsTotal, formatSelectedSeats, markSoldSeats } from '@/lib/seatManagement';
-import { calculateFinalPrice } from '@/lib/priceCalculator';
+import { generateSimpleVenue, markSoldSeats } from '@/lib/seatManagement';
+
+interface Event {
+    id: string;
+    title: string;
+    location: string;
+    date: string;
+    imageUrl?: string;
+    description?: string;
+    category?: string;
+    price: number;
+    groupTickets?: any[];
+    hasSeatSelection?: boolean;
+}
 
 export default function PaymentPage() {
     const { id } = useParams();
     const router = useRouter();
-    const [event, setEvent] = useState<any>(null);
-    const [user, setUser] = useState<any>(null);
+    const [event, setEvent] = useState<Event | null>(null);
+    const [user, setUser] = useState<any>(null); // TODO: Define User type
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
     const [phoneNumber, setPhoneNumber] = useState('');

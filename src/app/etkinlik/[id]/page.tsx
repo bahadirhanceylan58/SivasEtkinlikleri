@@ -18,8 +18,8 @@ export default function EventDetailPage() {
     const [loading, setLoading] = useState(true);
     // Assuming totalTickets and totalPrice are managed elsewhere or will be added.
     // For now, defining them to make handlePurchase syntactically correct.
-    const [totalTickets, setTotalTickets] = useState(0);
-    const [totalPrice, setTotalPrice] = useState(0);
+    // const [totalTickets, setTotalTickets] = useState(0);
+    // const [totalPrice, setTotalPrice] = useState(0);
     const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
     const handlePurchase = () => {

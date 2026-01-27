@@ -11,14 +11,32 @@ interface PriceCalculation {
     itemCount: number;
 }
 
+interface Seat {
+    row: string;
+    number: number;
+    price?: number;
+}
+
+interface GroupTier {
+    minTickets: number;
+    discount: number;
+}
+
+interface Discount {
+    valid: boolean;
+    type?: 'percentage' | 'fixed';
+    value?: number;
+    discountAmount?: number;
+}
+
 export function calculateFinalPrice(
     ticketPrice: number,
     ticketCount: number,
     hasSeatSelection: boolean,
     selectedSeats: string[],
-    seats: any[],
-    groupTiers: any[],
-    appliedDiscount: any | null
+    seats: Seat[],
+    groupTiers: GroupTier[],
+    appliedDiscount: Discount | null
 ): PriceCalculation {
     let subtotal = 0;
     let itemCount = 0;
@@ -61,7 +79,7 @@ export function calculateFinalPrice(
     let codeDiscount = 0;
     if (appliedDiscount?.valid && appliedDiscount.discountAmount) {
         if (appliedDiscount.type === 'percentage') {
-            codeDiscount = Math.round(total * (appliedDiscount.value / 100) * 100) / 100;
+            codeDiscount = Math.round(total * ((appliedDiscount.value || 0) / 100) * 100) / 100;
         } else {
             codeDiscount = appliedDiscount.discountAmount;
         }

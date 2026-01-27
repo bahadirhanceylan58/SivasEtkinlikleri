@@ -1,6 +1,6 @@
 "use client";
 
-import { Share2, MessageCircle, Send, Instagram } from 'lucide-react';
+import { Share2, MessageCircle, Send } from 'lucide-react';
 import { useState } from 'react';
 
 interface SocialShareProps {
