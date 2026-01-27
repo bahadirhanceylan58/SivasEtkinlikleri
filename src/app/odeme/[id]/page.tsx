@@ -2,11 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, getDoc, updateDoc, arrayUnion, setDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, setDoc, addDoc, collection, increment } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import Image from 'next/image';
-import { Phone, User, Ticket } from 'lucide-react';
+import { Phone, User, Ticket, Tag, TrendingDown, Users as UsersIcon, Armchair } from 'lucide-react';
+import DiscountCodeInput from '@/components/DiscountCodeInput';
+import SeatMap, { Seat } from '@/components/SeatMap';
+import { DiscountValidationResult } from '@/types/ticketing';
+import { markCodeAsUsed } from '@/lib/discountValidator';
+import { calculateGroupDiscount, getNextTierInfo } from '@/lib/groupTickets';
+import { generateSimpleVenue, calculateSeatsTotal, formatSelectedSeats, markSoldSeats } from '@/lib/seatManagement';
 
 export default function PaymentPage() {
     const { id } = useParams();
@@ -20,6 +26,22 @@ export default function PaymentPage() {
 
     const [ticketCount, setTicketCount] = useState(1);
     const ticketPrice = 150;
+
+    // İndirim kodu state'leri
+    const [appliedDiscount, setAppliedDiscount] = useState<DiscountValidationResult | null>(null);
+    const [appliedDiscountCode, setAppliedDiscountCode] = useState<string | null>(null);
+
+    // Grup indirimi tier'ları (normalde event'ten gelir, şimdilik varsayılan)
+    const groupTiers = event?.groupTickets || [
+        { id: '1', name: 'Küçük Grup', minTickets: 5, discount: 0.10, description: 'Aile paketi' },
+        { id: '2', name: 'Orta Grup', minTickets: 10, discount: 0.15, description: 'Arkadaş grubu' },
+        { id: '3', name: 'Büyük Grup', minTickets: 20, discount: 0.20, description: 'Toplu alım' }
+    ];
+
+    // Koltuk seçimi (etkinlik tiyatro/konser ise)
+    const hasSeatSelection = event?.hasSeatSelection || false;
+    const [seats, setSeats] = useState<Seat[]>([]);
+    const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -51,6 +73,17 @@ export default function PaymentPage() {
         return () => unsubscribe();
     }, [id, router]);
 
+    // Koltuk haritasını yükle (etkinlik yüklendikten sonra)
+    useEffect(() => {
+        if (event && hasSeatSelection) {
+            // Demo için basit salon oluştur
+            const venueSeats = generateSimpleVenue(8, 12);
+            // Satılmış koltukları işaretle (örnek: A1, A2, B5)
+            const soldSeats = markSoldSeats(venueSeats, ['A1', 'A2', 'B5', 'C3']);
+            setSeats(soldSeats);
+        }
+    }, [event, hasSeatSelection]);
+
     const handleReservation = async () => {
         if (!user || !event) return;
         if (!phoneNumber || !fullName) {
@@ -63,6 +96,11 @@ export default function PaymentPage() {
             try {
                 const uniqueQrCode = `${user.uid}-${event.id}-${Date.now()}`;
 
+                // Fiyat hesaplama
+                const subtotal = ticketCount * ticketPrice;
+                const discountAmount = appliedDiscount?.discountAmount || 0;
+                const totalAmount = subtotal - discountAmount;
+
                 const ticketData = {
                     eventId: event.id,
                     eventTitle: event.title,
@@ -70,14 +108,19 @@ export default function PaymentPage() {
                     eventLocation: event.location,
                     eventImage: event.imageUrl,
                     ticketCount: ticketCount,
-                    totalAmount: ticketCount * ticketPrice,
+                    basePrice: ticketPrice,
+                    subtotal: subtotal,
+                    discountAmount: discountAmount,
+                    discountCode: appliedDiscountCode || null,
+                    totalAmount: totalAmount,
                     purchaseDate: new Date().toISOString(),
                     qrCode: uniqueQrCode,
-                    status: 'reserved', // Statü: Rezerve Edildi
-                    paymentType: 'pay_at_door', // Ödeme Tipi: Kapıda
+                    status: 'reserved',
+                    paymentType: 'pay_at_door',
                     contactName: fullName,
                     contactPhone: phoneNumber
                 };
+
                 const userTicketRef = doc(db, 'users', user.uid);
                 await setDoc(userTicketRef, {
                     tickets: arrayUnion(ticketData)
@@ -89,9 +132,34 @@ export default function PaymentPage() {
                     contactName: fullName,
                     contactPhone: phoneNumber,
                     ticketCount: ticketCount,
+                    discountCode: appliedDiscountCode || null,
+                    discountAmount: discountAmount,
+                    totalAmount: totalAmount,
                     purchaseDate: new Date().toISOString()
                 });
-                alert('Rezervasyonunuz alındı! Biletiniz oluşturuldu. Ödemeyi kapıda yapabilirsiniz.');
+
+                // İndirim kodu kullanıldıysa, işaretle ve sayacı artır
+                if (appliedDiscountCode && appliedDiscount?.valid) {
+                    try {
+                        // Kullanım kaydı ekle
+                        await addDoc(collection(db, 'discountCodeUsage'), {
+                            codeId: appliedDiscountCode, // Gerçek uygulamada code ID kullanılmalı
+                            code: appliedDiscountCode,
+                            userId: user.uid,
+                            eventId: event.id,
+                            discountAmount: discountAmount,
+                            usedAt: new Date().toISOString()
+                        });
+
+                        // Kod kullanım sayısını artır (admin panelden eklenen kodlar için)
+                        // Bu kısım daha sonra optimize edilebilir
+                    } catch (codeError) {
+                        console.error('Error tracking discount code:', codeError);
+                        // Hata olsa bile rezervasyon devam etsin
+                    }
+                }
+
+                alert(`Rezervasyonunuz alındı! ${discountAmount > 0 ? `${discountAmount}₺ indirim uygulandı. ` : ''}Biletiniz oluşturuldu. Ödemeyi kapıda yapabilirsiniz.`);
                 router.push('/biletlerim');
             } catch (error) {
                 console.error("Hata:", error);
@@ -168,13 +236,104 @@ export default function PaymentPage() {
                                 <button onClick={() => setTicketCount(ticketCount + 1)} className="w-8 h-8 bg-neutral-700 rounded-full flex items-center justify-center hover:bg-yellow-500 hover:text-black transition-colors">+</button>
                             </div>
                         </div>
-                        <div className="border-t border-neutral-700 pt-4 flex justify-between items-center mb-6">
-                            <div className="flex flex-col">
-                                <span className="text-lg font-bold text-gray-400">Kapıda Ödenecek</span>
-                                <span className="text-xs text-gray-500">(Nakit veya Kredi Kartı)</span>
+
+                        {/* İndirim Kodu Bölümü */}
+                        {user && event && (
+                            <div className="mb-4">
+                                <DiscountCodeInput
+                                    userId={user.uid}
+                                    eventId={event.id}
+                                    eventCategory={event.category || ''}
+                                    purchaseAmount={ticketCount * ticketPrice}
+                                    onDiscountApplied={(result, code) => {
+                                        setAppliedDiscount(result);
+                                        setAppliedDiscountCode(code);
+                                    }}
+                                    onDiscountRemoved={() => {
+                                        setAppliedDiscount(null);
+                                        setAppliedDiscountCode(null);
+                                    }}
+                                    disabled={processing}
+                                />
                             </div>
-                            <span className="text-2xl font-bold text-yellow-500">{ticketCount * ticketPrice} ₺</span>
+                        )}
+
+                        {/* Fiyat Özeti */}
+                        <div className="border-t border-neutral-700 pt-4 space-y-3 mb-6">
+                            {/* Ara Toplam */}
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-400">Ara Toplam ({ticketCount} bilet)</span>
+                                <span className="text-white font-medium">{ticketCount * ticketPrice} ₺</span>
+                            </div>
+
+                            {/* Grup İndirimi */}
+                            {(() => {
+                                const groupDiscount = calculateGroupDiscount(ticketPrice, ticketCount, groupTiers);
+                                const nextTierInfo = getNextTierInfo(ticketCount, groupTiers);
+
+                                return groupDiscount.appliedTier ? (
+                                    <>
+                                        <div className="flex justify-between items-center text-sm animate-fadeIn">
+                                            <span className="text-blue-500 flex items-center gap-1">
+                                                <UsersIcon className="w-4 h-4" />
+                                                Grup İndirimi (%{groupDiscount.discountPercentage})
+                                            </span>
+                                            <span className="text-blue-500 font-medium">-{groupDiscount.discount} ₺</span>
+                                        </div>
+                                        {nextTierInfo.hasNextTier && (
+                                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 text-xs text-blue-400">
+                                                💡 {nextTierInfo.ticketsNeeded} bilet daha al, %{nextTierInfo.nextTier!.discount * 100} indirim kazan!
+                                            </div>
+                                        )}
+                                    </>
+                                ) : groupTiers.length > 0 && (
+                                    <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-xs">
+                                        <div className="flex items-center gap-2 text-gray-400 mb-1">
+                                            <UsersIcon className="w-4 h-4" />
+                                            <span className="font-medium">Grup İndirimleri:</span>
+                                        </div>
+                                        <div className="space-y-1 text-gray-500">
+                                            {groupTiers.sort((a: any, b: any) => a.minTickets - b.minTickets).map((tier: any) => (
+                                                <div key={tier.id}>• {tier.minTickets}+ bilet: %{tier.discount * 100} indirim</div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* İndirim Kodu */}
+                            {appliedDiscount?.valid && appliedDiscount.discountAmount && appliedDiscount.discountAmount > 0 && (
+                                <div className="flex justify-between items-center text-sm animate-fadeIn">
+                                    <span className="text-green-500 flex items-center gap-1">
+                                        <TrendingDown className="w-4 h-4" />
+                                        İndirim Kodu ({appliedDiscountCode})
+                                    </span>
+                                    <span className="text-green-500 font-medium">-{appliedDiscount.discountAmount} ₺</span>
+                                </div>
+                            )}
+
+                            {/* Toplam */}
+                            <div className="border-t border-neutral-700 pt-3 flex justify-between items-center">
+                                <div className="flex flex-col">
+                                    <span className="text-lg font-bold text-gray-400">Kapıda Ödenecek</span>
+                                    <span className="text-xs text-gray-500">(Nakit veya Kredi Kartı)</span>
+                                </div>
+                                <span className="text-2xl font-bold text-yellow-500">
+                                    {(() => {
+                                        const groupDiscount = calculateGroupDiscount(ticketPrice, ticketCount, groupTiers);
+                                        let total = groupDiscount.finalPrice;
+
+                                        // İndirim kodu varsa uygula
+                                        if (appliedDiscount?.finalPrice !== undefined) {
+                                            total = appliedDiscount.finalPrice;
+                                        }
+
+                                        return Math.round(total);
+                                    })()} ₺
+                                </span>
+                            </div>
                         </div>
+
                         <button
                             onClick={handleReservation}
                             disabled={processing}

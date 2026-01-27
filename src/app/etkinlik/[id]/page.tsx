@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Calendar, MapPin, Clock, Share2, Phone, Navigation } from 'lucide-react';
+import { Calendar, MapPin, Clock, Share2, Phone, Navigation, X, ZoomIn } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
@@ -19,6 +19,7 @@ export default function EventDetailPage() {
     // For now, defining them to make handlePurchase syntactically correct.
     const [totalTickets, setTotalTickets] = useState(0);
     const [totalPrice, setTotalPrice] = useState(0);
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
     const handlePurchase = () => {
         if (event.salesType === 'external' && event.externalUrl) {
@@ -75,16 +76,21 @@ export default function EventDetailPage() {
                     {/* SOL SÜTUN (Görsel ve Bilgi) */}
                     <div className="lg:col-span-2 space-y-8">
                         {/* Görsel */}
-                        <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-neutral-800 shadow-2xl">
+
+                        <div
+                            className="relative w-full h-[300px] md:h-[500px] bg-gray-900/50 rounded-2xl overflow-hidden cursor-zoom-in border border-yellow-500/20 shadow-xl"
+                            onClick={() => setIsImageModalOpen(true)}
+                        >
                             <Image
                                 src={event.imageUrl || 'https://via.placeholder.com/800x600'}
                                 alt={event.title}
                                 fill
-                                className="object-cover"
+                                className="object-contain"
                                 unoptimized
                             />
-                            <div className="absolute top-4 left-4 bg-yellow-500 text-black font-bold px-3 py-1 rounded-full text-sm">
-                                {event.subCategory || event.category}
+
+                            <div className="absolute bottom-4 right-4 bg-black/70 text-white text-[10px] px-2 py-1 rounded uppercase tracking-widest">
+                                Tamamını Gör
                             </div>
                         </div>
                         {/* Açıklama Başlığı */}
@@ -142,6 +148,8 @@ export default function EventDetailPage() {
                                 <button
                                     onClick={handlePurchase}
                                     className="w-full mt-6 bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-4 rounded-xl transition-all transform hover:scale-[1.02] shadow-[0_0_20px_rgba(250,204,21,0.3)]"
+                                    aria-label={event.salesType === 'external' ? 'Bilet Sitesine Git' : 'Bilet Satın Al'}
+                                    title={event.salesType === 'external' ? 'Bilet Sitesine Git' : 'Bilet Satın Al'}
                                 >
                                     {event.salesType === 'external' ? 'Bilet Sitesine Git' : 'Bilet Satın Al'}
                                 </button>
@@ -158,11 +166,19 @@ export default function EventDetailPage() {
                                 </h3>
                                 <p className="text-gray-300 mb-4">{event.location}</p>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button className="flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 text-white py-2 rounded-lg text-sm transition-colors">
+                                    <button
+                                        className="flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 text-white py-2 rounded-lg text-sm transition-colors"
+                                        aria-label="Yol Tarifi"
+                                        title="Yol Tarifi"
+                                    >
                                         <Navigation className="w-4 h-4 mr-2" />
                                         Yol Tarifi
                                     </button>
-                                    <button className="flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 text-white py-2 rounded-lg text-sm transition-colors">
+                                    <button
+                                        className="flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 text-white py-2 rounded-lg text-sm transition-colors"
+                                        aria-label="Ara"
+                                        title="Ara"
+                                    >
                                         <Phone className="w-4 h-4 mr-2" />
                                         Ara
                                     </button>
@@ -179,7 +195,11 @@ export default function EventDetailPage() {
                                         <div className="text-xs text-gray-500">Resmi Organizatör</div>
                                     </div>
                                 </div>
-                                <button className="text-neutral-400 hover:text-white">
+                                <button
+                                    className="text-neutral-400 hover:text-white"
+                                    aria-label="Paylaş"
+                                    title="Paylaş"
+                                >
                                     <Share2 className="w-5 h-5" />
                                 </button>
                             </div>
@@ -188,6 +208,36 @@ export default function EventDetailPage() {
                 </div>
             </div>
             <Footer />
+
+
+            {/* Lightbox Modal */}
+            {isImageModalOpen && (
+                <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/98 p-2"
+                    onClick={() => setIsImageModalOpen(false)}
+                >
+                    <button
+                        className="absolute top-6 right-6 text-white text-3xl"
+                        onClick={() => setIsImageModalOpen(false)}
+                        aria-label="Kapat"
+                    >
+                        ✕
+                    </button>
+
+                    <div
+                        className="relative w-full h-full flex items-center justify-center"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <Image
+                            src={event.imageUrl || 'https://via.placeholder.com/800x600'}
+                            alt={event.title}
+                            fill
+                            className="object-contain animate-in zoom-in duration-200"
+                            unoptimized
+                        />
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

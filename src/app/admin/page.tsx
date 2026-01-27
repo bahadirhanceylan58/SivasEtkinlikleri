@@ -18,7 +18,9 @@ import {
     Minus,
     Upload,
     Globe,
-    Eye
+    Eye,
+    Tag,
+    Percent
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -33,7 +35,7 @@ import { db, storage } from '@/lib/firebase';
 export default function AdminPage() {
     const { user, loading, isAdmin } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'events' | 'applications'>('events');
+    const [activeTab, setActiveTab] = useState<'events' | 'applications' | 'discounts'>('events');
     const [eventViewMode, setEventViewMode] = useState<'list' | 'form'>('list');
 
     // Form States
@@ -58,6 +60,21 @@ export default function AdminPage() {
     const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false);
     const [selectedEventTitle, setSelectedEventTitle] = useState('');
 
+    // Discount Codes State
+    const [discountCodes, setDiscountCodes] = useState<any[]>([]);
+    const [discountFormVisible, setDiscountFormVisible] = useState(false);
+    const [discountFormData, setDiscountFormData] = useState({
+        code: '',
+        type: 'percentage' as 'percentage' | 'fixed',
+        value: 0,
+        maxUsage: 0,
+        maxUsagePerUser: 1,
+        validFrom: '',
+        validUntil: '',
+        minPurchaseAmount: 0,
+        description: ''
+    });
+
     // Flatten Categories for Dropdown
     const allSubCategories = CATEGORIES.flatMap(cat =>
         cat.sub.map(sub => ({ name: sub, parentId: cat.id, parentName: cat.name }))
@@ -70,6 +87,7 @@ export default function AdminPage() {
         }
         fetchEvents();
         fetchApplications();
+        fetchDiscountCodes();
     }, []);
 
     useEffect(() => {
@@ -90,6 +108,68 @@ export default function AdminPage() {
         const querySnapshot = await getDocs(collection(db, "club_applications"));
         const appsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setApplications(appsList);
+    };
+
+    const fetchDiscountCodes = async () => {
+        const querySnapshot = await getDocs(collection(db, "discountCodes"));
+        const codesList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setDiscountCodes(codesList);
+    };
+
+    const handleCreateDiscountCode = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await addDoc(collection(db, "discountCodes"), {
+                ...discountFormData,
+                code: discountFormData.code.toUpperCase(),
+                usedCount: 0,
+                isActive: true,
+                createdAt: new Date(),
+                createdBy: user?.uid || 'admin'
+            });
+            alert('İndirim kodu oluşturuldu!');
+            setDiscountFormVisible(false);
+            setDiscountFormData({
+                code: '',
+                type: 'percentage',
+                value: 0,
+                maxUsage: 0,
+                maxUsagePerUser: 1,
+                validFrom: '',
+                validUntil: '',
+                minPurchaseAmount: 0,
+                description: ''
+            });
+            fetchDiscountCodes();
+        } catch (error) {
+            console.error("Error creating discount code:", error);
+            alert('Kod oluşturulurken hata oluştu.');
+        }
+    };
+
+    const handleToggleCodeStatus = async (codeId: string, currentStatus: boolean) => {
+        try {
+            await updateDoc(doc(db, "discountCodes", codeId), {
+                isActive: !currentStatus
+            });
+            fetchDiscountCodes();
+        } catch (error) {
+            console.error("Error toggling code status:", error);
+        }
+    };
+
+    const handleDeleteCode = async (codeId: string) => {
+        if (confirm('Bu kodu silmek istediğinize emin misiniz?')) {
+            try {
+                await updateDoc(doc(db, "discountCodes", codeId), {
+                    isActive: false
+                });
+                alert('Kod devre dışı bırakıldı.');
+                fetchDiscountCodes();
+            } catch (error) {
+                console.error("Error deleting code:", error);
+            }
+        }
     };
 
     const handleUpdateStatus = async (id: string, status: 'approved' | 'rejected') => {
@@ -276,6 +356,7 @@ export default function AdminPage() {
                     <button
                         onClick={() => { setActiveTab('events'); setEventViewMode('list'); fetchEvents(); }}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'events' ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                        aria-label="Etkinlik Yönetimi"
                     >
                         <Calendar className="w-5 h-5" />
                         Etkinlik Yönetimi
@@ -283,11 +364,23 @@ export default function AdminPage() {
                     <button
                         onClick={() => { setActiveTab('applications'); fetchApplications(); }}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'applications' ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                        aria-label="Kulüp Başvuruları"
                     >
                         <Users className="w-5 h-5" />
                         Kulüp Başvuruları
                         {applications.some(a => a.status === 'pending') && (
                             <span className="ml-auto w-2 h-2 rounded-full bg-red-500"></span>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('discounts'); fetchDiscountCodes(); }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'discounts' ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                        aria-label="İndirim Kodları"
+                    >
+                        <Tag className="w-5 h-5" />
+                        İndirim Kodları
+                        {discountCodes.filter(c => c.isActive).length > 0 && (
+                            <span className="ml-auto text-xs bg-green-500/20 text-green-500 px-2 py-0.5 rounded">{discountCodes.filter(c => c.isActive).length}</span>
                         )}
                     </button>
                 </nav>
@@ -304,12 +397,21 @@ export default function AdminPage() {
             <main className="flex-1 overflow-y-auto">
                 <header className="h-16 border-b border-white/10 flex items-center justify-between px-8 bg-black/50 backdrop-blur-md sticky top-0 z-10">
                     <h1 className="text-xl font-bold">
-                        {activeTab === 'events' ? (eventViewMode === 'list' ? 'Etkinlik Listesi' : (editingId ? 'Etkinlik Düzenle' : 'Yeni Etkinlik')) : 'Kulüp Başvuruları'}
+                        {activeTab === 'events'
+                            ? (eventViewMode === 'list' ? 'Etkinlik Listesi' : (editingId ? 'Etkinlik Düzenle' : 'Yeni Etkinlik'))
+                            : activeTab === 'discounts'
+                                ? 'İndirim Kodları Yönetimi'
+                                : 'Kulüp Başvuruları'}
                     </h1>
                     <div className="flex items-center gap-4">
                         {activeTab === 'events' && eventViewMode === 'list' && (
-                            <button onClick={() => { resetForm(); setEventViewMode('form'); }} className="btn btn-sm bg-primary text-black hover:bg-primary/90 font-bold px-4 py-2 rounded-lg flex items-center gap-2">
+                            <button onClick={() => { resetForm(); setEventViewMode('form'); }} className="btn btn-sm bg-primary text-black hover:bg-primary/90 font-bold px-4 py-2 rounded-lg flex items-center gap-2" aria-label="Yeni Ekle">
                                 <Plus className="w-4 h-4" /> Yeni Ekle
+                            </button>
+                        )}
+                        {activeTab === 'discounts' && (
+                            <button onClick={() => setDiscountFormVisible(!discountFormVisible)} className="btn btn-sm bg-primary text-black hover:bg-primary/90 font-bold px-4 py-2 rounded-lg flex items-center gap-2" aria-label="Yeni Kod">
+                                <Plus className="w-4 h-4" /> {discountFormVisible ? 'İptal' : 'Yeni Kod'}
                             </button>
                         )}
                         {activeTab === 'events' && eventViewMode === 'form' && (
@@ -347,7 +449,7 @@ export default function AdminPage() {
                                                         <Link href={`/etkinlik/${event.id}`} target="_blank" className="p-2 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white rounded-lg transition-all" aria-label="Görüntüle">
                                                             <Eye className="w-4 h-4" />
                                                         </Link>
-                                                        <button onClick={() => fetchParticipants(event.id, event.title)} className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-all" title="Katılımcılar">
+                                                        <button onClick={() => fetchParticipants(event.id, event.title)} className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-all" title="Katılımcılar" aria-label="Katılımcılar">
                                                             <Users className="w-4 h-4" />
                                                         </button>
                                                         <button onClick={() => handleEditEvent(event)} aria-label="Düzenle" className="p-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-all">
@@ -379,6 +481,7 @@ export default function AdminPage() {
                                         onChange={(e) => setTitle(e.target.value)}
                                         className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
                                         placeholder="Örn: Melek Mosso Konseri"
+                                        aria-label="Etkinlik Adı Giriş Alanı"
                                     />
                                 </div>
                                 {/* ... Other fields ... */}
@@ -408,6 +511,7 @@ export default function AdminPage() {
                                             value={date}
                                             onChange={(e) => setDate(e.target.value)}
                                             className="w-full bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-white focus:ring-2 focus:ring-yellow-400 focus:outline-none [color-scheme:dark]"
+                                            aria-label="Tarih ve Saat Giriş Alanı"
                                         />
                                     </div>
                                 </div>
@@ -419,13 +523,14 @@ export default function AdminPage() {
                                         value={location}
                                         onChange={(e) => setLocation(e.target.value)}
                                         className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
+                                        aria-label="Konum Giriş Alanı"
                                     />
                                 </div>
                                 {/* Ticket Types */}
                                 <div className="space-y-3">
                                     <label className="text-sm font-medium text-gray-300 flex justify-between items-center">
                                         Bilet Kategorileri
-                                        <button type="button" onClick={handleAddTicket} className="text-xs text-primary hover:underline flex items-center gap-1">
+                                        <button type="button" onClick={handleAddTicket} className="text-xs text-primary hover:underline flex items-center gap-1" aria-label="Kategori Ekle">
                                             <Plus size={12} /> Kategori Ekle
                                         </button>
                                     </label>
@@ -438,6 +543,7 @@ export default function AdminPage() {
                                                 onChange={(e) => handleTicketChange(index, 'name', e.target.value)}
                                                 className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
                                                 required
+                                                aria-label="Bilet Kategori Adı"
                                             />
                                             <input
                                                 type="number"
@@ -447,9 +553,10 @@ export default function AdminPage() {
                                                 className="w-24 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
                                                 required
                                                 min="0"
+                                                aria-label="Bilet Fiyatı"
                                             />
                                             {ticketTypes.length > 1 && (
-                                                <button type="button" onClick={() => handleRemoveTicket(index)} className="p-3 text-red-400 hover:bg-white/5 rounded-xl transition-colors"><Trash2 size={18} /></button>
+                                                <button type="button" onClick={() => handleRemoveTicket(index)} className="p-3 text-red-400 hover:bg-white/5 rounded-xl transition-colors" aria-label="Bilet Kategorisini Sil"><Trash2 size={18} /></button>
                                             )}
                                         </div>
                                     ))}
@@ -468,7 +575,7 @@ export default function AdminPage() {
                                         </label>
                                     </div>
                                     {salesType === 'external' && (
-                                        <input type="url" required value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="Link" className="w-full mt-2 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white" />
+                                        <input type="url" required value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="Link" className="w-full mt-2 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white" aria-label="Dış Bağlantı Linki" />
                                     )}
                                 </div>
                                 <div className="space-y-2">
@@ -476,7 +583,7 @@ export default function AdminPage() {
                                     <input type="file" accept="image/*" onChange={handleImageChange} className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-primary file:text-black hover:file:bg-primary/90" />
                                 </div>
 
-                                <button type="submit" disabled={submitting} className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all shadow-lg">
+                                <button type="submit" disabled={submitting} className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all shadow-lg" aria-label="İşlem Butonu">
                                     {submitting ? 'İşleniyor...' : (editingId ? 'Güncelle' : 'Oluştur')}
                                 </button>
                             </form>
@@ -531,6 +638,206 @@ export default function AdminPage() {
                                     </table>
                                 </div>
                             )}
+                        </div>
+                    )}
+
+                    {/* DISCOUNT CODES TAB */}
+                    {activeTab === 'discounts' && (
+                        <div className="space-y-6">
+                            {/* Create Form */}
+                            {discountFormVisible && (
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-8 animate-fadeIn">
+                                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                                        <Tag className="w-6 h-6 text-primary" />
+                                        Yeni İndirim Kodu Oluştur
+                                    </h2>
+                                    <form onSubmit={handleCreateDiscountCode} className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-300 mb-1 block">Kod</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    value={discountFormData.code}
+                                                    onChange={(e) => setDiscountFormData({ ...discountFormData, code: e.target.value.toUpperCase() })}
+                                                    placeholder="YENIYIL2026"
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white uppercase focus:outline-none focus:border-primary/50"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-300 mb-1 block">İndirim Türü</label>
+                                                <select
+                                                    value={discountFormData.type}
+                                                    onChange={(e) => setDiscountFormData({ ...discountFormData, type: e.target.value as 'percentage' | 'fixed' })}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
+                                                >
+                                                    <option value="percentage">Yüzde (%)</option>
+                                                    <option value="fixed">Sabit Tutar (₺)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-300 mb-1 block">
+                                                    {discountFormData.type === 'percentage' ? 'İndirim Yüzdesi (%)' : 'İndirim Tutarı (₺)'}
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    required
+                                                    min="0"
+                                                    max={discountFormData.type === 'percentage' ? 100 : undefined}
+                                                    value={discountFormData.value}
+                                                    onChange={(e) => setDiscountFormData({ ...discountFormData, value: Number(e.target.value) })}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-300 mb-1 block">Toplam Kullanım Limiti</label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={discountFormData.maxUsage}
+                                                    onChange={(e) => setDiscountFormData({ ...discountFormData, maxUsage: Number(e.target.value) })}
+                                                    placeholder="0 = Sınırsız"
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-300 mb-1 block">Kişi Başına Limit</label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={discountFormData.maxUsagePerUser}
+                                                    onChange={(e) => setDiscountFormData({ ...discountFormData, maxUsagePerUser: Number(e.target.value) })}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-300 mb-1 block">Geçerlilik Başlangıcı</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    required
+                                                    value={discountFormData.validFrom}
+                                                    onChange={(e) => setDiscountFormData({ ...discountFormData, validFrom: e.target.value })}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 [color-scheme:dark]"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-300 mb-1 block">Geçerlilik Bitişi</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    required
+                                                    value={discountFormData.validUntil}
+                                                    onChange={(e) => setDiscountFormData({ ...discountFormData, validUntil: e.target.value })}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 [color-scheme:dark]"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-300 mb-1 block">Minimum Alışveriş Tutarı (₺)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={discountFormData.minPurchaseAmount}
+                                                onChange={(e) => setDiscountFormData({ ...discountFormData, minPurchaseAmount: Number(e.target.value) })}
+                                                placeholder="0 = Limit yok"
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-300 mb-1 block">Açıklama (Opsiyonel)</label>
+                                            <textarea
+                                                rows={2}
+                                                value={discountFormData.description}
+                                                onChange={(e) => setDiscountFormData({ ...discountFormData, description: e.target.value })}
+                                                placeholder="Bu kod neyle ilgili?"
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 resize-none"
+                                            ></textarea>
+                                        </div>
+
+                                        <button type="submit" className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all">
+                                            Kodu Oluştur
+                                        </button>
+                                    </form>
+                                </div>
+                            )}
+
+                            {/* Codes List */}
+                            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+                                {discountCodes.length === 0 ? (
+                                    <div className="p-8 text-center text-gray-500">Henüz indirim kodu oluşturulmamış.</div>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-sm">
+                                            <thead className="bg-black/20 text-gray-400 font-medium">
+                                                <tr>
+                                                    <th className="px-6 py-4">Kod</th>
+                                                    <th className="px-6 py-4">İndirim</th>
+                                                    <th className="px-6 py-4">Kullanım</th>
+                                                    <th className="px-6 py-4">Geçerlilik</th>
+                                                    <th className="px-6 py-4">Durum</th>
+                                                    <th className="px-6 py-4 text-right">İşlemler</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5">
+                                                {discountCodes.map((code) => (
+                                                    <tr key={code.id} className="hover:bg-neutral-800 transition-colors">
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex items-center gap-2">
+                                                                <Tag className="w-4 h-4 text-primary" />
+                                                                <span className="font-bold text-white">{code.code}</span>
+                                                            </div>
+                                                            {code.description && (
+                                                                <p className="text-xs text-gray-500 mt-1">{code.description}</p>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-gray-300">
+                                                            {code.type === 'percentage' ? (
+                                                                <span className="flex items-center gap-1">
+                                                                    <Percent className="w-4 h-4" />
+                                                                    {code.value}%
+                                                                </span>
+                                                            ) : (
+                                                                <span>{code.value}₺</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-gray-300">
+                                                            {code.usedCount || 0} / {code.maxUsage === 0 ? '∞' : code.maxUsage}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-gray-300 text-xs">
+                                                            {code.validFrom && new Date(code.validFrom).toLocaleDateString('tr-TR')}
+                                                            {' - '}
+                                                            {code.validUntil && new Date(code.validUntil).toLocaleDateString('tr-TR')}
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <span className={`px-2 py-1 rounded text-xs font-bold border ${code.isActive ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>
+                                                                {code.isActive ? 'Aktif' : 'Pasif'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                <button
+                                                                    onClick={() => handleToggleCodeStatus(code.id, code.isActive)}
+                                                                    className={`p-2 rounded-lg transition-all ${code.isActive ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white' : 'bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white'}`}
+                                                                    title={code.isActive ? 'Devre Dışı Bırak' : 'Aktifleştir'}
+                                                                >
+                                                                    {code.isActive ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
