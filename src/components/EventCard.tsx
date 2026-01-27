@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { MapPin, Clock, ArrowRight, Calendar, ExternalLink } from 'lucide-react';
 import { Event } from "@/data/mockData";
+import FavoriteButton from './FavoriteButton';
 
 const EventCard: React.FC<{ event: Event }> = ({ event }) => {
     // Format date safely
@@ -21,14 +22,21 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
             <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(250,204,21,0.15)] flex flex-col h-full">
 
                 {/* Image Section */}
-                <div className="relative h-48 w-full overflow-hidden">
-                    <Image
-                        src={event.imageUrl}
-                        alt={event.title}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-110"
-                        unoptimized
-                    />
+                <div className="relative h-48 w-full overflow-hidden bg-neutral-800">
+                    {event.imageUrl ? (
+                        <Image
+                            src={event.imageUrl}
+                            alt={event.title}
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                            unoptimized
+                        />
+                    ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-500">
+                            <span className="text-4xl mb-2 opacity-50">📷</span>
+                            <span className="text-xs font-medium uppercase tracking-wider opacity-70">Görsel Yok</span>
+                        </div>
+                    )}
 
                     {/* Category Badge */}
                     <div className="absolute top-4 left-4">
@@ -38,8 +46,11 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
                     </div>
 
                     {/* Date Badge (Top Right) */}
-                    <div className="absolute top-4 right-4 bg-primary text-black font-bold px-3 py-1 rounded-lg text-sm shadow-lg">
-                        {formattedDate}
+                    <div className="absolute top-4 right-4 flex flex-col gap-2 items-end z-10">
+                        <div className="bg-primary text-black font-bold px-3 py-1 rounded-lg text-sm shadow-lg w-fit">
+                            {formattedDate}
+                        </div>
+                        <FavoriteButton eventId={event.id} />
                     </div>
                 </div>
 

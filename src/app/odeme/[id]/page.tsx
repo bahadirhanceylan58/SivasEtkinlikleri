@@ -6,7 +6,7 @@ import { doc, getDoc, arrayUnion, setDoc, addDoc, collection } from 'firebase/fi
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import Image from 'next/image';
-import { Phone, User, Ticket, Users as UsersIcon, Armchair } from 'lucide-react';
+import { Phone, User, Ticket, Users as UsersIcon, Armchair, TrendingDown } from 'lucide-react';
 import DiscountCodeInput from '@/components/DiscountCodeInput';
 import SeatMap, { Seat } from '@/components/SeatMap';
 import { DiscountValidationResult } from '@/types/ticketing';
@@ -73,7 +73,7 @@ export default function PaymentPage() {
                 const docRef = doc(db, 'events', id as string);
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
-                    setEvent({ id: docSnap.id, ...docSnap.data() });
+                    setEvent({ id: docSnap.id, ...docSnap.data() } as Event);
                 }
             } catch (error) {
                 console.error("Error fetching event:", error);

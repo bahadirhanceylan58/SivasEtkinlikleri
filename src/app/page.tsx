@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import EventCard from "@/components/EventCard";
 import Hero from "@/components/Hero";
-import FilterBar from "@/components/FilterBar";
+import EventFilters from "@/components/EventFilters";
 import { Event } from "@/data/mockData"; // Keeping Event interface, removing EVENTS
 import { useState, useEffect } from "react";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
@@ -12,8 +12,15 @@ import { db } from "@/lib/firebase";
 import { Sparkles, Calendar } from "lucide-react";
 
 export default function Home() {
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
+  // Filter State
+  const [filters, setFilters] = useState({
+    search: '',
+    category: 'all',
+    date: 'all',
+    minPrice: '',
+    maxPrice: ''
+  });
+
   const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,14 +53,56 @@ export default function Home() {
 
   // 2. Upcoming Events: Logic for sorting by date and filtering
   const upcomingEvents = allEvents.filter((event) => {
-    // 1. Filter by Main Category
-    if (selectedCategory !== "all" && event.category !== selectedCategory) {
-      return false;
+    // 1. Category Filter
+    // Note: EventFilters component passes subcategory ID for specific subs, or parent ID for groups.
+    // Simplifying match logic: if filter is 'all', pass. If event.category or event.subCategory includes filter string (naive match)
+    // Better approach: Check if filter matches category ID OR subcategory name
+    if (filters.category !== "all") {
+      // Ideally we match ID, but for subcategories we might only have names in mock data. 
+      // Let's assume filter value matches event.category (parent) or event.subCategory
+      const catMatch = event.category === filters.category;
+      const subMatch = event.subCategory === filters.category;
+      if (!catMatch && !subMatch) return false;
     }
 
-    // 2. Filter by Sub Category
-    if (selectedSubCategory && event.subCategory !== selectedSubCategory) {
-      return false;
+    // 2. Search Filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      const matchesTitle = event.title.toLowerCase().includes(searchLower);
+      const matchesLoc = event.location.toLowerCase().includes(searchLower);
+      // const matchesArtist = ... if we had artist field
+      if (!matchesTitle && !matchesLoc) return false;
+    }
+
+    // 3. Date Filter
+    if (filters.date !== 'all') {
+      const eventDate = new Date(event.date);
+      const today = new Date();
+      const isToday = eventDate.getDate() === today.getDate() && eventDate.getMonth() === today.getMonth() && eventDate.getFullYear() === today.getFullYear();
+
+      if (filters.date === 'today' && !isToday) return false;
+
+      if (filters.date === 'weekend') {
+        const day = eventDate.getDay();
+        if (day !== 0 && day !== 6) return false; // 0=Sunday, 6=Saturday
+      }
+
+      if (filters.date === 'week') {
+        const nextWeek = new Date();
+        nextWeek.setDate(today.getDate() + 7);
+        if (eventDate < today || eventDate > nextWeek) return false;
+      }
+    }
+
+    // 4. Price Filter
+    if (filters.minPrice || filters.maxPrice) {
+      // Find cheapest ticket price
+      const minTicketPrice = event.ticketTypes && event.ticketTypes.length > 0
+        ? Math.min(...event.ticketTypes.map((t: any) => t.price))
+        : 0;
+
+      if (filters.minPrice && minTicketPrice < Number(filters.minPrice)) return false;
+      if (filters.maxPrice && minTicketPrice > Number(filters.maxPrice)) return false;
     }
 
     return true;
@@ -84,12 +133,9 @@ export default function Home() {
       </section>
 
       {/* Filter Bar for Upcoming Events */}
-      <FilterBar
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
-        selectedSubCategory={selectedSubCategory}
-        setSelectedSubCategory={setSelectedSubCategory}
-      />
+      <div className="container mx-auto px-4 -mb-8 relative z-10">
+        <EventFilters filters={filters} setFilters={setFilters} />
+      </div>
 
       {/* SECTION 2: Upcoming Events */}
       <section id="etkinlikler" className="py-12 min-h-[50vh]">
@@ -98,11 +144,7 @@ export default function Home() {
             <div>
               <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                 <Calendar className="w-6 h-6 text-gray-400" />
-                {selectedCategory === "all"
-                  ? "Yaklaşan Etkinlikler"
-                  : selectedSubCategory
-                    ? `${selectedSubCategory} Etkinlikleri`
-                    : "Kategori Sonuçları"}
+                {filters.category !== 'all' ? 'Arama Sonuçları' : 'Yaklaşan Etkinlikler'}
               </h2>
               <div className="h-1 w-full md:w-48 bg-white/10 mt-2 rounded-full relative overflow-hidden">
                 <div className="absolute top-0 left-0 h-full w-1/3 bg-primary/50"></div>
@@ -129,8 +171,13 @@ export default function Home() {
                   <p className="text-xl font-medium mb-2">Henüz aktif etkinlik yok.</p>
                   <button
                     onClick={() => {
-                      setSelectedCategory("all");
-                      setSelectedSubCategory(null);
+                      setFilters({
+                        search: '',
+                        category: 'all',
+                        date: 'all',
+                        minPrice: '',
+                        maxPrice: ''
+                      });
                     }}
                     className="text-primary hover:underline"
                   >
@@ -144,7 +191,7 @@ export default function Home() {
       </section>
 
       <Footer />
-    </main>
+    </main >
   );
 }
 

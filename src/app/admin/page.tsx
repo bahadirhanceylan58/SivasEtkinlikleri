@@ -3,39 +3,35 @@
 import {
     Users,
     Calendar,
-    Clock,
+    LayoutDashboard,
+    Tag,
+    QrCode,
     Check,
     X,
-    LogOut,
-    LayoutDashboard,
-    Search,
-    Bell,
-    PlusCircle,
-    Image as ImageIcon,
+    Eye,
     Trash2,
     Edit2,
     Plus,
-    Minus,
-    Upload,
-    Globe,
-    Eye,
-    Tag,
-    Percent
+    Globe
 } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { CATEGORIES } from '@/data/mockData';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, Timestamp, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
+
+// New Components
+import AdminDashboard from '@/components/admin/AdminDashboard';
+import UserManagement from '@/components/admin/UserManagement';
+import TicketValidator from '@/components/admin/TicketValidator';
 
 export default function AdminPage() {
     const { user, loading, isAdmin } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'events' | 'applications' | 'discounts'>('events');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'applications' | 'discounts' | 'users' | 'validator'>('dashboard');
     const [eventViewMode, setEventViewMode] = useState<'list' | 'form'>('list');
 
     // Form States
@@ -55,7 +51,7 @@ export default function AdminPage() {
     const [applications, setApplications] = useState<any[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
 
-    // Participants Modal State
+    // Participants State (Simplified)
     const [participants, setParticipants] = useState<any[]>([]);
     const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false);
     const [selectedEventTitle, setSelectedEventTitle] = useState('');
@@ -75,12 +71,11 @@ export default function AdminPage() {
         description: ''
     });
 
-    // Flatten Categories for Dropdown
+    // Flatten Categories
     const allSubCategories = CATEGORIES.flatMap(cat =>
         cat.sub.map(sub => ({ name: sub, parentId: cat.id, parentName: cat.name }))
     );
 
-    // Set default subcategory on mount
     useEffect(() => {
         if (allSubCategories.length > 0 && !subCategory) {
             setSubCategory(allSubCategories[0].name);
@@ -116,6 +111,7 @@ export default function AdminPage() {
         setDiscountCodes(codesList);
     };
 
+    // --- Discount Code logic ---
     const handleCreateDiscountCode = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -130,15 +126,8 @@ export default function AdminPage() {
             alert('İndirim kodu oluşturuldu!');
             setDiscountFormVisible(false);
             setDiscountFormData({
-                code: '',
-                type: 'percentage',
-                value: 0,
-                maxUsage: 0,
-                maxUsagePerUser: 1,
-                validFrom: '',
-                validUntil: '',
-                minPurchaseAmount: 0,
-                description: ''
+                code: '', type: 'percentage', value: 0, maxUsage: 0, maxUsagePerUser: 1,
+                validFrom: '', validUntil: '', minPurchaseAmount: 0, description: ''
             });
             fetchDiscountCodes();
         } catch (error) {
@@ -149,78 +138,108 @@ export default function AdminPage() {
 
     const handleToggleCodeStatus = async (codeId: string, currentStatus: boolean) => {
         try {
-            await updateDoc(doc(db, "discountCodes", codeId), {
-                isActive: !currentStatus
-            });
+            await updateDoc(doc(db, "discountCodes", codeId), { isActive: !currentStatus });
             fetchDiscountCodes();
-        } catch (error) {
-            console.error("Error toggling code status:", error);
-        }
+        } catch (error) { console.error("Error toggling:", error); }
     };
 
     const handleDeleteCode = async (codeId: string) => {
         if (confirm('Bu kodu silmek istediğinize emin misiniz?')) {
             try {
-                await updateDoc(doc(db, "discountCodes", codeId), {
-                    isActive: false
-                });
+                await updateDoc(doc(db, "discountCodes", codeId), { isActive: false });
                 alert('Kod devre dışı bırakıldı.');
                 fetchDiscountCodes();
-            } catch (error) {
-                console.error("Error deleting code:", error);
-            }
+            } catch (error) { console.error("Error deleting:", error); }
         }
     };
 
+    // --- Application Logic ---
     const handleUpdateStatus = async (id: string, status: 'approved' | 'rejected') => {
         try {
-            await updateDoc(doc(db, "club_applications", id), {
-                status: status,
-                updatedAt: new Date()
-            });
-
+            await updateDoc(doc(db, "club_applications", id), { status: status, updatedAt: new Date() });
             if (status === 'approved') {
                 const appDoc = await getDocs(query(collection(db, "club_applications"), where("__name__", "==", id)));
                 if (!appDoc.empty) {
                     const appData = appDoc.docs[0].data();
                     await addDoc(collection(db, 'clubs'), {
-                        name: appData.name,
-                        description: appData.description,
-                        category: appData.category,
-                        imageUrl: appData.imageUrl,
-                        email: appData.email,
-                        adminId: appData.userId,
-                        memberCount: 1,
-                        createdAt: new Date()
+                        name: appData.name, description: appData.description, category: appData.category,
+                        imageUrl: appData.imageUrl, email: appData.email, adminId: appData.userId,
+                        memberCount: 1, createdAt: new Date()
                     });
                 }
             }
-
-            alert(`Başvuru ${status === 'approved' ? 'onaylandı ve kulüp oluşturuldu' : 'reddedildi'}.`);
+            alert(`Başvuru ${status === 'approved' ? 'onaylandı' : 'reddedildi'}.`);
             fetchApplications();
-        } catch (error) {
-            console.error("Error updating status:", error);
-            alert("Durum güncellenirken hata oluştu.");
-        }
+        } catch (error) { console.error("Error:", error); alert("Hata oluştu."); }
     };
 
+    // --- Event Form Logic ---
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             setImageFile(file);
-            const previewUrl = URL.createObjectURL(file);
-            setImageUrl(previewUrl);
+            setImageUrl(URL.createObjectURL(file));
         }
     };
 
-    const handleAddTicket = () => {
-        setTicketTypes([...ticketTypes, { name: '', price: 0 }]);
+    const handleCreateOrUpdateEvent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSubmitting(true);
+        const selectedSub = allSubCategories.find(s => s.name === subCategory);
+        if (!selectedSub) { alert('Kategori seçimi geçersiz.'); setSubmitting(false); return; }
+
+        try {
+            let finalImageUrl = imageUrl;
+            if (imageFile) {
+                const storageRef = ref(storage, `events/${Date.now()}_${imageFile.name}`);
+                const snapshot = await uploadBytes(storageRef, imageFile);
+                finalImageUrl = await getDownloadURL(snapshot.ref);
+            }
+
+            const eventData = {
+                title, category: selectedSub.parentId, subCategory: selectedSub.name, date,
+                location, imageUrl: finalImageUrl, ticketTypes, salesType,
+                externalUrl: salesType === 'external' ? externalUrl : null, updatedAt: new Date()
+            };
+
+            if (editingId) {
+                await updateDoc(doc(db, "events", editingId), eventData);
+                alert('Etkinlik güncellendi!');
+            } else {
+                await addDoc(collection(db, "events"), { ...eventData, createdAt: new Date() });
+                alert('Etkinlik oluşturuldu!');
+            }
+            setEventViewMode('list'); fetchEvents(); resetForm();
+        } catch (error) { console.error("Error:", error); alert('Hata oluştu.'); }
+        finally { setSubmitting(false); }
     };
 
-    const handleRemoveTicket = (index: number) => {
-        const newTickets = [...ticketTypes];
-        newTickets.splice(index, 1);
-        setTicketTypes(newTickets);
+    const handleDeleteEvent = async (id: string) => {
+        if (confirm('Bu etkinliği silmek istediğinize emin misiniz?')) {
+            try { await deleteDoc(doc(db, "events", id)); fetchEvents(); alert('Silindi.'); }
+            catch (error) { console.error("Error:", error); alert('Hata.'); }
+        }
+    };
+
+    const handleEditEvent = (event: any) => {
+        setEditingId(event.id); setTitle(event.title); setSubCategory(event.subCategory || allSubCategories[0].name);
+        setDate(event.date); setLocation(event.location); setTicketTypes(event.ticketTypes || [{ name: 'Standart', price: 0 }]);
+        setSalesType(event.salesType || 'internal'); setExternalUrl(event.externalUrl || ''); setImageUrl(event.imageUrl);
+        setActiveTab('events'); setEventViewMode('form');
+    };
+
+    const fetchParticipants = async (eventId: string, eventTitle: string) => {
+        try {
+            const querySnapshot = await getDocs(collection(db, "events", eventId, "reservations"));
+            setParticipants(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            setSelectedEventTitle(eventTitle); setIsParticipantsModalOpen(true);
+        } catch (error) { console.error("Error:", error); alert("Liste alınamadı."); }
+    };
+
+    const resetForm = () => {
+        setEditingId(null); setTitle(''); setSubCategory(allSubCategories[0]?.name || ''); setDate('');
+        setLocation(''); setTicketTypes([{ name: 'Genel Giriş', price: 0 }]); setSalesType('internal');
+        setExternalUrl(''); setImageFile(null); setImageUrl('');
     };
 
     const handleTicketChange = (index: number, field: 'name' | 'price', value: any) => {
@@ -230,118 +249,7 @@ export default function AdminPage() {
         setTicketTypes(newTickets);
     };
 
-    const handleDeleteEvent = async (id: string) => {
-        if (confirm('Bu etkinliği silmek istediğinize emin misiniz?')) {
-            try {
-                await deleteDoc(doc(db, "events", id));
-                fetchEvents();
-                alert('Etkinlik silindi.');
-            } catch (error) {
-                console.error("Error deleting document: ", error);
-                alert('Silme hatası.');
-            }
-        }
-    };
-
-    const handleEditEvent = (event: any) => {
-        setEditingId(event.id);
-        setTitle(event.title);
-        setSubCategory(event.subCategory || allSubCategories[0].name);
-        setDate(event.date);
-        setLocation(event.location);
-        setTicketTypes(event.ticketTypes || [{ name: 'Standart', price: 0 }]);
-        setSalesType(event.salesType || 'internal');
-        setExternalUrl(event.externalUrl || '');
-        setImageUrl(event.imageUrl);
-        setActiveTab('events');
-        setEventViewMode('form');
-    };
-
-    const handleCreateOrUpdateEvent = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setSubmitting(true);
-
-        const selectedSub = allSubCategories.find(s => s.name === subCategory);
-        if (!selectedSub) {
-            alert('Kategori seçimi geçersiz.');
-            setSubmitting(false);
-            return;
-        }
-
-        try {
-            let finalImageUrl = imageUrl;
-
-            if (imageFile) {
-                const storageRef = ref(storage, `events/${Date.now()}_${imageFile.name}`);
-                const snapshot = await uploadBytes(storageRef, imageFile);
-                finalImageUrl = await getDownloadURL(snapshot.ref);
-            }
-
-            const eventData = {
-                title,
-                category: selectedSub.parentId,
-                subCategory: selectedSub.name,
-                date,
-                location,
-                imageUrl: finalImageUrl,
-                ticketTypes,
-                salesType,
-                externalUrl: salesType === 'external' ? externalUrl : null,
-                updatedAt: new Date()
-            };
-
-            if (editingId) {
-                await updateDoc(doc(db, "events", editingId), eventData);
-                alert('Etkinlik güncellendi!');
-            } else {
-                await addDoc(collection(db, "events"), {
-                    ...eventData,
-                    createdAt: new Date()
-                });
-                alert('Etkinlik başarıyla oluşturuldu!');
-            }
-
-            setEventViewMode('list');
-            fetchEvents();
-            resetForm();
-        } catch (error) {
-            console.error("Error creating/updating document: ", error);
-            const errorMessage = (error as any).message || 'Bilinmeyen bir hata oluştu.';
-            alert('Yükleme hatası: ' + errorMessage);
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const fetchParticipants = async (eventId: string, eventTitle: string) => {
-        try {
-            const querySnapshot = await getDocs(collection(db, "events", eventId, "reservations"));
-            const participantsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setParticipants(participantsList);
-            setSelectedEventTitle(eventTitle);
-            setIsParticipantsModalOpen(true);
-        } catch (error) {
-            console.error("Error fetching participants:", error);
-            alert("Katılımcı listesi alınamadı.");
-        }
-    };
-
-    const resetForm = () => {
-        setEditingId(null);
-        setTitle('');
-        setSubCategory(allSubCategories[0]?.name || '');
-        setDate('');
-        setLocation('');
-        setTicketTypes([{ name: 'Genel Giriş', price: 0 }]);
-        setSalesType('internal');
-        setExternalUrl('');
-        setImageFile(null);
-        setImageUrl('');
-    };
-
-    if (loading) {
-        return <div className="min-h-screen bg-black flex items-center justify-center text-white">Yükleniyor...</div>;
-    }
+    if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Yükleniyor...</div>;
 
     return (
         <div className="min-h-screen bg-black flex text-white font-sans">
@@ -353,36 +261,44 @@ export default function AdminPage() {
                 </div>
 
                 <nav className="flex-1 p-4 space-y-1">
-                    <button
+                    <SidebarButton
+                        active={activeTab === 'dashboard'}
+                        icon={<LayoutDashboard className="w-5 h-5" />}
+                        label="Dashboard"
+                        onClick={() => setActiveTab('dashboard')}
+                    />
+                    <SidebarButton
+                        active={activeTab === 'events'}
+                        icon={<Calendar className="w-5 h-5" />}
+                        label="Etkinlik Yönetimi"
                         onClick={() => { setActiveTab('events'); setEventViewMode('list'); fetchEvents(); }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'events' ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-                        aria-label="Etkinlik Yönetimi"
-                    >
-                        <Calendar className="w-5 h-5" />
-                        Etkinlik Yönetimi
-                    </button>
-                    <button
+                    />
+                    <SidebarButton
+                        active={activeTab === 'applications'}
+                        icon={<Users className="w-5 h-5" />}
+                        label="Kulüp Başvuruları"
                         onClick={() => { setActiveTab('applications'); fetchApplications(); }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'applications' ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-                        aria-label="Kulüp Başvuruları"
-                    >
-                        <Users className="w-5 h-5" />
-                        Kulüp Başvuruları
-                        {applications.some(a => a.status === 'pending') && (
-                            <span className="ml-auto w-2 h-2 rounded-full bg-red-500"></span>
-                        )}
-                    </button>
-                    <button
+                        notification={applications.some(a => a.status === 'pending')}
+                    />
+                    <SidebarButton
+                        active={activeTab === 'discounts'}
+                        icon={<Tag className="w-5 h-5" />}
+                        label="İndirim Kodları"
                         onClick={() => { setActiveTab('discounts'); fetchDiscountCodes(); }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'discounts' ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-                        aria-label="İndirim Kodları"
-                    >
-                        <Tag className="w-5 h-5" />
-                        İndirim Kodları
-                        {discountCodes.filter(c => c.isActive).length > 0 && (
-                            <span className="ml-auto text-xs bg-green-500/20 text-green-500 px-2 py-0.5 rounded">{discountCodes.filter(c => c.isActive).length}</span>
-                        )}
-                    </button>
+                        count={discountCodes.filter(c => c.isActive).length}
+                    />
+                    <SidebarButton
+                        active={activeTab === 'users'}
+                        icon={<Users className="w-5 h-5" />}
+                        label="Kullanıcılar"
+                        onClick={() => setActiveTab('users')}
+                    />
+                    <SidebarButton
+                        active={activeTab === 'validator'}
+                        icon={<QrCode className="w-5 h-5" />}
+                        label="Bilet Doğrulama"
+                        onClick={() => setActiveTab('validator')}
+                    />
                 </nav>
 
                 <div className="p-4 border-t border-white/10 space-y-1">
@@ -396,21 +312,22 @@ export default function AdminPage() {
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto">
                 <header className="h-16 border-b border-white/10 flex items-center justify-between px-8 bg-black/50 backdrop-blur-md sticky top-0 z-10">
-                    <h1 className="text-xl font-bold">
-                        {activeTab === 'events'
-                            ? (eventViewMode === 'list' ? 'Etkinlik Listesi' : (editingId ? 'Etkinlik Düzenle' : 'Yeni Etkinlik'))
-                            : activeTab === 'discounts'
-                                ? 'İndirim Kodları Yönetimi'
-                                : 'Kulüp Başvuruları'}
+                    <h1 className="text-xl font-bold capitalize">
+                        {activeTab === 'dashboard' && 'Genel Bakış'}
+                        {activeTab === 'events' && (eventViewMode === 'list' ? 'Etkinlik Listesi' : (editingId ? 'Etkinlik Düzenle' : 'Yeni Etkinlik'))}
+                        {activeTab === 'applications' && 'Kulüp Başvuruları'}
+                        {activeTab === 'discounts' && 'İndirim Kodları'}
+                        {activeTab === 'users' && 'Kullanıcı Yönetimi'}
+                        {activeTab === 'validator' && 'Bilet Doğrulama'}
                     </h1>
                     <div className="flex items-center gap-4">
                         {activeTab === 'events' && eventViewMode === 'list' && (
-                            <button onClick={() => { resetForm(); setEventViewMode('form'); }} className="btn btn-sm bg-primary text-black hover:bg-primary/90 font-bold px-4 py-2 rounded-lg flex items-center gap-2" aria-label="Yeni Ekle">
+                            <button onClick={() => { resetForm(); setEventViewMode('form'); }} className="btn btn-sm bg-primary text-black hover:bg-primary/90 font-bold px-4 py-2 rounded-lg flex items-center gap-2">
                                 <Plus className="w-4 h-4" /> Yeni Ekle
                             </button>
                         )}
                         {activeTab === 'discounts' && (
-                            <button onClick={() => setDiscountFormVisible(!discountFormVisible)} className="btn btn-sm bg-primary text-black hover:bg-primary/90 font-bold px-4 py-2 rounded-lg flex items-center gap-2" aria-label="Yeni Kod">
+                            <button onClick={() => setDiscountFormVisible(!discountFormVisible)} className="btn btn-sm bg-primary text-black hover:bg-primary/90 font-bold px-4 py-2 rounded-lg flex items-center gap-2">
                                 <Plus className="w-4 h-4" /> {discountFormVisible ? 'İptal' : 'Yeni Kod'}
                             </button>
                         )}
@@ -423,7 +340,12 @@ export default function AdminPage() {
                 </header>
 
                 <div className="p-8 space-y-8">
-                    {/* EVENTS TAB */}
+                    {activeTab === 'dashboard' && <AdminDashboard />}
+
+                    {activeTab === 'users' && <UserManagement />}
+
+                    {activeTab === 'validator' && <TicketValidator />}
+
                     {activeTab === 'events' && eventViewMode === 'list' && (
                         <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
                             <div className="overflow-x-auto">
@@ -439,23 +361,21 @@ export default function AdminPage() {
                                     <tbody className="divide-y divide-white/5">
                                         {events.map((event) => (
                                             <tr key={event.id} className="hover:bg-neutral-800 transition-colors group">
-                                                <td className="px-6 py-4 font-medium text-white">
-                                                    {event.title}
-                                                </td>
+                                                <td className="px-6 py-4 font-medium text-white">{event.title}</td>
                                                 <td className="px-6 py-4 text-gray-300">{event.date?.toString().replace('T', ' ')}</td>
                                                 <td className="px-6 py-4 text-gray-300">{event.subCategory}</td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <Link href={`/etkinlik/${event.id}`} target="_blank" className="p-2 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white rounded-lg transition-all" aria-label="Görüntüle">
+                                                        <Link href={`/etkinlik/${event.id}`} target="_blank" className="p-2 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white rounded-lg transition-all">
                                                             <Eye className="w-4 h-4" />
                                                         </Link>
-                                                        <button onClick={() => fetchParticipants(event.id, event.title)} className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-all" title="Katılımcılar" aria-label="Katılımcılar">
+                                                        <button onClick={() => fetchParticipants(event.id, event.title)} className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-all">
                                                             <Users className="w-4 h-4" />
                                                         </button>
-                                                        <button onClick={() => handleEditEvent(event)} aria-label="Düzenle" className="p-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-all">
+                                                        <button onClick={() => handleEditEvent(event)} className="p-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white rounded-lg transition-all">
                                                             <Edit2 className="w-4 h-4" />
                                                         </button>
-                                                        <button onClick={() => handleDeleteEvent(event.id)} aria-label="Sil" className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all">
+                                                        <button onClick={() => handleDeleteEvent(event.id)} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all">
                                                             <Trash2 className="w-4 h-4" />
                                                         </button>
                                                     </div>
@@ -471,165 +391,73 @@ export default function AdminPage() {
                     {activeTab === 'events' && eventViewMode === 'form' && (
                         <div className="max-w-3xl mx-auto">
                             <form onSubmit={handleCreateOrUpdateEvent} className="bg-white/5 border border-white/10 rounded-2xl p-8 space-y-6">
-                                {/* Form content reused from previous implementation */}
+                                {/* ... Form fields (reused logic) ... */}
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-gray-300">Etkinlik Adı</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={title}
-                                        onChange={(e) => setTitle(e.target.value)}
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
-                                        placeholder="Örn: Melek Mosso Konseri"
-                                        aria-label="Etkinlik Adı Giriş Alanı"
-                                    />
+                                    <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50" placeholder="Örn: Melek Mosso Konseri" />
                                 </div>
-                                {/* ... Other fields ... */}
-                                {/* Keeping simplicity, copying key fields */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium text-gray-300">Kategori</label>
-                                        <div className="relative">
-                                            <select
-                                                value={subCategory}
-                                                onChange={(e) => setSubCategory(e.target.value)}
-                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none focus:outline-none focus:border-primary/50"
-                                            >
-                                                {allSubCategories.map(sub => (
-                                                    <option key={sub.name} value={sub.name} className="bg-black">
-                                                        {sub.name} ({sub.parentName})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
+                                        <select value={subCategory} onChange={(e) => setSubCategory(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none focus:outline-none focus:border-primary/50">
+                                            {allSubCategories.map(sub => (<option key={sub.name} value={sub.name} className="bg-black">{sub.name} ({sub.parentName})</option>))}
+                                        </select>
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium text-gray-300">Tarih & Saat</label>
-                                        <input
-                                            type="datetime-local"
-                                            required
-                                            value={date}
-                                            onChange={(e) => setDate(e.target.value)}
-                                            className="w-full bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-white focus:ring-2 focus:ring-yellow-400 focus:outline-none [color-scheme:dark]"
-                                            aria-label="Tarih ve Saat Giriş Alanı"
-                                        />
+                                        <input type="datetime-local" required value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-white focus:ring-2 focus:ring-yellow-400 focus:outline-none [color-scheme:dark]" />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-gray-300">Mekan / Konum</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={location}
-                                        onChange={(e) => setLocation(e.target.value)}
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
-                                        aria-label="Konum Giriş Alanı"
-                                    />
+                                    <input type="text" required value={location} onChange={(e) => setLocation(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50" />
                                 </div>
-                                {/* Ticket Types */}
                                 <div className="space-y-3">
-                                    <label className="text-sm font-medium text-gray-300 flex justify-between items-center">
-                                        Bilet Kategorileri
-                                        <button type="button" onClick={handleAddTicket} className="text-xs text-primary hover:underline flex items-center gap-1" aria-label="Kategori Ekle">
-                                            <Plus size={12} /> Kategori Ekle
-                                        </button>
-                                    </label>
+                                    <label className="text-sm font-medium text-gray-300 flex justify-between items-center">Bilet Kategorileri <button type="button" onClick={() => setTicketTypes([...ticketTypes, { name: '', price: 0 }])} className="text-xs text-primary hover:underline flex items-center gap-1"><Plus size={12} /> Kategori Ekle</button></label>
                                     {ticketTypes.map((ticket, index) => (
                                         <div key={index} className="flex gap-3 items-center">
-                                            <input
-                                                type="text"
-                                                placeholder="Kategori Adı"
-                                                value={ticket.name}
-                                                onChange={(e) => handleTicketChange(index, 'name', e.target.value)}
-                                                className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
-                                                required
-                                                aria-label="Bilet Kategori Adı"
-                                            />
-                                            <input
-                                                type="number"
-                                                placeholder="Fiyat"
-                                                value={ticket.price}
-                                                onChange={(e) => handleTicketChange(index, 'price', Number(e.target.value))}
-                                                className="w-24 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
-                                                required
-                                                min="0"
-                                                aria-label="Bilet Fiyatı"
-                                            />
-                                            {ticketTypes.length > 1 && (
-                                                <button type="button" onClick={() => handleRemoveTicket(index)} className="p-3 text-red-400 hover:bg-white/5 rounded-xl transition-colors" aria-label="Bilet Kategorisini Sil"><Trash2 size={18} /></button>
-                                            )}
+                                            <input type="text" placeholder="Kategori Adı" value={ticket.name} onChange={(e) => handleTicketChange(index, 'name', e.target.value)} className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50" required />
+                                            <input type="number" placeholder="Fiyat" value={ticket.price} onChange={(e) => handleTicketChange(index, 'price', Number(e.target.value))} className="w-24 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50" required min="0" />
+                                            {ticketTypes.length > 1 && (<button type="button" onClick={() => { const n = [...ticketTypes]; n.splice(index, 1); setTicketTypes(n); }} className="p-3 text-red-400 hover:bg-white/5 rounded-xl transition-colors"><Trash2 size={18} /></button>)}
                                         </div>
                                     ))}
                                 </div>
-                                {/* Sales Type & Image Upload logic similiar to prior implementation */}
                                 <div className="space-y-3 bg-neutral-900 border border-neutral-800 p-4 rounded-xl">
                                     <label className="text-sm font-medium text-gray-300">Satış Türü</label>
                                     <div className="flex gap-4">
-                                        <label className="flex items-center gap-2 cursor-pointer group">
-                                            <input type="radio" name="salesType" value="internal" checked={salesType === 'internal'} onChange={(e) => setSalesType(e.target.value as any)} className="accent-primary" />
-                                            <span className="text-sm text-white">Site İçi</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer group">
-                                            <input type="radio" name="salesType" value="external" checked={salesType === 'external'} onChange={(e) => setSalesType(e.target.value as any)} className="accent-primary" />
-                                            <span className="text-sm text-white">Dış Bağlantı</span>
-                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer group"><input type="radio" name="salesType" value="internal" checked={salesType === 'internal'} onChange={(e) => setSalesType(e.target.value as any)} className="accent-primary" /><span className="text-sm text-white">Site İçi</span></label>
+                                        <label className="flex items-center gap-2 cursor-pointer group"><input type="radio" name="salesType" value="external" checked={salesType === 'external'} onChange={(e) => setSalesType(e.target.value as any)} className="accent-primary" /><span className="text-sm text-white">Dış Bağlantı</span></label>
                                     </div>
-                                    {salesType === 'external' && (
-                                        <input type="url" required value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="Link" className="w-full mt-2 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white" aria-label="Dış Bağlantı Linki" />
-                                    )}
+                                    {salesType === 'external' && (<input type="url" required value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="Link" className="w-full mt-2 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white" />)}
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-gray-300">Görsel</label>
                                     <input type="file" accept="image/*" onChange={handleImageChange} className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-primary file:text-black hover:file:bg-primary/90" />
                                 </div>
-
-                                <button type="submit" disabled={submitting} className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all shadow-lg" aria-label="İşlem Butonu">
-                                    {submitting ? 'İşleniyor...' : (editingId ? 'Güncelle' : 'Oluştur')}
-                                </button>
+                                <button type="submit" disabled={submitting} className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all shadow-lg">{submitting ? 'İşleniyor...' : (editingId ? 'Güncelle' : 'Oluştur')}</button>
                             </form>
                         </div>
                     )}
 
-
-                    {/* APPLICATIONS TAB */}
                     {activeTab === 'applications' && (
                         <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-                            {applications.length === 0 ? (
-                                <div className="p-8 text-center text-gray-500">Henüz başvuru yok.</div>
-                            ) : (
+                            {applications.length === 0 ? <div className="p-8 text-center text-gray-500">Henüz başvuru yok.</div> : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-sm">
                                         <thead className="bg-black/20 text-gray-400 font-medium">
-                                            <tr>
-                                                <th className="px-6 py-4">Topluluk Adı</th>
-                                                <th className="px-6 py-4">Başvuran</th>
-                                                <th className="px-6 py-4">Kategori</th>
-                                                <th className="px-6 py-4">Durum</th>
-                                                <th className="px-6 py-4 text-right">İşlemler</th>
-                                            </tr>
+                                            <tr><th className="px-6 py-4">Topluluk Adı</th><th className="px-6 py-4">Başvuran</th><th className="px-6 py-4">Kategori</th><th className="px-6 py-4">Durum</th><th className="px-6 py-4 text-right">İşlemler</th></tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
                                             {applications.filter(a => a.status === 'pending').map((app) => (
                                                 <tr key={app.id} className="hover:bg-neutral-800 transition-colors">
                                                     <td className="px-6 py-4 font-medium text-white">{app.name}</td>
-                                                    <td className="px-6 py-4 text-gray-300">
-                                                        <div>{app.userName}</div>
-                                                        <div className="text-xs text-gray-500">{app.userEmail}</div>
-                                                    </td>
+                                                    <td className="px-6 py-4 text-gray-300"><div>{app.userName}</div><div className="text-xs text-gray-500">{app.userEmail}</div></td>
                                                     <td className="px-6 py-4 text-gray-300 capitalize">{app.category}</td>
-                                                    <td className="px-6 py-4">
-                                                        <span className="px-2 py-1 rounded text-xs font-bold border bg-yellow-500/10 text-yellow-500 border-yellow-500/20">
-                                                            Bekliyor
-                                                        </span>
-                                                    </td>
+                                                    <td className="px-6 py-4"><span className="px-2 py-1 rounded text-xs font-bold border bg-yellow-500/10 text-yellow-500 border-yellow-500/20">Bekliyor</span></td>
                                                     <td className="px-6 py-4 text-right">
                                                         <div className="flex items-center justify-end gap-2">
-                                                            <button onClick={() => handleUpdateStatus(app.id, 'approved')} className="p-2 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-all" title="Onayla">
-                                                                <Check className="w-4 h-4" />
-                                                            </button>
-                                                            <button onClick={() => handleUpdateStatus(app.id, 'rejected')} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all" title="Reddet">
-                                                                <X className="w-4 h-4" />
-                                                            </button>
+                                                            <button onClick={() => handleUpdateStatus(app.id, 'approved')} className="p-2 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-all"><Check className="w-4 h-4" /></button>
+                                                            <button onClick={() => handleUpdateStatus(app.id, 'rejected')} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all"><X className="w-4 h-4" /></button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -641,196 +469,43 @@ export default function AdminPage() {
                         </div>
                     )}
 
-                    {/* DISCOUNT CODES TAB */}
                     {activeTab === 'discounts' && (
                         <div className="space-y-6">
-                            {/* Create Form */}
                             {discountFormVisible && (
                                 <div className="bg-white/5 border border-white/10 rounded-2xl p-8 animate-fadeIn">
-                                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                                        <Tag className="w-6 h-6 text-primary" />
-                                        Yeni İndirim Kodu Oluştur
-                                    </h2>
+                                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><Tag className="w-6 h-6 text-primary" /> Yeni İndirim Kodu Oluştur</h2>
                                     <form onSubmit={handleCreateDiscountCode} className="space-y-4">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-300 mb-1 block">Kod</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    value={discountFormData.code}
-                                                    onChange={(e) => setDiscountFormData({ ...discountFormData, code: e.target.value.toUpperCase() })}
-                                                    placeholder="YENIYIL2026"
-                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white uppercase focus:outline-none focus:border-primary/50"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-300 mb-1 block">İndirim Türü</label>
-                                                <select
-                                                    value={discountFormData.type}
-                                                    onChange={(e) => setDiscountFormData({ ...discountFormData, type: e.target.value as 'percentage' | 'fixed' })}
-                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
-                                                >
-                                                    <option value="percentage">Yüzde (%)</option>
-                                                    <option value="fixed">Sabit Tutar (₺)</option>
-                                                </select>
-                                            </div>
+                                            <div><label className="text-sm font-medium text-gray-300 mb-1 block">Kod</label><input type="text" required value={discountFormData.code} onChange={(e) => setDiscountFormData({ ...discountFormData, code: e.target.value.toUpperCase() })} placeholder="YENIYIL2026" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white uppercase focus:outline-none focus:border-primary/50" /></div>
+                                            <div><label className="text-sm font-medium text-gray-300 mb-1 block">İndirim Türü</label><select value={discountFormData.type} onChange={(e) => setDiscountFormData({ ...discountFormData, type: e.target.value as 'percentage' | 'fixed' })} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"><option value="percentage">Yüzde (%)</option><option value="fixed">Sabit Tutar (₺)</option></select></div>
                                         </div>
-
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-300 mb-1 block">
-                                                    {discountFormData.type === 'percentage' ? 'İndirim Yüzdesi (%)' : 'İndirim Tutarı (₺)'}
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    required
-                                                    min="0"
-                                                    max={discountFormData.type === 'percentage' ? 100 : undefined}
-                                                    value={discountFormData.value}
-                                                    onChange={(e) => setDiscountFormData({ ...discountFormData, value: Number(e.target.value) })}
-                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-300 mb-1 block">Toplam Kullanım Limiti</label>
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={discountFormData.maxUsage}
-                                                    onChange={(e) => setDiscountFormData({ ...discountFormData, maxUsage: Number(e.target.value) })}
-                                                    placeholder="0 = Sınırsız"
-                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-300 mb-1 block">Kişi Başına Limit</label>
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    value={discountFormData.maxUsagePerUser}
-                                                    onChange={(e) => setDiscountFormData({ ...discountFormData, maxUsagePerUser: Number(e.target.value) })}
-                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
-                                                />
-                                            </div>
+                                            <div><label className="text-sm font-medium text-gray-300 mb-1 block">{discountFormData.type === 'percentage' ? 'İndirim Yüzdesi (%)' : 'İndirim Tutarı (₺)'}</label><input type="number" required min="0" max={discountFormData.type === 'percentage' ? 100 : undefined} value={discountFormData.value} onChange={(e) => setDiscountFormData({ ...discountFormData, value: Number(e.target.value) })} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50" /></div>
+                                            <div><label className="text-sm font-medium text-gray-300 mb-1 block">Toplam Kullanım Limiti</label><input type="number" min="0" value={discountFormData.maxUsage} onChange={(e) => setDiscountFormData({ ...discountFormData, maxUsage: Number(e.target.value) })} placeholder="0 = Sınırsız" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50" /></div>
+                                            <div><label className="text-sm font-medium text-gray-300 mb-1 block">Kişi Başına Limit</label><input type="number" min="1" value={discountFormData.maxUsagePerUser} onChange={(e) => setDiscountFormData({ ...discountFormData, maxUsagePerUser: Number(e.target.value) })} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50" /></div>
                                         </div>
-
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-300 mb-1 block">Geçerlilik Başlangıcı</label>
-                                                <input
-                                                    type="datetime-local"
-                                                    required
-                                                    value={discountFormData.validFrom}
-                                                    onChange={(e) => setDiscountFormData({ ...discountFormData, validFrom: e.target.value })}
-                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 [color-scheme:dark]"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-300 mb-1 block">Geçerlilik Bitişi</label>
-                                                <input
-                                                    type="datetime-local"
-                                                    required
-                                                    value={discountFormData.validUntil}
-                                                    onChange={(e) => setDiscountFormData({ ...discountFormData, validUntil: e.target.value })}
-                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 [color-scheme:dark]"
-                                                />
-                                            </div>
+                                            <div><label className="text-sm font-medium text-gray-300 mb-1 block">Geçerlilik Başlangıcı</label><input type="datetime-local" required value={discountFormData.validFrom} onChange={(e) => setDiscountFormData({ ...discountFormData, validFrom: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 [color-scheme:dark]" /></div>
+                                            <div><label className="text-sm font-medium text-gray-300 mb-1 block">Geçerlilik Bitişi</label><input type="datetime-local" required value={discountFormData.validUntil} onChange={(e) => setDiscountFormData({ ...discountFormData, validUntil: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 [color-scheme:dark]" /></div>
                                         </div>
-
-                                        <div>
-                                            <label className="text-sm font-medium text-gray-300 mb-1 block">Minimum Alışveriş Tutarı (₺)</label>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={discountFormData.minPurchaseAmount}
-                                                onChange={(e) => setDiscountFormData({ ...discountFormData, minPurchaseAmount: Number(e.target.value) })}
-                                                placeholder="0 = Limit yok"
-                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="text-sm font-medium text-gray-300 mb-1 block">Açıklama (Opsiyonel)</label>
-                                            <textarea
-                                                rows={2}
-                                                value={discountFormData.description}
-                                                onChange={(e) => setDiscountFormData({ ...discountFormData, description: e.target.value })}
-                                                placeholder="Bu kod neyle ilgili?"
-                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 resize-none"
-                                            ></textarea>
-                                        </div>
-
-                                        <button type="submit" className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all">
-                                            Kodu Oluştur
-                                        </button>
+                                        <button type="submit" className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all">Kodu Oluştur</button>
                                     </form>
                                 </div>
                             )}
-
-                            {/* Codes List */}
                             <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-                                {discountCodes.length === 0 ? (
-                                    <div className="p-8 text-center text-gray-500">Henüz indirim kodu oluşturulmamış.</div>
-                                ) : (
+                                {discountCodes.length === 0 ? <div className="p-8 text-center text-gray-500">Henüz indirim kodu oluşturulmamış.</div> : (
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left text-sm">
-                                            <thead className="bg-black/20 text-gray-400 font-medium">
-                                                <tr>
-                                                    <th className="px-6 py-4">Kod</th>
-                                                    <th className="px-6 py-4">İndirim</th>
-                                                    <th className="px-6 py-4">Kullanım</th>
-                                                    <th className="px-6 py-4">Geçerlilik</th>
-                                                    <th className="px-6 py-4">Durum</th>
-                                                    <th className="px-6 py-4 text-right">İşlemler</th>
-                                                </tr>
-                                            </thead>
+                                            <thead className="bg-black/20 text-gray-400 font-medium"><tr><th className="px-6 py-4">Kod</th><th className="px-6 py-4">İndirim</th><th className="px-6 py-4">Kullanım</th><th className="px-6 py-4">Geçerlilik</th><th className="px-6 py-4">Durum</th><th className="px-6 py-4 text-right">İşlemler</th></tr></thead>
                                             <tbody className="divide-y divide-white/5">
                                                 {discountCodes.map((code) => (
                                                     <tr key={code.id} className="hover:bg-neutral-800 transition-colors">
-                                                        <td className="px-6 py-4">
-                                                            <div className="flex items-center gap-2">
-                                                                <Tag className="w-4 h-4 text-primary" />
-                                                                <span className="font-bold text-white">{code.code}</span>
-                                                            </div>
-                                                            {code.description && (
-                                                                <p className="text-xs text-gray-500 mt-1">{code.description}</p>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-gray-300">
-                                                            {code.type === 'percentage' ? (
-                                                                <span className="flex items-center gap-1">
-                                                                    <Percent className="w-4 h-4" />
-                                                                    {code.value}%
-                                                                </span>
-                                                            ) : (
-                                                                <span>{code.value}₺</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-gray-300">
-                                                            {code.usedCount || 0} / {code.maxUsage === 0 ? '∞' : code.maxUsage}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-gray-300 text-xs">
-                                                            {code.validFrom && new Date(code.validFrom).toLocaleDateString('tr-TR')}
-                                                            {' - '}
-                                                            {code.validUntil && new Date(code.validUntil).toLocaleDateString('tr-TR')}
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <span className={`px-2 py-1 rounded text-xs font-bold border ${code.isActive ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>
-                                                                {code.isActive ? 'Aktif' : 'Pasif'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-right">
-                                                            <div className="flex items-center justify-end gap-2">
-                                                                <button
-                                                                    onClick={() => handleToggleCodeStatus(code.id, code.isActive)}
-                                                                    className={`p-2 rounded-lg transition-all ${code.isActive ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white' : 'bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white'}`}
-                                                                    title={code.isActive ? 'Devre Dışı Bırak' : 'Aktifleştir'}
-                                                                >
-                                                                    {code.isActive ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-                                                                </button>
-                                                            </div>
-                                                        </td>
+                                                        <td className="px-6 py-4"><div className="flex items-center gap-2"><Tag className="w-4 h-4 text-primary" /><span className="font-bold text-white">{code.code}</span></div></td>
+                                                        <td className="px-6 py-4 text-gray-300">{code.type === 'percentage' ? `%${code.value}` : `₺${code.value}`}</td>
+                                                        <td className="px-6 py-4 text-gray-300">{code.usedCount} / {code.maxUsage === 0 ? '∞' : code.maxUsage}</td>
+                                                        <td className="px-6 py-4 text-gray-400 text-xs">{new Date(code.validUntil).toLocaleDateString()}</td>
+                                                        <td className="px-6 py-4">{code.isActive ? <span className="px-2 py-1 rounded bg-green-500/10 text-green-500 border border-green-500/20 text-xs font-bold">Aktif</span> : <span className="px-2 py-1 rounded bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-bold">Pasif</span>}</td>
+                                                        <td className="px-6 py-4 text-right flex justify-end gap-2"><button onClick={() => handleToggleCodeStatus(code.id, code.isActive)} className={`p-2 rounded-lg transition-all ${code.isActive ? 'bg-neutral-800 text-gray-400 hover:text-white' : 'bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white'}`}>{code.isActive ? <Trash2 className="w-4 h-4" /> : <Check className="w-4 h-4" />}</button></td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -841,57 +516,21 @@ export default function AdminPage() {
                         </div>
                     )}
                 </div>
-
-                {/* Participants Modal */}
-                {isParticipantsModalOpen && (
-                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setIsParticipantsModalOpen(false)}>
-                        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                            <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
-                                <div>
-                                    <h3 className="text-xl font-bold text-white">{selectedEventTitle}</h3>
-                                    <p className="text-gray-400 text-sm mt-1">Katılımcı Listesi</p>
-                                </div>
-                                <button onClick={() => setIsParticipantsModalOpen(false)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-6">
-                                <div className="mb-4 bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl flex items-center justify-between">
-                                    <span className="text-blue-400 font-medium">Toplam Rezervasyon</span>
-                                    <span className="text-2xl font-bold text-blue-500">{participants.reduce((acc, curr) => acc + (curr.ticketCount || 1), 0)} Kişi</span>
-                                </div>
-
-                                {participants.length === 0 ? (
-                                    <div className="text-center py-8 text-gray-500">Henüz katılımcı bulunmuyor.</div>
-                                ) : (
-                                    <table className="w-full text-left text-sm">
-                                        <thead className="bg-black/20 text-gray-400 font-medium">
-                                            <tr>
-                                                <th className="px-4 py-3">Ad Soyad</th>
-                                                <th className="px-4 py-3">Telefon</th>
-                                                <th className="px-4 py-3">Bilet</th>
-                                                <th className="px-4 py-3">Tarih</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/5">
-                                            {participants.map((p, i) => (
-                                                <tr key={i} className="hover:bg-white/5">
-                                                    <td className="px-4 py-3 font-medium text-white">{p.contactName || 'İsimsiz'}</td>
-                                                    <td className="px-4 py-3 text-gray-300">{p.contactPhone || '-'}</td>
-                                                    <td className="px-4 py-3 text-gray-300">{p.ticketCount} Adet</td>
-                                                    <td className="px-4 py-3 text-gray-500 text-xs">
-                                                        {p.purchaseDate ? new Date(p.purchaseDate).toLocaleDateString() : '-'}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
             </main>
         </div>
+    );
+}
+
+function SidebarButton({ active, icon, label, onClick, notification, count }: any) {
+    return (
+        <button
+            onClick={onClick}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${active ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+        >
+            {icon}
+            {label}
+            {notification && <span className="ml-auto w-2 h-2 rounded-full bg-red-500"></span>}
+            {count > 0 && <span className="ml-auto text-xs bg-green-500/20 text-green-500 px-2 py-0.5 rounded">{count}</span>}
+        </button>
     );
 }
