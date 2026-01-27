@@ -13,6 +13,7 @@ import { DiscountValidationResult } from '@/types/ticketing';
 import { markCodeAsUsed } from '@/lib/discountValidator';
 import { calculateGroupDiscount, getNextTierInfo } from '@/lib/groupTickets';
 import { generateSimpleVenue, calculateSeatsTotal, formatSelectedSeats, markSoldSeats } from '@/lib/seatManagement';
+import { calculateFinalPrice } from '@/lib/priceCalculator';
 
 export default function PaymentPage() {
     const { id } = useParams();
