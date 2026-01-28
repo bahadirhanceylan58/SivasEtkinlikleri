@@ -8,10 +8,10 @@ import { onAuthStateChanged } from 'firebase/auth';
 import Image from 'next/image';
 import { Phone, User, Ticket, Users as UsersIcon, Armchair, TrendingDown } from 'lucide-react';
 import DiscountCodeInput from '@/components/DiscountCodeInput';
-import SeatMap, { Seat } from '@/components/SeatMap';
 import { DiscountValidationResult } from '@/types/ticketing';
 import { calculateGroupDiscount, getNextTierInfo } from '@/lib/groupTickets';
-import { generateSimpleVenue, markSoldSeats } from '@/lib/seatManagement';
+import { Seat } from '@/types/seating';
+import { markSeatsAsSold, formatSeatName } from '@/lib/seatUtils';
 
 interface Event {
     id: string;
@@ -23,7 +23,9 @@ interface Event {
     category?: string;
     price: number;
     groupTickets?: any[];
-    hasSeatSelection?: boolean;
+    hasSeating?: boolean;
+    seatingConfig?: any;
+    ticketTypes?: Array<{ name: string; price: number }>;
 }
 
 export default function PaymentPage() {
@@ -50,10 +52,9 @@ export default function PaymentPage() {
         { id: '3', name: 'Büyük Grup', minTickets: 20, discount: 0.20, description: 'Toplu alım' }
     ];
 
-    // Koltuk seçimi (etkinlik tiyatro/konser ise)
-    const hasSeatSelection = event?.hasSeatSelection || false;
-    const [seats, setSeats] = useState<Seat[]>([]);
-    const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+    // Koltuk seçimi - yeni sistem
+    const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
+    const [seatTotalPrice, setSeatTotalPrice] = useState(0);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -85,16 +86,25 @@ export default function PaymentPage() {
         return () => unsubscribe();
     }, [id, router]);
 
-    // Koltuk haritasını yükle (etkinlik yüklendikten sonra)
+    // Load selected seats from sessionStorage
     useEffect(() => {
-        if (event && hasSeatSelection) {
-            // Demo için basit salon oluştur
-            const venueSeats = generateSimpleVenue(8, 12);
-            // Satılmış koltukları işaretle (örnek: A1, A2, B5)
-            const soldSeats = markSoldSeats(venueSeats, ['A1', 'A2', 'B5', 'C3']);
-            setSeats(soldSeats);
+        if (event?.hasSeating) {
+            const storedSeats = sessionStorage.getItem('selectedSeats');
+            if (storedSeats) {
+                try {
+                    const seats: Seat[] = JSON.parse(storedSeats);
+                    setSelectedSeats(seats);
+
+                    // Calculate total from seats
+                    const total = seats.reduce((sum, seat) => sum + seat.price, 0);
+                    setSeatTotalPrice(total);
+                    setTicketCount(seats.length);
+                } catch (error) {
+                    console.error('Error parsing seats:', error);
+                }
+            }
         }
-    }, [event, hasSeatSelection]);
+    }, [event]);
 
     const handleReservation = async () => {
         if (!user || !event) return;
@@ -104,82 +114,117 @@ export default function PaymentPage() {
         }
         setProcessing(true);
 
-        setTimeout(async () => {
-            try {
-                const uniqueQrCode = `${user.uid}-${event.id}-${Date.now()}`;
-
-                // Fiyat hesaplama
-                const subtotal = ticketCount * ticketPrice;
-                const discountAmount = appliedDiscount?.discountAmount || 0;
-                const totalAmount = subtotal - discountAmount;
-
-                const ticketData = {
-                    eventId: event.id,
-                    eventTitle: event.title,
-                    eventDate: event.date,
-                    eventLocation: event.location,
-                    eventImage: event.imageUrl,
-                    ticketCount: ticketCount,
-                    basePrice: ticketPrice,
-                    subtotal: subtotal,
-                    discountAmount: discountAmount,
-                    discountCode: appliedDiscountCode || null,
-                    totalAmount: totalAmount,
-                    purchaseDate: new Date().toISOString(),
-                    qrCode: uniqueQrCode,
-                    status: 'reserved',
-                    paymentType: 'pay_at_door',
-                    contactName: fullName,
-                    contactPhone: phoneNumber
-                };
-
-                const userTicketRef = doc(db, 'users', user.uid);
-                await setDoc(userTicketRef, {
-                    tickets: arrayUnion(ticketData)
-                }, { merge: true });
-
-                // Add to Event's reservations subcollection
-                await addDoc(collection(db, 'events', event.id, 'reservations'), {
-                    userUid: user.uid,
-                    contactName: fullName,
-                    contactPhone: phoneNumber,
-                    ticketCount: ticketCount,
-                    discountCode: appliedDiscountCode || null,
-                    discountAmount: discountAmount,
-                    totalAmount: totalAmount,
-                    purchaseDate: new Date().toISOString()
-                });
-
-                // İndirim kodu kullanıldıysa, işaretle ve sayacı artır
-                if (appliedDiscountCode && appliedDiscount?.valid) {
-                    try {
-                        // Kullanım kaydı ekle
-                        await addDoc(collection(db, 'discountCodeUsage'), {
-                            codeId: appliedDiscountCode, // Gerçek uygulamada code ID kullanılmalı
-                            code: appliedDiscountCode,
-                            userId: user.uid,
-                            eventId: event.id,
-                            discountAmount: discountAmount,
-                            usedAt: new Date().toISOString()
-                        });
-
-                        // Kod kullanım sayısını artır (admin panelden eklenen kodlar için)
-                        // Bu kısım daha sonra optimize edilebilir
-                    } catch (codeError) {
-                        console.error('Error tracking discount code:', codeError);
-                        // Hata olsa bile rezervasyon devam etsin
-                    }
+        try {
+            // 1. ÖNCE KOLTUKLARI SATIŞA ÇEVİR (En Kritik Adım)
+            if (event.hasSeating && selectedSeats.length > 0) {
+                try {
+                    await markSeatsAsSold(
+                        event.id,
+                        selectedSeats.map(seat => seat.id),
+                        user.uid
+                    );
+                    // Clear sessionStorage immediately after successful lock
+                    sessionStorage.removeItem('selectedSeats');
+                } catch (seatError) {
+                    console.error('Error marking seats as sold:', seatError);
+                    alert('Koltuk rezervasyon süreniz dolmuş veya bu koltuklar başkası tarafından alınmış olabilir. Lütfen tekrar seçim yapınız.');
+                    setProcessing(false);
+                    return; // ABORT TRANSACTION
                 }
-
-                alert(`Rezervasyonunuz alındı! ${discountAmount > 0 ? `${discountAmount}₺ indirim uygulandı. ` : ''}Biletiniz oluşturuldu. Ödemeyi kapıda yapabilirsiniz.`);
-                router.push('/biletlerim');
-            } catch (error) {
-                console.error("Hata:", error);
-                alert('Bir hata oluştu.');
-            } finally {
-                setProcessing(false);
             }
-        }, 1500);
+
+            const uniqueQrCode = `${user.uid}-${event.id}-${Date.now()}`;
+
+            // Fiyat hesaplama
+            let subtotal;
+            let basePrice;
+
+            if (event.hasSeating && selectedSeats.length > 0) {
+                // Koltuk bazlı fiyatlandırma
+                subtotal = seatTotalPrice;
+                basePrice = seatTotalPrice / selectedSeats.length;
+            } else {
+                // Geleneksel bilet fiyatlandırması
+                basePrice = event.ticketTypes?.[0]?.price || ticketPrice;
+                subtotal = ticketCount * basePrice;
+            }
+
+            const discountAmount = appliedDiscount?.discountAmount || 0;
+            const totalAmount = subtotal - discountAmount;
+
+            const ticketData: any = {
+                eventId: event.id,
+                eventTitle: event.title,
+                eventDate: event.date,
+                eventLocation: event.location,
+                eventImage: event.imageUrl,
+                ticketCount: event.hasSeating ? selectedSeats.length : ticketCount,
+                basePrice: basePrice,
+                subtotal: subtotal,
+                discountAmount: discountAmount,
+                discountCode: appliedDiscountCode || null,
+                totalAmount: totalAmount,
+                purchaseDate: new Date().toISOString(),
+                qrCode: uniqueQrCode,
+                status: 'reserved',
+                paymentType: 'pay_at_door',
+                contactName: fullName,
+                contactPhone: phoneNumber
+            };
+
+            // Add seat information if applicable
+            if (event.hasSeating && selectedSeats.length > 0) {
+                ticketData.seats = selectedSeats.map(seat => ({
+                    row: seat.row,
+                    number: seat.seat,
+                    category: seat.category,
+                    price: seat.price
+                }));
+                ticketData.seatNames = selectedSeats.map(seat => formatSeatName(seat)).join(', ');
+            }
+
+            const userTicketRef = doc(db, 'users', user.uid);
+            await setDoc(userTicketRef, {
+                tickets: arrayUnion(ticketData)
+            }, { merge: true });
+
+            // Add to Event's reservations subcollection
+            await addDoc(collection(db, 'events', event.id, 'reservations'), {
+                userUid: user.uid,
+                contactName: fullName,
+                contactPhone: phoneNumber,
+                ticketCount: ticketCount,
+                discountCode: appliedDiscountCode || null,
+                discountAmount: discountAmount,
+                totalAmount: totalAmount,
+                purchaseDate: new Date().toISOString()
+            });
+
+            // İndirim kodu kullanıldıysa, işaretle ve sayacı artır
+            if (appliedDiscountCode && appliedDiscount?.valid) {
+                try {
+                    // Kullanım kaydı ekle
+                    await addDoc(collection(db, 'discountCodeUsage'), {
+                        codeId: appliedDiscountCode,
+                        code: appliedDiscountCode,
+                        userId: user.uid,
+                        eventId: event.id,
+                        discountAmount: discountAmount,
+                        usedAt: new Date().toISOString()
+                    });
+                } catch (codeError) {
+                    console.error('Error tracking discount code:', codeError);
+                }
+            }
+
+            alert(`Rezervasyonunuz alındı! ${discountAmount > 0 ? `${discountAmount}₺ indirim uygulandı. ` : ''}Biletiniz oluşturuldu. Ödemeyi kapıda yapabilirsiniz.`);
+            router.push('/biletlerim');
+        } catch (error) {
+            console.error("Hata:", error);
+            alert('Bir hata oluştu.');
+        } finally {
+            setProcessing(false);
+        }
     };
 
     if (loading) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Yükleniyor...</div>;

@@ -27,6 +27,9 @@ import { db, storage } from '@/lib/firebase';
 import AdminDashboard from '@/components/admin/AdminDashboard';
 import UserManagement from '@/components/admin/UserManagement';
 import TicketValidator from '@/components/admin/TicketValidator';
+import VenueEditor from '@/components/VenueEditor';
+import { SeatingConfig } from '@/types/seating';
+import { generateSeatsForEvent } from '@/lib/seatUtils';
 
 interface Event {
     id: string;
@@ -92,6 +95,10 @@ export default function AdminPage() {
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imageUrl, setImageUrl] = useState('');
     const [submitting, setSubmitting] = useState(false);
+
+    // Seating System States
+    const [hasSeating, setHasSeating] = useState(false);
+    const [seatingConfig, setSeatingConfig] = useState<SeatingConfig | null>(null);
 
     // Management State
     const [events, setEvents] = useState<Event[]>([]);
@@ -244,17 +251,26 @@ export default function AdminPage() {
                 finalImageUrl = await getDownloadURL(snapshot.ref);
             }
 
-            const eventData = {
+            const eventData: any = {
                 title, category: selectedSub.parentId, subCategory: selectedSub.name, date,
                 location, imageUrl: finalImageUrl, ticketTypes, salesType,
-                externalUrl: salesType === 'external' ? externalUrl : null, updatedAt: new Date()
+                externalUrl: salesType === 'external' ? externalUrl : null,
+                hasSeating,
+                seatingConfig: hasSeating ? seatingConfig : null,
+                updatedAt: new Date()
             };
 
             if (editingId) {
                 await updateDoc(doc(db, "events", editingId), eventData);
                 alert('Etkinlik güncellendi!');
             } else {
-                await addDoc(collection(db, "events"), { ...eventData, createdAt: new Date() });
+                const docRef = await addDoc(collection(db, "events"), { ...eventData, createdAt: new Date() });
+
+                // Generate seats if seating system is enabled
+                if (hasSeating && seatingConfig) {
+                    await generateSeatsForEvent(docRef.id, seatingConfig);
+                }
+
                 alert('Etkinlik oluşturuldu!');
             }
             setEventViewMode('list'); fetchEvents(); resetForm();
@@ -288,6 +304,7 @@ export default function AdminPage() {
         setEditingId(null); setTitle(''); setSubCategory(allSubCategories[0]?.name || ''); setDate('');
         setLocation(''); setTicketTypes([{ name: 'Genel Giriş', price: 0 }]); setSalesType('internal');
         setExternalUrl(''); setImageFile(null); setImageUrl('');
+        setHasSeating(false); setSeatingConfig(null);
     };
 
     const handleTicketChange = (index: number, field: 'name' | 'price', value: any) => {
@@ -481,6 +498,32 @@ export default function AdminPage() {
                                     </div>
                                     {salesType === 'external' && (<input type="url" required value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="Link" className="w-full mt-2 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white" />)}
                                 </div>
+
+                                {/* Seating System Toggle */}
+                                <div className="space-y-3 bg-neutral-900 border border-neutral-800 p-4 rounded-xl">
+                                    <label className="flex items-center justify-between cursor-pointer group">
+                                        <div>
+                                            <span className="text-sm font-medium text-gray-300">💺 Koltuk Seçimi Sistemi</span>
+                                            <p className="text-xs text-gray-500 mt-1">Etkinlik için salon koltuk düzeni oluştur</p>
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            checked={hasSeating}
+                                            onChange={(e) => setHasSeating(e.target.checked)}
+                                            className="w-5 h-5 accent-primary cursor-pointer"
+                                        />
+                                    </label>
+
+                                    {hasSeating && (
+                                        <div className="mt-4 pt-4 border-t border-white/10">
+                                            <VenueEditor
+                                                config={seatingConfig}
+                                                onChange={setSeatingConfig}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-gray-300">Görsel</label>
                                     <input type="file" accept="image/*" onChange={handleImageChange} className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-primary file:text-black hover:file:bg-primary/90" />

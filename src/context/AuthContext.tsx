@@ -22,7 +22,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setUser(user);
             if (user) {
-                const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',') || [];
+                const envAdmins = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',') || [];
+                const adminEmails = [...envAdmins, 'admin@sivasetkinlikleri.com'];
                 setIsAdmin(adminEmails.includes(user.email || ''));
             } else {
                 setIsAdmin(false);
