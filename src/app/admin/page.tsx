@@ -28,6 +28,53 @@ import AdminDashboard from '@/components/admin/AdminDashboard';
 import UserManagement from '@/components/admin/UserManagement';
 import TicketValidator from '@/components/admin/TicketValidator';
 
+interface Event {
+    id: string;
+    title: string;
+    date: string;
+    subCategory: string;
+    location: string;
+    imageUrl: string;
+    ticketTypes: { name: string; price: number }[];
+    salesType: 'internal' | 'external';
+    externalUrl?: string;
+    // Add other fields as necessary
+}
+
+interface Application {
+    id: string;
+    name: string;
+    userName: string;
+    userEmail: string;
+    category: string;
+    status: 'pending' | 'approved' | 'rejected';
+    description: string;
+    imageUrl: string;
+    userId: string;
+    email: string;
+}
+
+interface DiscountCode {
+    id: string;
+    code: string;
+    type: 'percentage' | 'fixed';
+    value: number;
+    usedCount: number;
+    maxUsage: number;
+    maxUsagePerUser: number;
+    validUntil: string;
+    isActive: boolean;
+}
+
+interface SidebarButtonProps {
+    active: boolean;
+    icon: React.ReactNode;
+    label: string;
+    onClick: () => void;
+    notification?: boolean;
+    count?: number;
+}
+
 export default function AdminPage() {
     const { user, loading, isAdmin } = useAuth();
     const router = useRouter();
@@ -47,17 +94,17 @@ export default function AdminPage() {
     const [submitting, setSubmitting] = useState(false);
 
     // Management State
-    const [events, setEvents] = useState<any[]>([]);
-    const [applications, setApplications] = useState<any[]>([]);
+    const [events, setEvents] = useState<Event[]>([]);
+    const [applications, setApplications] = useState<Application[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
 
     // Participants State (Simplified)
-    const [participants, setParticipants] = useState<any[]>([]);
+    const [participants, setParticipants] = useState<any[]>([]); // Keeping explicit any for now if structure is unknown or complex
     const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false);
     const [selectedEventTitle, setSelectedEventTitle] = useState('');
 
     // Discount Codes State
-    const [discountCodes, setDiscountCodes] = useState<any[]>([]);
+    const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
     const [discountFormVisible, setDiscountFormVisible] = useState(false);
     const [discountFormData, setDiscountFormData] = useState({
         code: '',
@@ -96,19 +143,19 @@ export default function AdminPage() {
 
     const fetchEvents = async () => {
         const querySnapshot = await getDocs(collection(db, "events"));
-        const eventsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const eventsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Event[];
         setEvents(eventsList);
     };
 
     const fetchApplications = async () => {
         const querySnapshot = await getDocs(collection(db, "club_applications"));
-        const appsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const appsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Application[];
         setApplications(appsList);
     };
 
     const fetchDiscountCodes = async () => {
         const querySnapshot = await getDocs(collection(db, "discountCodes"));
-        const codesList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const codesList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as DiscountCode[];
         setDiscountCodes(codesList);
     };
 
@@ -222,7 +269,7 @@ export default function AdminPage() {
         }
     };
 
-    const handleEditEvent = (event: any) => {
+    const handleEditEvent = (event: Event) => {
         setEditingId(event.id); setTitle(event.title); setSubCategory(event.subCategory || allSubCategories[0].name);
         setDate(event.date); setLocation(event.location); setTicketTypes(event.ticketTypes || [{ name: 'Standart', price: 0 }]);
         setSalesType(event.salesType || 'internal'); setExternalUrl(event.externalUrl || ''); setImageUrl(event.imageUrl);
@@ -525,7 +572,7 @@ export default function AdminPage() {
     );
 }
 
-function SidebarButton({ active, icon, label, onClick, notification, count }: any) {
+function SidebarButton({ active, icon, label, onClick, notification, count }: SidebarButtonProps) {
     return (
         <button
             onClick={onClick}
@@ -534,7 +581,7 @@ function SidebarButton({ active, icon, label, onClick, notification, count }: an
             {icon}
             {label}
             {notification && <span className="ml-auto w-2 h-2 rounded-full bg-red-500"></span>}
-            {count > 0 && <span className="ml-auto text-xs bg-green-500/20 text-green-500 px-2 py-0.5 rounded">{count}</span>}
+            {count && count > 0 ? <span className="ml-auto text-xs bg-green-500/20 text-green-500 px-2 py-0.5 rounded">{count}</span> : null}
         </button>
     );
 }
