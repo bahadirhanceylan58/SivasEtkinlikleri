@@ -355,4 +355,4 @@ export default function EventDetailPage() {
             <Footer />
         </main>
     );
-}
+}// Vercel Guncelleme Kontrol
