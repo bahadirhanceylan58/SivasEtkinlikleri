@@ -83,6 +83,7 @@ export default function AdminPage() {
         fetchEvents();
         fetchApplications();
         fetchDiscountCodes();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -244,8 +245,11 @@ export default function AdminPage() {
 
     const handleTicketChange = (index: number, field: 'name' | 'price', value: any) => {
         const newTickets = [...ticketTypes];
-        // @ts-ignore
-        newTickets[index][field] = value;
+        if (field === 'name') {
+            newTickets[index].name = value as string;
+        } else {
+            newTickets[index].price = value as number;
+        }
         setTicketTypes(newTickets);
     };
 
@@ -534,3 +538,4 @@ function SidebarButton({ active, icon, label, onClick, notification, count }: an
         </button>
     );
 }
+// Guncelleme kontrol
