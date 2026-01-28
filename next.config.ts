@@ -5,11 +5,6 @@ const nextConfig: NextConfig = {
     // TypeScript hatalarını görmezden gel (Sarı/Kırmızı uyarılara takılma)
     ignoreBuildErrors: true,
   },
-  eslint: {
-    // Yazım kuralları hatalarını görmezden gel
-    ignoreDuringBuilds: true,
-  },
 };
 
 export default nextConfig;
-// Guncelleme tetikleyici
