@@ -60,15 +60,15 @@ export default function ClubApplicationPage() {
 
     if (success) {
         return (
-            <div className="min-h-screen bg-black text-white flex flex-col">
+            <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-300">
                 <Navbar />
                 <div className="flex-1 flex items-center justify-center p-4">
-                    <div className="bg-neutral-900 border border-green-500/30 p-8 rounded-2xl text-center max-w-md w-full animate-fadeIn">
+                    <div className="bg-card border border-green-500/30 p-8 rounded-2xl text-center max-w-md w-full animate-fadeIn">
                         <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
                             <CheckCircle size={32} />
                         </div>
                         <h2 className="text-2xl font-bold mb-2">Başvurunuz Alındı!</h2>
-                        <p className="text-gray-400 mb-6">Topluluk oluşturma talebiniz değerlendirmeye alındı. Sonucu profil sayfanızdan takip edebilirsiniz.</p>
+                        <p className="text-muted-foreground mb-6">Topluluk oluşturma talebiniz değerlendirmeye alındı. Sonucu profil sayfanızdan takip edebilirsiniz.</p>
                         <button onClick={() => router.push('/profil')} className="btn btn-primary w-full py-3 rounded-lg font-bold">
                             Profilime Git
                         </button>
@@ -80,14 +80,14 @@ export default function ClubApplicationPage() {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white flex flex-col">
+        <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-300">
             <Navbar />
             <div className="flex-1 container mx-auto px-4 py-12">
                 <div className="max-w-2xl mx-auto">
                     <h1 className="text-3xl font-bold mb-2">Topluluk Başvurusu</h1>
-                    <p className="text-gray-400 mb-8">Kendi topluluğunu kur, etkinlikler düzenle ve insanları bir araya getir.</p>
+                    <p className="text-muted-foreground mb-8">Kendi topluluğunu kur, etkinlikler düzenle ve insanları bir araya getir.</p>
 
-                    <form onSubmit={handleSubmit} className="bg-neutral-900 border border-neutral-800 p-8 rounded-2xl space-y-6">
+                    <form onSubmit={handleSubmit} className="bg-card border border-border p-8 rounded-2xl space-y-6">
                         {error && (
                             <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl flex items-center gap-2">
                                 <AlertCircle size={20} />
@@ -96,7 +96,7 @@ export default function ClubApplicationPage() {
                         )}
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300">Topluluk Adı</label>
+                            <label className="text-sm font-medium text-muted-foreground">Topluluk Adı</label>
                             <input
                                 type="text"
                                 name="name"
@@ -104,19 +104,19 @@ export default function ClubApplicationPage() {
                                 value={formData.name}
                                 onChange={handleChange}
                                 placeholder="Örn: Sivas Fotoğrafçılık Kulübü"
-                                className="w-full bg-black/40 border border-neutral-700 rounded-xl px-4 py-3 text-white focus:border-yellow-500 focus:outline-none"
+                                className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-foreground focus:border-primary focus:outline-none transition-colors"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300">Kategori</label>
+                            <label className="text-sm font-medium text-muted-foreground">Kategori</label>
                             <div className="relative">
                                 <select
                                     name="category"
                                     value={formData.category}
                                     onChange={handleChange}
                                     aria-label="Kategori Seç"
-                                    className="w-full bg-black/40 border border-neutral-700 rounded-xl px-4 py-3 text-white appearance-none focus:border-yellow-500 focus:outline-none"
+                                    className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-foreground appearance-none focus:border-primary focus:outline-none transition-colors"
                                 >
                                     <option value="sanat">Sanat & Kültür</option>
                                     <option value="spor">Spor & Aktivite</option>
@@ -129,7 +129,7 @@ export default function ClubApplicationPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300">Hakkında</label>
+                            <label className="text-sm font-medium text-muted-foreground">Hakkında</label>
                             <textarea
                                 name="description"
                                 required
@@ -137,25 +137,25 @@ export default function ClubApplicationPage() {
                                 value={formData.description}
                                 onChange={handleChange}
                                 placeholder="Topluluğunuzun amacı nedir? Neler yapacaksınız?"
-                                className="w-full bg-black/40 border border-neutral-700 rounded-xl px-4 py-3 text-white focus:border-yellow-500 focus:outline-none resize-none"
+                                className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-foreground focus:border-primary focus:outline-none resize-none transition-colors"
                             ></textarea>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300">Kapak Görseli URL</label>
+                            <label className="text-sm font-medium text-muted-foreground">Kapak Görseli URL</label>
                             <input
                                 type="url"
                                 name="imageUrl"
                                 value={formData.imageUrl}
                                 onChange={handleChange}
                                 placeholder="https://..."
-                                className="w-full bg-black/40 border border-neutral-700 rounded-xl px-4 py-3 text-white focus:border-yellow-500 focus:outline-none"
+                                className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-foreground focus:border-primary focus:outline-none transition-colors"
                             />
-                            <p className="text-xs text-gray-500">Şimdilik sadece resim linki kabul ediyoruz.</p>
+                            <p className="text-xs text-muted-foreground">Şimdilik sadece resim linki kabul ediyoruz.</p>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300">İletişim E-postası</label>
+                            <label className="text-sm font-medium text-muted-foreground">İletişim E-postası</label>
                             <input
                                 type="email"
                                 name="email"
@@ -163,14 +163,14 @@ export default function ClubApplicationPage() {
                                 value={formData.email}
                                 onChange={handleChange}
                                 placeholder="ornek@kulup.com"
-                                className="w-full bg-black/40 border border-neutral-700 rounded-xl px-4 py-3 text-white focus:border-yellow-500 focus:outline-none"
+                                className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-foreground focus:border-primary focus:outline-none transition-colors"
                             />
                         </div>
 
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-4 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                            className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                             {loading ? 'Gönderiliyor...' : 'Başvuruyu Gönder'}
                         </button>

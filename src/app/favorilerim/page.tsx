@@ -58,17 +58,17 @@ export default function FavoritesPage() {
         }
     }, [user, loading]);
 
-    if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2" /> Yükleniyor...</div>;
+    if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground"><Loader2 className="animate-spin mr-2" /> Yükleniyor...</div>;
 
     if (!user) {
         return (
-            <main className="min-h-screen flex flex-col bg-black text-white">
+            <main className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
                 <Navbar />
                 <div className="flex-grow flex flex-col items-center justify-center p-4 text-center">
-                    <Heart className="w-16 h-16 text-neutral-800 mb-4" />
+                    <Heart className="w-16 h-16 text-muted-foreground mb-4" />
                     <h1 className="text-2xl font-bold mb-2">Favorileri Görüntüle</h1>
-                    <p className="text-gray-400 mb-6">Favori etkinliklerinizi görmek için giriş yapmalısınız.</p>
-                    <Link href="/login" className="bg-primary text-black font-bold px-6 py-3 rounded-xl hover:bg-yellow-400 transition-colors">
+                    <p className="text-muted-foreground mb-6">Favori etkinliklerinizi görmek için giriş yapmalısınız.</p>
+                    <Link href="/login" className="bg-primary text-black font-bold px-6 py-3 rounded-xl hover:bg-primary-hover transition-colors">
                         Giriş Yap
                     </Link>
                 </div>
@@ -78,7 +78,7 @@ export default function FavoritesPage() {
     }
 
     return (
-        <main className="min-h-screen flex flex-col bg-black text-white">
+        <main className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
             <Navbar />
 
             <section className="py-24 flex-grow">
@@ -93,7 +93,7 @@ export default function FavoritesPage() {
                     {fetching ? (
                         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
                             {[1, 2, 3, 4].map((i) => (
-                                <div key={i} className="h-[300px] bg-neutral-900/50 rounded-2xl animate-pulse"></div>
+                                <div key={i} className="h-[300px] bg-muted/50 rounded-2xl animate-pulse"></div>
                             ))}
                         </div>
                     ) : favorites.length > 0 ? (
@@ -103,10 +103,10 @@ export default function FavoritesPage() {
                             ))}
                         </div>
                     ) : (
-                        <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-12 text-center">
-                            <Heart className="w-12 h-12 text-neutral-700 mx-auto mb-4" />
-                            <h2 className="text-xl font-bold text-white mb-2">Listeniz Boş</h2>
-                            <p className="text-gray-400 mb-6">Henüz hiç bir etkinliği favorilere eklemediniz.</p>
+                        <div className="bg-muted/30 border border-border rounded-2xl p-12 text-center">
+                            <Heart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                            <h2 className="text-xl font-bold text-foreground mb-2">Listeniz Boş</h2>
+                            <p className="text-muted-foreground mb-6">Henüz hiç bir etkinliği favorilere eklemediniz.</p>
                             <Link href="/" className="text-primary hover:underline">
                                 Etkinlikleri Keşfet
                             </Link>

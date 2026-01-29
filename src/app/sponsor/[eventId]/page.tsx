@@ -120,7 +120,7 @@ export default function SponsorApplicationPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-black text-white flex items-center justify-center">
+            <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
                 Yükleniyor...
             </div>
         );
@@ -128,7 +128,7 @@ export default function SponsorApplicationPage() {
 
     if (!event) {
         return (
-            <div className="min-h-screen bg-black text-white flex items-center justify-center">
+            <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
                 Etkinlik bulunamadı.
             </div>
         );
@@ -136,18 +136,18 @@ export default function SponsorApplicationPage() {
 
     if (success) {
         return (
-            <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
-                <div className="bg-neutral-900 border border-green-500/30 p-8 rounded-2xl text-center max-w-md w-full animate-fadeIn">
+            <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4 transition-colors duration-300">
+                <div className="bg-card border border-green-500/30 p-8 rounded-2xl text-center max-w-md w-full animate-fadeIn">
                     <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
                         <CheckCircle size={32} />
                     </div>
                     <h2 className="text-2xl font-bold mb-2">Başvurunuz Alındı!</h2>
-                    <p className="text-gray-400 mb-6">
+                    <p className="text-muted-foreground mb-6">
                         Sponsorluk başvurunuz değerlendirmeye alındı. Onaylandığında etkinlik sayfasında görüneceksiniz.
                     </p>
                     <button
                         onClick={() => router.push(`/etkinlik/${eventId}`)}
-                        className="btn btn-primary w-full py-3 rounded-lg font-bold"
+                        className="bg-primary text-black hover:bg-primary-hover w-full py-3 rounded-lg font-bold transition-colors"
                     >
                         Etkinliğe Dön
                     </button>
@@ -157,13 +157,13 @@ export default function SponsorApplicationPage() {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white py-12 px-4">
+        <div className="min-h-screen bg-background text-foreground py-12 px-4 transition-colors duration-300">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold mb-2">Sponsor Başvurusu</h1>
-                    <p className="text-gray-400">
-                        <span className="font-semibold text-white">{event.title}</span> etkinliğine sponsor olun
+                    <p className="text-muted-foreground">
+                        <span className="font-semibold text-foreground">{event.title}</span> etkinliğine sponsor olun
                     </p>
                 </div>
 
@@ -184,12 +184,12 @@ export default function SponsorApplicationPage() {
                     </div>
 
                     {/* Form Fields */}
-                    <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8 space-y-6">
+                    <div className="bg-card border border-border rounded-2xl p-8 space-y-6">
                         <h2 className="text-2xl font-bold mb-4">Sponsor Bilgileri</h2>
 
                         {/* Company Name */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                            <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                                 <Building2 className="w-4 h-4" />
                                 Şirket/Kurum Adı *
                             </label>
@@ -199,13 +199,13 @@ export default function SponsorApplicationPage() {
                                 value={formData.companyName}
                                 onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                                 placeholder="Örn: ABC Teknoloji A.Ş."
-                                className="w-full bg-black/40 border border-neutral-700 rounded-xl px-4 py-3 text-white focus:border-yellow-500 outline-none"
+                                className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-foreground focus:border-primary outline-none transition-colors"
                             />
                         </div>
 
                         {/* Logo Upload */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                            <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                                 <Upload className="w-4 h-4" />
                                 Logo *
                             </label>
@@ -219,7 +219,7 @@ export default function SponsorApplicationPage() {
                                 />
                                 <label
                                     htmlFor="logo-upload"
-                                    className="flex-1 bg-black/40 border-2 border-dashed border-neutral-700 rounded-xl px-4 py-8 text-center cursor-pointer hover:border-yellow-500 transition-colors"
+                                    className="flex-1 bg-muted/50 border-2 border-dashed border-border rounded-xl px-4 py-8 text-center cursor-pointer hover:border-primary transition-colors"
                                 >
                                     {logoPreview ? (
                                         <div className="flex flex-col items-center gap-2">
@@ -231,13 +231,13 @@ export default function SponsorApplicationPage() {
                                                     className="object-contain"
                                                 />
                                             </div>
-                                            <span className="text-sm text-gray-400">Değiştirmek için tıklayın</span>
+                                            <span className="text-sm text-muted-foreground">Değiştirmek için tıklayın</span>
                                         </div>
                                     ) : (
                                         <div className="flex flex-col items-center gap-2">
-                                            <Upload className="w-12 h-12 text-gray-500" />
-                                            <span className="text-sm text-gray-400">Logo yüklemek için tıklayın</span>
-                                            <span className="text-xs text-gray-500">PNG, JPG veya SVG</span>
+                                            <Upload className="w-12 h-12 text-muted-foreground" />
+                                            <span className="text-sm text-muted-foreground">Logo yüklemek için tıklayın</span>
+                                            <span className="text-xs text-muted-foreground">PNG, JPG veya SVG</span>
                                         </div>
                                     )}
                                 </label>
@@ -246,7 +246,7 @@ export default function SponsorApplicationPage() {
 
                         {/* Website */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                            <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                                 <Globe className="w-4 h-4" />
                                 Website (Opsiyonel)
                             </label>
@@ -255,26 +255,26 @@ export default function SponsorApplicationPage() {
                                 value={formData.website}
                                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                                 placeholder="https://sirketiniz.com"
-                                className="w-full bg-black/40 border border-neutral-700 rounded-xl px-4 py-3 text-white focus:border-yellow-500 outline-none"
+                                className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-foreground focus:border-primary outline-none transition-colors"
                             />
                         </div>
 
                         {/* Contact Email */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300">İletişim E-postası *</label>
+                            <label className="text-sm font-medium text-muted-foreground">İletişim E-postası *</label>
                             <input
                                 type="email"
                                 required
                                 value={formData.contactEmail}
                                 onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
                                 placeholder="sponsor@sirket.com"
-                                className="w-full bg-black/40 border border-neutral-700 rounded-xl px-4 py-3 text-white focus:border-yellow-500 outline-none"
+                                className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-foreground focus:border-primary outline-none transition-colors"
                             />
                         </div>
 
                         {/* Message */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                            <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                                 <MessageSquare className="w-4 h-4" />
                                 Mesaj (Opsiyonel)
                             </label>
@@ -283,30 +283,30 @@ export default function SponsorApplicationPage() {
                                 value={formData.message}
                                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                                 placeholder="Etkinlik organizatörlerine mesajınız..."
-                                className="w-full bg-black/40 border border-neutral-700 rounded-xl px-4 py-3 text-white focus:border-yellow-500 outline-none resize-none"
+                                className="w-full bg-muted/50 border border-border rounded-xl px-4 py-3 text-foreground focus:border-primary outline-none resize-none transition-colors"
                             ></textarea>
                         </div>
                     </div>
 
                     {/* Summary & Submit */}
                     {selectedTier && (
-                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6">
+                        <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6">
                             <h3 className="text-xl font-bold mb-4">Özet</h3>
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-400">Sponsorluk Seviyesi:</span>
-                                    <span className="font-bold text-white">
+                                    <span className="text-muted-foreground">Sponsorluk Seviyesi:</span>
+                                    <span className="font-bold text-foreground">
                                         {DEFAULT_SPONSORSHIP_TIERS.find(t => t.id === selectedTier)?.name}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-400">Tutar:</span>
-                                    <span className="font-bold text-yellow-500">
+                                    <span className="text-muted-foreground">Tutar:</span>
+                                    <span className="font-bold text-primary">
                                         {DEFAULT_SPONSORSHIP_TIERS.find(t => t.id === selectedTier)?.amount.toLocaleString('tr-TR')}₺
                                     </span>
                                 </div>
                             </div>
-                            <p className="text-xs text-gray-500 mt-4">
+                            <p className="text-xs text-muted-foreground mt-4">
                                 * Başvurunuz onaylandıktan sonra ödeme detayları iletilecektir.
                             </p>
                         </div>
@@ -316,7 +316,7 @@ export default function SponsorApplicationPage() {
                     <button
                         type="submit"
                         disabled={submitting || !selectedTier}
-                        className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                         {submitting ? 'Gönderiliyor...' : 'Başvuruyu Gönder'}
                     </button>

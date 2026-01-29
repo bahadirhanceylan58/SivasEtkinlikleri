@@ -7,13 +7,14 @@ import { SkeletonCard } from "@/components/SkeletonLoader";
 import Hero from "@/components/Hero";
 import EventFilters from "@/components/EventFilters";
 import QuickCategories from "@/components/QuickCategories";
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Event } from "@/data/mockData";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Sparkles, Calendar } from "lucide-react";
 
-export default function Home() {
+function HomeContent() {
   // Filter State
   const [filters, setFilters] = useState({
     search: '',
@@ -25,6 +26,18 @@ export default function Home() {
 
   const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Sync URL search param with filters
+    const searchParam = searchParams.get('search');
+    if (searchParam !== null && searchParam !== filters.search) {
+      setFilters(prev => ({ ...prev, search: searchParam }));
+    } else if (searchParam === null && filters.search) {
+      setFilters(prev => ({ ...prev, search: '' }));
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -104,13 +117,13 @@ export default function Home() {
   }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return (
-    <main className="min-h-screen flex flex-col bg-black page-transition">
+    <main className="min-h-screen flex flex-col bg-background text-foreground page-transition transition-colors duration-300">
       <Navbar />
       <Hero />
       <QuickCategories setFilters={setFilters} />
 
       {/* SECTION 1: New Arrivals */}
-      <section className="py-12 bg-neutral-900/50 border-b border-neutral-800">
+      <section className="py-12 bg-muted/30 border-b border-border transition-colors duration-300">
         <div className="container mx-auto px-4">
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-primary flex items-center gap-3">
@@ -150,20 +163,20 @@ export default function Home() {
       </div>
 
       {/* SECTION 2: Upcoming Events */}
-      <section id="etkinlikler" className="py-12 min-h-[50vh]">
+      <section id="etkinlikler" className="py-12 min-h-[50vh] transition-colors duration-300">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 border-b border-white/10 pb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 border-b border-border pb-4">
             <div>
-              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                <Calendar className="w-6 h-6 text-gray-400" />
+              <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <Calendar className="w-6 h-6 text-muted-foreground" />
                 {filters.category !== 'all' ? 'Arama Sonuçları' : 'Yaklaşan Etkinlikler'}
               </h2>
-              <div className="h-1 w-full md:w-48 bg-white/10 mt-2 rounded-full relative overflow-hidden">
+              <div className="h-1 w-full md:w-48 bg-muted mt-2 rounded-full relative overflow-hidden">
                 <div className="absolute top-0 left-0 h-full w-1/3 bg-primary/50"></div>
               </div>
             </div>
 
-            <span className="text-sm text-gray-400 glass px-4 py-2 rounded-full border border-white/10">
+            <span className="text-sm text-muted-foreground glass px-4 py-2 rounded-full border border-border">
               {upcomingEvents.length} etkinlik bulundu
             </span>
           </div>
@@ -181,7 +194,7 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
               {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 w-full">
                   <SkeletonCard />
@@ -215,6 +228,14 @@ export default function Home() {
 
       <Footer />
     </main >
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white">Yükleniyor...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
 

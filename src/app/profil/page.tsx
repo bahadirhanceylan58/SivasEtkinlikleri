@@ -11,6 +11,7 @@ import Footer from '@/components/Footer';
 import Modal from '@/components/Modal';
 import { QRCodeSVG } from 'qrcode.react';
 import Image from 'next/image';
+import FavoriteButton from '@/components/FavoriteButton';
 
 type TabType = 'overview' | 'tickets' | 'favorites' | 'clubs' | 'applications' | 'settings';
 
@@ -161,7 +162,7 @@ export default function ProfilePage() {
     ];
 
     return (
-        <div className="min-h-screen bg-black text-white flex flex-col">
+        <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-300">
             <Navbar />
             <div className="flex-1">
                 {/* Profile Header with Cover */}
@@ -179,7 +180,7 @@ export default function ProfilePage() {
                         <div className="relative -mt-16 flex flex-col md:flex-row items-start md:items-end gap-6">
                             {/* Avatar */}
                             <div className="relative group">
-                                <div className="w-32 h-32 rounded-full border-4 border-black bg-primary flex items-center justify-center text-black font-bold text-4xl shadow-2xl">
+                                <div className="w-32 h-32 rounded-full border-4 border-background bg-primary flex items-center justify-center text-black font-bold text-4xl shadow-2xl transition-colors duration-300">
                                     {displayName ? displayName.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase()}
                                 </div>
                                 <button className="absolute bottom-0 right-0 p-2 bg-primary rounded-full hover:bg-primary-hover transition-colors shadow-lg">
@@ -190,13 +191,13 @@ export default function ProfilePage() {
                             {/* Info */}
                             <div className="flex-1 pb-4">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <h1 className="text-3xl font-bold text-white">{displayName || user?.email?.split('@')[0]}</h1>
+                                    <h1 className="text-3xl font-bold text-foreground">{displayName || user?.email?.split('@')[0]}</h1>
                                     <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-xs font-semibold border border-primary/30">
                                         Standart Üye
                                     </span>
                                 </div>
-                                {bio && <p className="text-gray-400 mb-2">{bio}</p>}
-                                <div className="flex items-center gap-4 text-sm text-gray-500">
+                                {bio && <p className="text-muted-foreground mb-2">{bio}</p>}
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                     <span className="flex items-center gap-1">
                                         <Mail className="w-4 h-4" />
                                         {user?.email}
@@ -212,7 +213,7 @@ export default function ProfilePage() {
                             <div className="flex gap-3 pb-4">
                                 <button
                                     onClick={() => setIsEditModalOpen(true)}
-                                    className="px-4 py-2 glass-strong border border-white/20 text-white font-semibold rounded-xl hover:bg-white/10 transition-all flex items-center gap-2"
+                                    className="px-4 py-2 glass-strong border border-border text-foreground font-semibold rounded-xl hover:bg-muted/10 transition-all flex items-center gap-2"
                                 >
                                     <Edit2 className="w-4 h-4" />
                                     Profili Düzenle
@@ -235,26 +236,26 @@ export default function ProfilePage() {
                         {stats.map((stat, index) => (
                             <div
                                 key={index}
-                                className="glass-strong p-6 rounded-xl border border-white/10 hover:border-primary/30 transition-all group"
+                                className="glass-strong p-6 rounded-xl border border-border hover:border-primary/30 transition-all group"
                             >
                                 <div className={`w-12 h-12 rounded-lg ${stat.bg} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
                                     <stat.icon className={`w-6 h-6 ${stat.color}`} />
                                 </div>
-                                <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-                                <div className="text-sm text-gray-400">{stat.label}</div>
+                                <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
+                                <div className="text-sm text-muted-foreground">{stat.label}</div>
                             </div>
                         ))}
                     </div>
 
                     {/* Tabs */}
-                    <div className="flex overflow-x-auto border-b border-white/10 mb-8 gap-2">
+                    <div className="flex overflow-x-auto border-b border-border mb-8 gap-2">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`px-6 py-4 font-semibold transition-all relative whitespace-nowrap flex items-center gap-2 ${activeTab === tab.id
-                                        ? 'text-primary'
-                                        : 'text-gray-400 hover:text-white'
+                                    ? 'text-primary'
+                                    : 'text-muted-foreground hover:text-foreground'
                                     }`}
                             >
                                 <tab.icon className="w-5 h-5" />
@@ -272,12 +273,12 @@ export default function ProfilePage() {
                         {activeTab === 'overview' && (
                             <div className="space-y-8">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-white mb-4">Son Aktiviteler</h2>
+                                    <h2 className="text-2xl font-bold text-foreground mb-4">Son Aktiviteler</h2>
                                     {tickets.length === 0 && joinedClubs.length === 0 ? (
-                                        <div className="text-center py-12 glass-strong rounded-2xl border border-white/10">
-                                            <Activity className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                                            <h3 className="text-xl font-bold text-white mb-2">Henüz Aktivite Yok</h3>
-                                            <p className="text-gray-400 mb-6">Etkinliklere katılın ve kulüplere üye olun!</p>
+                                        <div className="text-center py-12 glass-strong rounded-2xl border border-border">
+                                            <Activity className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                                            <h3 className="text-xl font-bold text-foreground mb-2">Henüz Aktivite Yok</h3>
+                                            <p className="text-muted-foreground mb-6">Etkinliklere katılın ve kulüplere üye olun!</p>
                                             <button
                                                 onClick={() => router.push('/')}
                                                 className="px-6 py-3 bg-primary hover:bg-primary-hover text-black font-bold rounded-xl transition-all"
@@ -288,13 +289,13 @@ export default function ProfilePage() {
                                     ) : (
                                         <div className="space-y-3">
                                             {tickets.slice(0, 3).map((ticket, index) => (
-                                                <div key={index} className="flex gap-4 p-4 glass-strong rounded-xl border border-white/10 hover:border-primary/30 transition-all">
+                                                <div key={index} className="flex gap-4 p-4 glass-strong rounded-xl border border-border hover:border-primary/30 transition-all">
                                                     <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
                                                         <Ticket className="w-5 h-5 text-blue-500" />
                                                     </div>
                                                     <div className="flex-1">
-                                                        <p className="text-white font-medium">{ticket.eventTitle} etkinliği için bilet aldınız</p>
-                                                        <span className="text-xs text-gray-400">
+                                                        <p className="text-foreground font-medium">{ticket.eventTitle} etkinliği için bilet aldınız</p>
+                                                        <span className="text-xs text-muted-foreground">
                                                             {new Date(ticket.purchaseDate || Date.now()).toLocaleDateString('tr-TR')}
                                                         </span>
                                                     </div>
@@ -310,22 +311,22 @@ export default function ProfilePage() {
                         {activeTab === 'tickets' && (
                             <div className="space-y-4">
                                 {tickets.length === 0 ? (
-                                    <div className="text-center py-12 glass-strong rounded-2xl border border-white/10">
-                                        <Ticket className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                                        <h3 className="text-xl font-bold text-white mb-2">Henüz Biletiniz Yok</h3>
-                                        <p className="text-gray-400">İlk biletinizi almak için etkinliklere göz atın!</p>
+                                    <div className="text-center py-12 glass-strong rounded-2xl border border-border">
+                                        <Ticket className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                                        <h3 className="text-xl font-bold text-foreground mb-2">Henüz Biletiniz Yok</h3>
+                                        <p className="text-muted-foreground">İlk biletinizi almak için etkinliklere göz atın!</p>
                                     </div>
                                 ) : (
                                     tickets.map((ticket, index) => (
-                                        <div key={index} className="glass-strong border border-white/10 rounded-xl p-4 md:p-6 hover:border-primary/30 transition-all">
+                                        <div key={index} className="glass-strong border border-border rounded-xl p-4 md:p-6 hover:border-primary/30 transition-all">
                                             <div className="flex flex-col md:flex-row gap-6">
-                                                <div className="glass rounded-lg w-full md:w-32 flex flex-col items-center justify-center p-4 border border-white/10">
+                                                <div className="glass rounded-lg w-full md:w-32 flex flex-col items-center justify-center p-4 border border-border">
                                                     <span className="text-3xl font-bold text-primary">{new Date(ticket.eventDate).getDate()}</span>
-                                                    <span className="text-sm uppercase text-gray-400">{new Date(ticket.eventDate).toLocaleDateString('tr-TR', { month: 'short' })}</span>
+                                                    <span className="text-sm uppercase text-muted-foreground">{new Date(ticket.eventDate).toLocaleDateString('tr-TR', { month: 'short' })}</span>
                                                 </div>
                                                 <div className="flex-1">
-                                                    <h3 className="font-bold text-xl mb-3 text-white">{ticket.eventTitle}</h3>
-                                                    <div className="flex flex-wrap gap-4 text-sm text-gray-400 mb-4">
+                                                    <h3 className="font-bold text-xl mb-3 text-foreground">{ticket.eventTitle}</h3>
+                                                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
                                                         <div className="flex items-center gap-1">
                                                             <MapPin className="w-4 h-4 text-primary" />
                                                             {ticket.eventLocation}
@@ -340,11 +341,11 @@ export default function ProfilePage() {
                                                         </div>
                                                     </div>
                                                     <div className="flex gap-2">
-                                                        <button className="flex items-center gap-2 px-4 py-2 glass border border-white/10 rounded-lg hover:bg-white/10 transition-all text-sm">
+                                                        <button className="flex items-center gap-2 px-4 py-2 glass border border-border rounded-lg hover:bg-muted/10 transition-all text-sm">
                                                             <Download className="w-4 h-4" />
                                                             İndir
                                                         </button>
-                                                        <button className="flex items-center gap-2 px-4 py-2 glass border border-white/10 rounded-lg hover:bg-white/10 transition-all text-sm">
+                                                        <button className="flex items-center gap-2 px-4 py-2 glass border border-border rounded-lg hover:bg-muted/10 transition-all text-sm">
                                                             <Share2 className="w-4 h-4" />
                                                             Paylaş
                                                         </button>
@@ -364,15 +365,15 @@ export default function ProfilePage() {
                         {activeTab === 'favorites' && (
                             <div>
                                 {favorites.length === 0 ? (
-                                    <div className="text-center py-12 glass-strong rounded-2xl border border-white/10">
-                                        <Heart className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                                        <h3 className="text-xl font-bold text-white mb-2">Henüz Favori Yok</h3>
-                                        <p className="text-gray-400">Beğendiğiniz etkinlikleri favorilere ekleyin!</p>
+                                    <div className="text-center py-12 glass-strong rounded-2xl border border-border">
+                                        <Heart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                                        <h3 className="text-xl font-bold text-foreground mb-2">Henüz Favori Yok</h3>
+                                        <p className="text-muted-foreground">Beğendiğiniz etkinlikleri favorilere ekleyin!</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {favorites.map((event: any) => (
-                                            <div key={event.id} className="glass-strong rounded-xl overflow-hidden border border-white/10 hover:border-primary/30 transition-all group">
+                                            <div key={event.id} className="glass-strong rounded-xl overflow-hidden border border-border hover:border-primary/30 transition-all group">
                                                 {event.imageUrl && (
                                                     <div className="relative h-48">
                                                         <Image
@@ -383,10 +384,14 @@ export default function ProfilePage() {
                                                             unoptimized
                                                         />
                                                     </div>
+
                                                 )}
+                                                <div className="absolute top-2 right-2 z-10">
+                                                    <FavoriteButton eventId={event.id} />
+                                                </div>
                                                 <div className="p-4">
-                                                    <h4 className="font-bold text-white mb-2 line-clamp-2">{event.title}</h4>
-                                                    <p className="text-sm text-gray-400 mb-3 line-clamp-1 flex items-center gap-1">
+                                                    <h4 className="font-bold text-foreground mb-2 line-clamp-2">{event.title}</h4>
+                                                    <p className="text-sm text-muted-foreground mb-3 line-clamp-1 flex items-center gap-1">
                                                         <MapPin className="w-3 h-3" />
                                                         {event.location}
                                                     </p>
@@ -405,10 +410,10 @@ export default function ProfilePage() {
                         {activeTab === 'clubs' && (
                             <div>
                                 {joinedClubs.length === 0 ? (
-                                    <div className="text-center py-12 glass-strong rounded-2xl border border-white/10">
-                                        <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                                        <h3 className="text-xl font-bold text-white mb-2">Henüz Kulüp Üyeliğiniz Yok</h3>
-                                        <p className="text-gray-400 mb-6">İlgi alanlarınıza uygun kulüplere katılın!</p>
+                                    <div className="text-center py-12 glass-strong rounded-2xl border border-border">
+                                        <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                                        <h3 className="text-xl font-bold text-foreground mb-2">Henüz Kulüp Üyeliğiniz Yok</h3>
+                                        <p className="text-muted-foreground mb-6">İlgi alanlarınıza uygun kulüplere katılın!</p>
                                         <button
                                             onClick={() => router.push('/kulupler')}
                                             className="px-6 py-3 bg-primary hover:bg-primary-hover text-black font-bold rounded-xl transition-all"
@@ -419,20 +424,20 @@ export default function ProfilePage() {
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         {joinedClubs.map((club: any) => (
-                                            <div key={club.id} className="glass-strong p-6 rounded-xl border border-white/10 hover:border-primary/30 transition-all">
+                                            <div key={club.id} className="glass-strong p-6 rounded-xl border border-border hover:border-primary/30 transition-all">
                                                 <div className="flex items-start gap-4 mb-4">
                                                     <div className="w-16 h-16 rounded-xl bg-primary/20 flex items-center justify-center">
                                                         <Users className="w-8 h-8 text-primary" />
                                                     </div>
                                                     <div className="flex-1">
-                                                        <h4 className="font-bold text-white mb-1">{club.name}</h4>
+                                                        <h4 className="font-bold text-foreground mb-1">{club.name}</h4>
                                                         <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded-full">
                                                             {club.category}
                                                         </span>
                                                     </div>
                                                 </div>
-                                                <p className="text-sm text-gray-400 mb-4 line-clamp-2">{club.description}</p>
-                                                <button className="w-full px-4 py-2 glass border border-white/10 rounded-lg hover:bg-white/10 transition-all text-sm font-semibold">
+                                                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{club.description}</p>
+                                                <button className="w-full px-4 py-2 glass border border-border rounded-lg hover:bg-muted/10 transition-all text-sm font-semibold">
                                                     Detayları Gör
                                                 </button>
                                             </div>
@@ -446,10 +451,10 @@ export default function ProfilePage() {
                         {activeTab === 'applications' && (
                             <div className="space-y-4">
                                 {applications.length === 0 ? (
-                                    <div className="text-center py-12 glass-strong rounded-2xl border border-white/10">
-                                        <FileText className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                                        <h3 className="text-xl font-bold text-white mb-2">Henüz Başvurunuz Yok</h3>
-                                        <p className="text-gray-400 mb-6">Topluluk oluşturmak için başvuruda bulunun!</p>
+                                    <div className="text-center py-12 glass-strong rounded-2xl border border-border">
+                                        <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                                        <h3 className="text-xl font-bold text-foreground mb-2">Henüz Başvurunuz Yok</h3>
+                                        <p className="text-muted-foreground mb-6">Topluluk oluşturmak için başvuruda bulunun!</p>
                                         <button
                                             onClick={() => router.push('/kulup-basvuru')}
                                             className="px-6 py-3 bg-primary hover:bg-primary-hover text-black font-bold rounded-xl transition-all"
@@ -459,20 +464,20 @@ export default function ProfilePage() {
                                     </div>
                                 ) : (
                                     applications.map((app) => (
-                                        <div key={app.id} className="glass-strong border border-white/10 rounded-xl p-6 hover:border-primary/30 transition-all">
+                                        <div key={app.id} className="glass-strong border border-border rounded-xl p-6 hover:border-primary/30 transition-all">
                                             <div className="flex justify-between items-start">
                                                 <div className="flex-1">
-                                                    <h3 className="font-bold text-xl text-white mb-2">{app.name}</h3>
-                                                    <p className="text-sm text-gray-400 mb-3 capitalize">{app.category}</p>
+                                                    <h3 className="font-bold text-xl text-foreground mb-2">{app.name}</h3>
+                                                    <p className="text-sm text-muted-foreground mb-3 capitalize">{app.category}</p>
                                                     <span className={`inline-block text-xs px-3 py-1 rounded-full font-semibold border ${app.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
-                                                            app.status === 'approved' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-                                                                'bg-red-500/10 text-red-500 border-red-500/20'
+                                                        app.status === 'approved' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                                                            'bg-red-500/10 text-red-500 border-red-500/20'
                                                         }`}>
                                                         {app.status === 'pending' ? 'Değerlendirmede' :
                                                             app.status === 'approved' ? 'Onaylandı' : 'Reddedildi'}
                                                     </span>
                                                 </div>
-                                                <div className="text-right text-xs text-gray-500">
+                                                <div className="text-right text-xs text-muted-foreground">
                                                     {app.createdAt ? new Date(app.createdAt.seconds * 1000).toLocaleDateString('tr-TR') : '-'}
                                                 </div>
                                             </div>
@@ -486,21 +491,21 @@ export default function ProfilePage() {
                         {activeTab === 'settings' && (
                             <div className="space-y-8 max-w-2xl">
                                 {/* Personal Info */}
-                                <div className="glass-strong p-6 rounded-xl border border-white/10">
-                                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                <div className="glass-strong p-6 rounded-xl border border-border">
+                                    <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                                         <User className="w-5 h-5 text-primary" />
                                         Kişisel Bilgiler
                                     </h3>
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-400 mb-2">E-posta</label>
-                                            <div className="px-4 py-3 glass rounded-lg border border-white/10 text-gray-400">
+                                            <label className="block text-sm font-medium text-muted-foreground mb-2">E-posta</label>
+                                            <div className="px-4 py-3 glass rounded-lg border border-border text-muted-foreground">
                                                 {user?.email}
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-400 mb-2">Üyelik Tarihi</label>
-                                            <div className="px-4 py-3 glass rounded-lg border border-white/10 text-gray-400">
+                                            <label className="block text-sm font-medium text-muted-foreground mb-2">Üyelik Tarihi</label>
+                                            <div className="px-4 py-3 glass rounded-lg border border-border text-muted-foreground">
                                                 {memberSince}
                                             </div>
                                         </div>
@@ -508,22 +513,22 @@ export default function ProfilePage() {
                                 </div>
 
                                 {/* Notifications */}
-                                <div className="glass-strong p-6 rounded-xl border border-white/10">
-                                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                <div className="glass-strong p-6 rounded-xl border border-border">
+                                    <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                                         <Bell className="w-5 h-5 text-primary" />
                                         Bildirim Tercihleri
                                     </h3>
                                     <div className="space-y-3">
-                                        <label className="flex items-center justify-between p-3 glass rounded-lg border border-white/10 cursor-pointer hover:bg-white/5 transition-all">
-                                            <span className="text-white">E-posta bildirimleri</span>
+                                        <label className="flex items-center justify-between p-3 glass rounded-lg border border-border cursor-pointer hover:bg-muted/10 transition-all">
+                                            <span className="text-foreground">E-posta bildirimleri</span>
                                             <input type="checkbox" className="w-5 h-5" defaultChecked />
                                         </label>
-                                        <label className="flex items-center justify-between p-3 glass rounded-lg border border-white/10 cursor-pointer hover:bg-white/5 transition-all">
-                                            <span className="text-white">Yeni etkinlik bildirimleri</span>
+                                        <label className="flex items-center justify-between p-3 glass rounded-lg border border-border cursor-pointer hover:bg-muted/10 transition-all">
+                                            <span className="text-foreground">Yeni etkinlik bildirimleri</span>
                                             <input type="checkbox" className="w-5 h-5" defaultChecked />
                                         </label>
-                                        <label className="flex items-center justify-between p-3 glass rounded-lg border border-white/10 cursor-pointer hover:bg-white/5 transition-all">
-                                            <span className="text-white">Kulüp haberleri</span>
+                                        <label className="flex items-center justify-between p-3 glass rounded-lg border border-border cursor-pointer hover:bg-muted/10 transition-all">
+                                            <span className="text-foreground">Kulüp haberleri</span>
                                             <input type="checkbox" className="w-5 h-5" />
                                         </label>
                                     </div>

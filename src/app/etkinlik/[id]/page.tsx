@@ -13,7 +13,15 @@ import SocialShare from '@/components/SocialShare';
 import CountdownTimer from '@/components/CountdownTimer';
 import Modal from '@/components/Modal';
 import SeatSelector from '@/components/SeatSelector';
+import ReviewsSection from '@/components/ReviewsSection';
 import { Seat } from '@/types/seating';
+import dynamic from 'next/dynamic';
+import FavoriteButton from '@/components/FavoriteButton';
+
+const MapViewer = dynamic(() => import('@/components/MapViewer'), {
+    ssr: false,
+    loading: () => <div className="h-48 w-full bg-neutral-900 animate-pulse rounded-2xl flex items-center justify-center text-gray-500">Harita yükleniyor...</div>
+});
 
 export default function EventDetailPage() {
     const { id } = useParams();
@@ -86,7 +94,7 @@ export default function EventDetailPage() {
     );
 
     return (
-        <main className="bg-black min-h-screen text-white flex flex-col">
+        <main className="bg-background min-h-screen text-foreground flex flex-col transition-colors duration-300">
             <Navbar />
 
             <div className="flex-grow py-12">
@@ -123,7 +131,7 @@ export default function EventDetailPage() {
                                 )}
 
                                 <div
-                                    className="absolute bottom-4 right-4 glass-strong px-3 py-2 rounded-lg text-xs flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                    className="absolute bottom-4 right-4 glass-strong px-3 py-2 rounded-lg text-xs flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-foreground"
                                     onClick={() => setIsImageModalOpen(true)}
                                 >
                                     <ZoomIn className="w-4 h-4" />
@@ -131,7 +139,7 @@ export default function EventDetailPage() {
                                 </div>
 
                                 {eventImages.length > 1 && (
-                                    <div className="absolute top-4 right-4 glass-strong px-3 py-1.5 rounded-lg text-xs">
+                                    <div className="absolute top-4 right-4 glass-strong px-3 py-1.5 rounded-lg text-xs text-foreground">
                                         {currentImageIndex + 1} / {eventImages.length}
                                     </div>
                                 )}
@@ -145,7 +153,7 @@ export default function EventDetailPage() {
                                             onClick={() => setCurrentImageIndex(index)}
                                             className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${currentImageIndex === index
                                                 ? 'border-primary scale-105'
-                                                : 'border-white/10 hover:border-white/30 opacity-70 hover:opacity-100'
+                                                : 'border-border hover:border-primary/50 opacity-70 hover:opacity-100'
                                                 }`}
                                         >
                                             <Image
@@ -163,8 +171,8 @@ export default function EventDetailPage() {
 
                         {/* Countdown Timer */}
                         {new Date(event.date) > new Date() && (
-                            <div className="glass-strong border border-white/10 rounded-2xl p-6">
-                                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <div className="glass-strong border border-border rounded-2xl p-6">
+                                <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
                                     <Clock className="w-5 h-5 text-primary" />
                                     Etkinliğe Kalan Süre
                                 </h3>
@@ -174,16 +182,16 @@ export default function EventDetailPage() {
 
                         {/* Açıklama */}
                         <div className="animate-slideInUp" style={{ animationDelay: '0.1s', opacity: 0, animationFillMode: 'forwards' }}>
-                            <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                            <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-3">
                                 <span className="w-1 h-8 bg-primary rounded-full" />
                                 Etkinlik Detayları
                             </h2>
-                            <div className="glass-strong p-6 rounded-2xl border border-white/10 leading-relaxed text-gray-300">
+                            <div className="glass-strong p-6 rounded-2xl border border-border leading-relaxed text-muted-foreground">
                                 <p className="whitespace-pre-wrap">{event.description || "Bu etkinlik için detaylı açıklama girilmemiş."}</p>
 
                                 <div className="mt-6 flex flex-wrap gap-2">
-                                    <span className="px-3 py-1 glass rounded-full text-xs text-gray-400 hover:bg-white/10 transition-colors">#sivas</span>
-                                    <span className="px-3 py-1 glass rounded-full text-xs text-gray-400 hover:bg-white/10 transition-colors">#{event.category?.toLowerCase() || 'etkinlik'}</span>
+                                    <span className="px-3 py-1 glass rounded-full text-xs text-muted-foreground hover:bg-muted/10 transition-colors">#sivas</span>
+                                    <span className="px-3 py-1 glass rounded-full text-xs text-muted-foreground hover:bg-muted/10 transition-colors">#{event.category?.toLowerCase() || 'etkinlik'}</span>
                                 </div>
                             </div>
                         </div>
@@ -191,8 +199,8 @@ export default function EventDetailPage() {
                         {/* Koltuk Seçimi */}
                         {event.hasSeating && event.seatingConfig && (
                             <div className="animate-slideInUp" style={{ animationDelay: '0.15s', opacity: 0, animationFillMode: 'forwards' }}>
-                                <div className="glass-strong border border-white/10 rounded-2xl p-6">
-                                    <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                                <div className="glass-strong border border-border rounded-2xl p-6">
+                                    <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
                                         <span className="w-1 h-8 bg-primary rounded-full" />
                                         İnteraktif Koltuk Seçimi
                                     </h2>
@@ -208,24 +216,42 @@ export default function EventDetailPage() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Değerlendirmeler Section */}
+                        <div className="animate-slideInUp" style={{ animationDelay: '0.2s', opacity: 0, animationFillMode: 'forwards' }}>
+                            <ReviewsSection eventId={event.id} />
+                        </div>
                     </div>
 
                     {/* SAĞ SÜTUN */}
                     <div>
                         <div className="sticky top-24 space-y-6 animate-slideInUp" style={{ animationDelay: '0.2s', opacity: 0, animationFillMode: 'forwards' }}>
 
+                            {/* Title & Favorite */}
+                            <div className="flex justify-between items-start gap-4">
+                                <div>
+                                    <h1 className="text-3xl font-bold text-foreground leading-tight mb-2">{event.title}</h1>
+                                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                                        <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-medium text-xs uppercase">{event.category}</span>
+                                        <span>•</span>
+                                        <span>{new Date(event.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                                    </div>
+                                </div>
+                                <FavoriteButton eventId={event.id} className="flex-shrink-0" iconSize={24} />
+                            </div>
+
                             {/* Bilet Satın Al */}
                             {!event.hasSeating && (
                                 <>
                                     <div className="space-y-3">
-                                        <label className="text-sm font-medium text-gray-300">Bilet Adedi</label>
+                                        <label className="text-sm font-medium text-muted-foreground">Bilet Adedi</label>
                                         <div className="flex items-center gap-4">
                                             <button
                                                 onClick={() => setTicketQuantity(q => Math.max(1, q - 1))}
                                                 disabled={ticketQuantity <= 1}
-                                                className="w-12 h-12 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                className="w-12 h-12 rounded-lg bg-card hover:bg-muted border border-border hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                                             >
-                                                <Minus className="w-5 h-5 mx-auto text-white" />
+                                                <Minus className="w-5 h-5 mx-auto text-foreground" />
                                             </button>
                                             <input
                                                 type="number"
@@ -234,32 +260,32 @@ export default function EventDetailPage() {
                                                     const val = parseInt(e.target.value) || 1;
                                                     setTicketQuantity(Math.max(1, Math.min(10, val)));
                                                 }}
-                                                className="w-20 text-center text-2xl font-bold bg-white/5 border border-white/10 rounded-lg py-3 text-white focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
+                                                className="w-20 text-center text-2xl font-bold bg-card border border-border rounded-lg py-3 text-foreground focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
                                                 min="1"
                                                 max="10"
                                             />
                                             <button
                                                 onClick={() => setTicketQuantity(q => Math.min(10, q + 1))}
                                                 disabled={ticketQuantity >= 10}
-                                                className="w-12 h-12 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                className="w-12 h-12 rounded-lg bg-card hover:bg-muted border border-border hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                                             >
-                                                <Plus className="w-5 h-5 mx-auto text-white" />
+                                                <Plus className="w-5 h-5 mx-auto text-foreground" />
                                             </button>
                                         </div>
-                                        <p className="text-xs text-gray-400">Maksimum 10 bilet seçebilirsiniz</p>
+                                        <p className="text-xs text-muted-foreground">Maksimum 10 bilet seçebilirsiniz</p>
                                     </div>
 
-                                    <div className="space-y-3 pt-4 border-t border-white/10">
+                                    <div className="space-y-3 pt-4 border-t border-border">
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-gray-400">Bilet Fiyatı</span>
-                                            <span className="text-white font-medium">₺{event.ticketTypes?.[0]?.price || 0}</span>
+                                            <span className="text-muted-foreground">Bilet Fiyatı</span>
+                                            <span className="text-foreground font-medium">₺{event.ticketTypes?.[0]?.price || 0}</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-gray-400">Adet</span>
-                                            <span className="text-white font-medium">x {ticketQuantity}</span>
+                                            <span className="text-muted-foreground">Adet</span>
+                                            <span className="text-foreground font-medium">x {ticketQuantity}</span>
                                         </div>
-                                        <div className="flex justify-between pt-3 border-t border-white/10">
-                                            <span className="text-white font-bold">Toplam</span>
+                                        <div className="flex justify-between pt-3 border-t border-border">
+                                            <span className="text-foreground font-bold">Toplam</span>
                                             <span className="text-2xl font-bold text-primary">₺{(event.ticketTypes?.[0]?.price || 0) * ticketQuantity}</span>
                                         </div>
                                     </div>
@@ -274,18 +300,33 @@ export default function EventDetailPage() {
                             )}
 
                             {/* Mekan Kartı */}
-                            <div className="glass-strong border border-white/10 p-6 rounded-2xl">
-                                <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+                            <div className="glass-strong border border-border p-6 rounded-2xl">
+                                <h3 className="text-foreground font-bold mb-4 flex items-center gap-2">
                                     <MapPin className="w-5 h-5 text-primary" />
                                     Mekan Bilgisi
                                 </h3>
-                                <p className="text-gray-300 mb-4">{event.location}</p>
+                                <p className="text-muted-foreground mb-4">{event.location}</p>
+
+                                {event.coordinates && (
+                                    <div className="h-48 w-full mb-4 rounded-xl overflow-hidden border border-border">
+                                        <MapViewer position={[event.coordinates.lat, event.coordinates.lng]} title={event.location} />
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button className="flex items-center justify-center glass hover:bg-white/10 text-white py-2 rounded-lg text-sm transition-all hover:scale-105 border border-white/10">
+                                    <button
+                                        onClick={() => {
+                                            const query = event.coordinates
+                                                ? `${event.coordinates.lat},${event.coordinates.lng}`
+                                                : encodeURIComponent(event.location);
+                                            window.open(`https://www.google.com/maps/dir/?api=1&destination=${query}`, '_blank');
+                                        }}
+                                        className="flex items-center justify-center glass hover:bg-muted/10 text-foreground py-2 rounded-lg text-sm transition-all hover:scale-105 border border-border"
+                                    >
                                         <Navigation className="w-4 h-4 mr-2" />
                                         Yol Tarifi
                                     </button>
-                                    <button className="flex items-center justify-center glass hover:bg-white/10 text-white py-2 rounded-lg text-sm transition-all hover:scale-105 border border-white/10">
+                                    <button className="flex items-center justify-center glass hover:bg-muted/10 text-foreground py-2 rounded-lg text-sm transition-all hover:scale-105 border border-border">
                                         <Phone className="w-4 h-4 mr-2" />
                                         Ara
                                     </button>
@@ -293,15 +334,15 @@ export default function EventDetailPage() {
                             </div>
 
                             {/* Organizatör */}
-                            <div className="glass-strong border border-white/10 p-5 rounded-2xl">
+                            <div className="glass-strong border border-border p-5 rounded-2xl">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center">
                                         <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
                                             SE
                                         </div>
                                         <div className="ml-3">
-                                            <div className="text-white text-sm font-bold">Sivas Etkinlikleri</div>
-                                            <div className="text-xs text-gray-500">Resmi Organizatör</div>
+                                            <div className="text-foreground text-sm font-bold">Sivas Etkinlikleri</div>
+                                            <div className="text-xs text-muted-foreground">Resmi Organizatör</div>
                                         </div>
                                     </div>
                                 </div>
@@ -315,7 +356,7 @@ export default function EventDetailPage() {
                 </div>
             </div>
 
-            {/* Image Modal */}
+            {/* Image Modal - Keep dark for lightbox effect */}
             {isImageModalOpen && (
                 <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsImageModalOpen(false)}>
                     <button
@@ -344,7 +385,7 @@ export default function EventDetailPage() {
                 size="md"
             >
                 <div className="space-y-4">
-                    <p className="text-gray-300 text-sm">Bu etkinliği sosyal medyada paylaşın:</p>
+                    <p className="text-muted-foreground text-sm">Bu etkinliği sosyal medyada paylaşın:</p>
                     <SocialShare
                         eventTitle={event.title}
                         eventUrl={typeof window !== 'undefined' ? window.location.href : ''}

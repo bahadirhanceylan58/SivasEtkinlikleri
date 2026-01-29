@@ -19,15 +19,10 @@ export default function Hero() {
     };
 
     return (
-        <section className="relative h-[600px] flex items-center justify-center bg-black text-white overflow-hidden">
+        <section className="relative h-[600px] flex items-center justify-center bg-background text-foreground overflow-hidden transition-colors duration-300">
             {/* Background Image with Parallax */}
             <div className="absolute inset-0 z-0">
-                <div
-                    className="absolute inset-0 bg-black/60 z-10"
-                    style={{
-                        background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(250,204,21,0.1) 50%, rgba(0,0,0,0.7) 100%)',
-                    }}
-                />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/90 via-primary/5 to-white/90 dark:from-black/90 dark:via-primary/5 dark:to-black/90 z-10" />
                 <img
                     src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80"
                     alt="Concert Stage and Lights"
@@ -54,7 +49,7 @@ export default function Hero() {
                         Çıkar!
                     </span>
                 </h1>
-                <p className="text-xl text-gray-200 max-w-2xl mx-auto animate-fadeIn" style={{ animationDelay: '0.5s', opacity: 0, animationFillMode: 'forwards' }}>
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto animate-fadeIn" style={{ animationDelay: '0.5s', opacity: 0, animationFillMode: 'forwards' }}>
                     Sivas'ın en iyi etkinlikleri, konserleri ve tiyatroları bir arada.
                 </p>
 
@@ -75,7 +70,7 @@ export default function Hero() {
             {/* Scroll Indicator */}
             <button
                 onClick={scrollToEvents}
-                className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 text-white/60 hover:text-white transition-colors animate-bounce cursor-pointer"
+                className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 text-muted-foreground hover:text-foreground transition-colors animate-bounce cursor-pointer"
                 aria-label="Aşağı kaydır"
             >
                 <ChevronDown className="w-8 h-8" />

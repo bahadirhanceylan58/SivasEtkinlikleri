@@ -112,6 +112,13 @@ export default function PaymentPage() {
             alert('Lütfen iletişim bilgilerini eksiksiz giriniz.');
             return;
         }
+
+        const phoneRegex = /^05\d{9}$/;
+        if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
+            alert('Lütfen geçerli bir telefon numarası giriniz (Başında 05 ile, 11 hane).');
+            return;
+        }
+
         setProcessing(true);
 
         try {
@@ -197,7 +204,10 @@ export default function PaymentPage() {
                 discountCode: appliedDiscountCode || null,
                 discountAmount: discountAmount,
                 totalAmount: totalAmount,
-                purchaseDate: new Date().toISOString()
+                purchaseDate: new Date().toISOString(),
+                qrCode: uniqueQrCode,
+                status: 'valid',
+                checkedIn: false
             });
 
             // İndirim kodu kullanıldıysa, işaretle ve sayacı artır
@@ -227,46 +237,46 @@ export default function PaymentPage() {
         }
     };
 
-    if (loading) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Yükleniyor...</div>;
-    if (!event) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Etkinlik bulunamadı.</div>;
+    if (loading) return <div className="min-h-screen bg-background text-foreground flex items-center justify-center">Yükleniyor...</div>;
+    if (!event) return <div className="min-h-screen bg-background text-foreground flex items-center justify-center">Etkinlik bulunamadı.</div>;
 
     return (
-        <div className="min-h-screen bg-black text-white flex justify-center py-12 px-4">
+        <div className="min-h-screen bg-background text-foreground flex justify-center py-12 px-4 transition-colors duration-300">
             <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Sol: Rezervasyon Formu */}
-                <div className="bg-neutral-900 p-6 rounded-2xl border border-neutral-800 h-fit">
-                    <div className="mb-6 bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl">
-                        <h2 className="text-yellow-500 font-bold flex items-center gap-2">
+                <div className="bg-card p-6 rounded-2xl border border-border h-fit">
+                    <div className="mb-6 bg-primary/10 border border-primary/20 p-4 rounded-xl">
+                        <h2 className="text-primary font-bold flex items-center gap-2">
                             <Ticket size={20} /> Kapıda Ödeme / Rezervasyon
                         </h2>
-                        <p className="text-sm text-gray-400 mt-2">
+                        <p className="text-sm text-muted-foreground mt-2">
                             Online ödeme sistemi şu an bakımda. Bilgilerinizi girerek yerinizi ayırtabilir, ödemeyi etkinlik girişinde yapabilirsiniz.
                         </p>
                     </div>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-xs text-gray-500 mb-1">Ad Soyad</label>
+                            <label className="block text-xs text-muted-foreground mb-1">Ad Soyad</label>
                             <div className="relative">
-                                <User className="absolute left-3 top-3 text-gray-500" size={18} />
+                                <User className="absolute left-3 top-3 text-muted-foreground" size={18} />
                                 <input
                                     type="text"
                                     value={fullName}
                                     onChange={(e) => setFullName(e.target.value)}
                                     placeholder="Etkinliğe katılacak kişi"
-                                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 pl-10 text-white focus:border-yellow-500 outline-none"
+                                    className="w-full bg-muted/50 border border-border rounded-lg p-3 pl-10 text-foreground focus:border-primary outline-none transition-colors"
                                 />
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs text-gray-500 mb-1">Telefon Numarası</label>
+                            <label className="block text-xs text-muted-foreground mb-1">Telefon Numarası</label>
                             <div className="relative">
-                                <Phone className="absolute left-3 top-3 text-gray-500" size={18} />
+                                <Phone className="absolute left-3 top-3 text-muted-foreground" size={18} />
                                 <input
                                     type="tel"
                                     value={phoneNumber}
                                     onChange={(e) => setPhoneNumber(e.target.value)}
                                     placeholder="05XX XXX XX XX"
-                                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 pl-10 text-white focus:border-yellow-500 outline-none"
+                                    className="w-full bg-muted/50 border border-border rounded-lg p-3 pl-10 text-foreground focus:border-primary outline-none transition-colors"
                                 />
                             </div>
                         </div>
@@ -274,23 +284,23 @@ export default function PaymentPage() {
                 </div>
                 {/* Sağ: Özet */}
                 <div className="space-y-6">
-                    <div className="bg-neutral-900 p-6 rounded-2xl border border-neutral-800">
+                    <div className="bg-card p-6 rounded-2xl border border-border">
                         <div className="flex gap-4 mb-4">
                             <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                                 <Image src={event.imageUrl || '/placeholder.jpg'} alt="event" fill className="object-cover" unoptimized />
                             </div>
                             <div>
-                                <h3 className="font-bold text-white line-clamp-2">{event.title}</h3>
-                                <p className="text-sm text-gray-400 mt-1">{event.location}</p>
+                                <h3 className="font-bold text-foreground line-clamp-2">{event.title}</h3>
+                                <p className="text-sm text-muted-foreground mt-1">{event.location}</p>
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between bg-neutral-800 p-3 rounded-lg mb-4">
-                            <span className="text-gray-300">Bilet Adeti</span>
+                        <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg mb-4">
+                            <span className="text-muted-foreground">Bilet Adeti</span>
                             <div className="flex items-center gap-3">
-                                <button onClick={() => setTicketCount(Math.max(1, ticketCount - 1))} className="w-8 h-8 bg-neutral-700 rounded-full flex items-center justify-center hover:bg-yellow-500 hover:text-black transition-colors">-</button>
-                                <span className="font-bold text-white w-4 text-center">{ticketCount}</span>
-                                <button onClick={() => setTicketCount(ticketCount + 1)} className="w-8 h-8 bg-neutral-700 rounded-full flex items-center justify-center hover:bg-yellow-500 hover:text-black transition-colors">+</button>
+                                <button onClick={() => setTicketCount(Math.max(1, ticketCount - 1))} className="w-8 h-8 bg-muted rounded-full flex items-center justify-center hover:bg-primary hover:text-black transition-colors">-</button>
+                                <span className="font-bold text-foreground w-4 text-center">{ticketCount}</span>
+                                <button onClick={() => setTicketCount(ticketCount + 1)} className="w-8 h-8 bg-muted rounded-full flex items-center justify-center hover:bg-primary hover:text-black transition-colors">+</button>
                             </div>
                         </div>
 
@@ -316,11 +326,11 @@ export default function PaymentPage() {
                         )}
 
                         {/* Fiyat Özeti */}
-                        <div className="border-t border-neutral-700 pt-4 space-y-3 mb-6">
+                        <div className="border-t border-border pt-4 space-y-3 mb-6">
                             {/* Ara Toplam */}
                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-400">Ara Toplam ({ticketCount} bilet)</span>
-                                <span className="text-white font-medium">{ticketCount * ticketPrice} ₺</span>
+                                <span className="text-muted-foreground">Ara Toplam ({ticketCount} bilet)</span>
+                                <span className="text-foreground font-medium">{ticketCount * ticketPrice} ₺</span>
                             </div>
 
                             {/* Grup İndirimi */}
@@ -343,19 +353,7 @@ export default function PaymentPage() {
                                             </div>
                                         )}
                                     </>
-                                ) : groupTiers.length > 0 && (
-                                    <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-xs">
-                                        <div className="flex items-center gap-2 text-gray-400 mb-1">
-                                            <UsersIcon className="w-4 h-4" />
-                                            <span className="font-medium">Grup İndirimleri:</span>
-                                        </div>
-                                        <div className="space-y-1 text-gray-500">
-                                            {groupTiers.sort((a: any, b: any) => a.minTickets - b.minTickets).map((tier: any) => (
-                                                <div key={tier.id}>• {tier.minTickets}+ bilet: %{tier.discount * 100} indirim</div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                );
+                                ) : null;
                             })()}
 
                             {/* İndirim Kodu */}
@@ -370,12 +368,12 @@ export default function PaymentPage() {
                             )}
 
                             {/* Toplam */}
-                            <div className="border-t border-neutral-700 pt-3 flex justify-between items-center">
+                            <div className="border-t border-border pt-3 flex justify-between items-center">
                                 <div className="flex flex-col">
-                                    <span className="text-lg font-bold text-gray-400">Kapıda Ödenecek</span>
-                                    <span className="text-xs text-gray-500">(Nakit veya Kredi Kartı)</span>
+                                    <span className="text-lg font-bold text-muted-foreground">Kapıda Ödenecek</span>
+                                    <span className="text-xs text-muted-foreground">(Nakit veya Kredi Kartı)</span>
                                 </div>
-                                <span className="text-2xl font-bold text-yellow-500">
+                                <span className="text-2xl font-bold text-primary">
                                     {(() => {
                                         const groupDiscount = calculateGroupDiscount(ticketPrice, ticketCount, groupTiers);
                                         let total = groupDiscount.finalPrice;
@@ -394,7 +392,7 @@ export default function PaymentPage() {
                         <button
                             onClick={handleReservation}
                             disabled={processing}
-                            className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-4 rounded-xl transition-all disabled:opacity-50 transform hover:scale-[1.02] active:scale-[0.98]"
+                            className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all disabled:opacity-50 transform hover:scale-[1.02] active:scale-[0.98]"
                         >
                             {processing ? 'İşleniyor...' : 'Rezervasyon Oluştur'}
                         </button>

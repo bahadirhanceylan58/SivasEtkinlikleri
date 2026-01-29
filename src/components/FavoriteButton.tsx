@@ -10,9 +10,10 @@ interface FavoriteButtonProps {
     eventId: string;
     className?: string;
     iconSize?: number;
+    showText?: boolean;
 }
 
-export default function FavoriteButton({ eventId, className = "", iconSize = 20 }: FavoriteButtonProps) {
+export default function FavoriteButton({ eventId, className = "", iconSize = 20, showText = false }: FavoriteButtonProps) {
     const { user } = useAuth();
     const [isFavorite, setIsFavorite] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -35,7 +36,7 @@ export default function FavoriteButton({ eventId, className = "", iconSize = 20 
     }, [user, eventId]);
 
     const toggleFavorite = async (e: React.MouseEvent) => {
-        e.preventDefault(); // Prevent Link navigation if inside a card
+        e.preventDefault();
         e.stopPropagation();
 
         if (!user) {
@@ -48,9 +49,8 @@ export default function FavoriteButton({ eventId, className = "", iconSize = 20 
 
         try {
             const userRef = doc(db, "users", user.uid);
-
-            // Ensure user document exists (sometimes users created via specialized auth flows might lack a doc initially)
             const userDoc = await getDoc(userRef);
+
             if (!userDoc.exists()) {
                 await setDoc(userRef, { favorites: [] }, { merge: true });
             }
@@ -68,7 +68,6 @@ export default function FavoriteButton({ eventId, className = "", iconSize = 20 
             }
         } catch (error) {
             console.error("Error toggling favorite:", error);
-            alert("İşlem sırasında bir hata oluştu.");
         } finally {
             setLoading(false);
         }
@@ -78,16 +77,27 @@ export default function FavoriteButton({ eventId, className = "", iconSize = 20 
         <button
             onClick={toggleFavorite}
             disabled={loading}
-            className={`p-2 rounded-full transition-all duration-300 group active:scale-95 ${isFavorite
-                    ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30'
-                    : 'bg-black/40 text-gray-400 hover:bg-white hover:text-red-500 backdrop-blur-sm'
-                } ${className}`}
+            className={`group flex items-center gap-2 transition-all duration-300 ${className} ${loading ? 'opacity-70 cursor-wait' : ''}`}
             title={isFavorite ? "Favorilerden Çıkar" : "Favorilere Ekle"}
         >
-            <Heart
-                size={iconSize}
-                className={`transition-transform duration-300 ${isFavorite ? 'fill-current scale-110' : 'group-hover:scale-110'}`}
-            />
+            <div className={`
+                p-2 rounded-full transition-all duration-300
+                ${isFavorite
+                    ? 'bg-red-500/10 text-red-500'
+                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 hover:bg-red-500 hover:text-white'
+                }
+            `}>
+                <Heart
+                    size={iconSize}
+                    className={`transition-transform duration-300 ${isFavorite ? 'fill-current scale-110' : 'group-hover:scale-110'}`}
+                />
+            </div>
+            {showText && (
+                <span className={`text-sm font-medium transition-colors ${isFavorite ? 'text-red-500' : 'text-neutral-500 dark:text-neutral-400 group-hover:text-red-500'
+                    }`}>
+                    {isFavorite ? 'Favorilerde' : 'Favorilere Ekle'}
+                </span>
+            )}
         </button>
     );
 }

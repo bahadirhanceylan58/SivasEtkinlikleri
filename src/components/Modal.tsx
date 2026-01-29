@@ -73,22 +73,22 @@ const Modal: React.FC<ModalProps> = ({
             >
                 {/* Header */}
                 {title && (
-                    <div className="flex items-center justify-between p-6 border-b border-white/10">
-                        <h2 id="modal-title" className="text-xl font-bold text-white">
+                    <div className="flex items-center justify-between p-6 border-b border-border">
+                        <h2 id="modal-title" className="text-xl font-bold text-foreground">
                             {title}
                         </h2>
                         <button
                             onClick={onClose}
-                            className="p-2 hover:bg-white/10 rounded-lg transition-colors group"
+                            className="p-2 hover:bg-muted rounded-lg transition-colors group"
                             aria-label="Kapat"
                         >
-                            <X className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+                            <X className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                         </button>
                     </div>
                 )}
 
                 {/* Content */}
-                <div className="p-6 text-gray-300">
+                <div className="p-6 text-foreground">
                     {children}
                 </div>
             </div>

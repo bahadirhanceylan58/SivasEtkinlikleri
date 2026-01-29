@@ -87,7 +87,7 @@ export default function LoginPage() {
     const isFormValid = email && password && !emailError && !passwordError;
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-black p-4 relative overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden transition-colors duration-300">
             {/* Animated Background */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-0 left-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-float" />
@@ -98,10 +98,10 @@ export default function LoginPage() {
             {/* Top Gradient */}
             <div className="absolute top-0 inset-x-0 h-64 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
 
-            <div className="w-full max-w-md glass-strong rounded-2xl p-8 relative z-10 shadow-2xl animate-scaleIn border border-white/10">
+            <div className="w-full max-w-md glass-strong rounded-2xl p-8 relative z-10 shadow-2xl animate-scaleIn">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-white mb-2">Hoş Geldiniz</h1>
-                    <p className="text-gray-400">Sivas Etkinlikleri hesabınıza giriş yapın</p>
+                    <h1 className="text-3xl font-bold text-foreground mb-2">Hoş Geldiniz</h1>
+                    <p className="text-muted-foreground">Sivas Etkinlikleri hesabınıza giriş yapın</p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-4">
@@ -113,7 +113,7 @@ export default function LoginPage() {
                     )}
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-300 ml-1">E-posta Adresi</label>
+                        <label className="text-sm font-medium text-foreground ml-1">E-posta Adresi</label>
                         <div className="relative group">
                             <input
                                 type="email"
@@ -124,12 +124,12 @@ export default function LoginPage() {
                                     if (emailError) setEmailError('');
                                 }}
                                 onBlur={handleEmailBlur}
-                                className={`w-full glass border rounded-xl px-4 py-3 pl-11 text-white placeholder-gray-500 focus:outline-none transition-all ${emailError
-                                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/30'
-                                        : 'border-white/10 focus:border-primary/50 focus:ring-2 focus:ring-primary/30'
+                                className={`w-full glass border rounded-xl px-4 py-3 pl-11 text-foreground placeholder-muted-foreground focus:outline-none transition-all ${emailError
+                                    ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/30'
+                                    : 'border-border focus:border-primary/50 focus:ring-2 focus:ring-primary/30'
                                     }`}
                             />
-                            <Mail className={`absolute left-3.5 top-3.5 w-5 h-5 transition-colors ${emailError ? 'text-red-500' : 'text-gray-500 group-focus-within:text-primary'
+                            <Mail className={`absolute left-3.5 top-3.5 w-5 h-5 transition-colors ${emailError ? 'text-red-500' : 'text-muted-foreground group-focus-within:text-primary'
                                 }`} />
                         </div>
                         {emailError && (
@@ -142,7 +142,7 @@ export default function LoginPage() {
 
                     <div className="space-y-2">
                         <div className="flex justify-between items-center ml-1">
-                            <label className="text-sm font-medium text-gray-300">Şifre</label>
+                            <label className="text-sm font-medium text-foreground">Şifre</label>
                             <Link href="#" className="text-xs text-primary hover:text-primary-hover font-medium transition-colors">
                                 Şifremi Unuttum?
                             </Link>
@@ -157,17 +157,17 @@ export default function LoginPage() {
                                     if (passwordError) setPasswordError('');
                                 }}
                                 onBlur={handlePasswordBlur}
-                                className={`w-full glass border rounded-xl px-4 py-3 pl-11 pr-11 text-white placeholder-gray-500 focus:outline-none transition-all ${passwordError
-                                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/30'
-                                        : 'border-white/10 focus:border-primary/50 focus:ring-2 focus:ring-primary/30'
+                                className={`w-full glass border rounded-xl px-4 py-3 pl-11 pr-11 text-foreground placeholder-muted-foreground focus:outline-none transition-all ${passwordError
+                                    ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/30'
+                                    : 'border-border focus:border-primary/50 focus:ring-2 focus:ring-primary/30'
                                     }`}
                             />
-                            <Lock className={`absolute left-3.5 top-3.5 w-5 h-5 transition-colors ${passwordError ? 'text-red-500' : 'text-gray-500 group-focus-within:text-primary'
+                            <Lock className={`absolute left-3.5 top-3.5 w-5 h-5 transition-colors ${passwordError ? 'text-red-500' : 'text-muted-foreground group-focus-within:text-primary'
                                 }`} />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-3.5 text-gray-500 hover:text-primary transition-colors"
+                                className="absolute right-3 top-3.5 text-muted-foreground hover:text-primary transition-colors"
                                 aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
                             >
                                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -185,13 +185,13 @@ export default function LoginPage() {
                         type="submit"
                         disabled={loading || !isFormValid}
                         className={`w-full font-bold py-3.5 rounded-xl transition-all transform mt-2 flex items-center justify-center gap-2 group ${loading || !isFormValid
-                                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                                : 'bg-primary hover:bg-primary-hover text-black shadow-glow hover:shadow-glow-lg hover:scale-[1.02]'
+                            ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                            : 'bg-primary hover:bg-primary-hover text-black shadow-glow hover:shadow-glow-lg hover:scale-[1.02]'
                             }`}
                     >
                         {loading ? (
                             <>
-                                <div className="w-5 h-5 border-2 border-gray-600 border-t-gray-400 rounded-full animate-spin" />
+                                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                                 Giriş yapılıyor...
                             </>
                         ) : (
@@ -203,8 +203,8 @@ export default function LoginPage() {
                     </button>
                 </form>
 
-                <div className="mt-8 pt-6 border-t border-white/10 text-center">
-                    <p className="text-gray-400 text-sm">
+                <div className="mt-8 pt-6 border-t border-border text-center">
+                    <p className="text-muted-foreground text-sm">
                         Hesabınız yok mu?{' '}
                         <Link href="/register" className="text-primary hover:text-primary-hover font-bold ml-1 transition-colors hover:underline">
                             Kayıt Ol

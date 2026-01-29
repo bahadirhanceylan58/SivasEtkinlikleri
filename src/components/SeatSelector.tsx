@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { collection, onSnapshot, doc } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { SeatingConfig, Seat, SeatCategory } from '@/types/seating';
 import {
@@ -13,7 +13,8 @@ import {
     releaseExpiredReservations
 } from '@/lib/seatUtils';
 import SeatMapLegend from './SeatMapLegend';
-import { ZoomIn, ZoomOut, RotateCcw, Maximize2 } from 'lucide-react';
+import SeatMap from './SeatMap';
+import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface SeatSelectorProps {
@@ -96,8 +97,13 @@ export default function SeatSelector({
             return;
         }
 
-        // Can't select sold or blocked seats
+        // Can't select sold or blocked seats - managed by SeatMap UI mostly but safe to check here
         if (seat.status === 'sold' || seat.status === 'blocked') {
+            return;
+        }
+
+        // Check if reserved by someone else
+        if (seat.status === 'reserved' && seat.reservedBy !== user.uid) {
             return;
         }
 
@@ -117,6 +123,12 @@ export default function SeatSelector({
                 setReservationTimer(null);
             }
         } else {
+            // Max limit check (e.g. 10)
+            if (selectedSeats.length >= 10) {
+                alert('En fazla 10 koltuk seçebilirsiniz.');
+                return;
+            }
+
             // Select (only if available)
             if (seat.status === 'available') {
                 const updatedSeats = [...selectedSeats, seat];
@@ -134,34 +146,9 @@ export default function SeatSelector({
                 } else {
                     // Failed to reserve (someone else might have taken it)
                     alert('Bu koltuk başka biri tarafından alındı. Lütfen başka koltuk seçin.');
-                    setSelectedSeats(selectedSeats);
+                    setSelectedSeats(selectedSeats); // Revert? actually hook loop will fix it
                 }
             }
-        }
-    };
-
-    const getSeatStatus = (seat: Seat): string => {
-        if (seat.status === 'blocked') return 'blocked';
-        if (seat.status === 'sold') return 'sold';
-        if (selectedSeats.some(s => s.id === seat.id)) return 'selected';
-        if (seat.status === 'reserved' && seat.reservedBy !== user?.uid) return 'sold'; // Show as sold if reserved by someone else
-        return 'available';
-    };
-
-    const getSeatColor = (seat: Seat): string => {
-        const status = getSeatStatus(seat);
-
-        switch (status) {
-            case 'available':
-                return '#4CAF50'; // Green
-            case 'selected':
-                return '#FFC107'; // Yellow
-            case 'sold':
-                return '#F44336'; // Red
-            case 'blocked':
-                return '#9E9E9E'; // Gray
-            default:
-                return '#4CAF50';
         }
     };
 
@@ -190,20 +177,6 @@ export default function SeatSelector({
             </div>
         );
     }
-
-    // Organize seats by rows
-    const seatsByRow = new Map<number, Seat[]>();
-    Array.from(seats.values()).forEach(seat => {
-        if (!seatsByRow.has(seat.row)) {
-            seatsByRow.set(seat.row, []);
-        }
-        seatsByRow.get(seat.row)!.push(seat);
-    });
-
-    // Sort seats in each row
-    seatsByRow.forEach(rowSeats => {
-        rowSeats.sort((a, b) => a.seat - b.seat);
-    });
 
     const totalPrice = calculateTotalPrice(selectedSeats);
 
@@ -259,78 +232,15 @@ export default function SeatSelector({
                         </div>
 
                         {/* Seats */}
-                        <div className="overflow-auto max-h-[600px]">
-                            <div
-                                style={{
-                                    transform: `scale(${zoom})`,
-                                    transformOrigin: 'top center',
-                                    transition: 'transform 0.2s'
-                                }}
-                            >
-                                <div className="inline-block min-w-full">
-                                    {Array.from(seatsByRow.entries())
-                                        .sort(([rowA], [rowB]) => rowA - rowB)
-                                        .map(([rowNumber, rowSeats]) => {
-                                            const category = getCategoryForRow(rowNumber, seatingConfig.categories);
-
-                                            return (
-                                                <div key={rowNumber} className="flex items-center gap-2 mb-2">
-                                                    {/* Row Label */}
-                                                    <div className="w-12 text-center flex-shrink-0">
-                                                        <span className="text-xs font-semibold text-gray-400">
-                                                            {rowNumber}
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Seats */}
-                                                    <div className="flex gap-1 flex-1 justify-center">
-                                                        {rowSeats.map((seat) => {
-                                                            const status = getSeatStatus(seat);
-                                                            const isClickable = status === 'available' || status === 'selected';
-
-                                                            return (
-                                                                <button
-                                                                    key={seat.id}
-                                                                    onClick={() => handleSeatClick(seat)}
-                                                                    disabled={!isClickable}
-                                                                    className={`
-                                                                        w-8 h-8 rounded-t-md rounded-b-sm text-xs font-semibold
-                                                                        transition-all duration-200
-                                                                        ${isClickable ? 'cursor-pointer hover:scale-110' : 'cursor-not-allowed opacity-50'}
-                                                                        ${status === 'selected' ? 'ring-2 ring-primary ring-offset-2 ring-offset-black' : ''}
-                                                                    `}
-                                                                    style={{
-                                                                        backgroundColor: getSeatColor(seat),
-                                                                        borderTop: `3px solid ${getSeatBorderColor(seat) || 'transparent'}`,
-                                                                        color: status === 'selected' ? '#000' : '#fff'
-                                                                    }}
-                                                                    title={`${formatSeatName(seat)} - ${seat.price}₺`}
-                                                                >
-                                                                    {seat.seat}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-
-                                                    {/* Category Label */}
-                                                    <div className="w-24 text-right flex-shrink-0">
-                                                        {category && (
-                                                            <span
-                                                                className="text-xs font-semibold px-2 py-1 rounded"
-                                                                style={{
-                                                                    backgroundColor: `${category.color}20`,
-                                                                    color: category.color
-                                                                }}
-                                                            >
-                                                                {category.name}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                </div>
-                            </div>
+                        <div className="overflow-auto max-h-[600px] flex justify-center">
+                            <SeatMap
+                                seats={Array.from(seats.values())}
+                                selectedSeats={selectedSeats}
+                                onSeatClick={handleSeatClick}
+                                zoom={zoom}
+                                getSeatBorderColor={getSeatBorderColor}
+                                maxSeats={10}
+                            />
                         </div>
                     </div>
                 </div>

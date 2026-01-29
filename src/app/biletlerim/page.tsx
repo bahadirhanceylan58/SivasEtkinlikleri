@@ -46,13 +46,13 @@ export default function MyTicketsPage() {
     );
 
     return (
-        <div className="min-h-screen bg-black text-white flex flex-col">
+        <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-300">
             <Navbar />
             <div className="flex-1 container mx-auto px-4 py-8">
-                <h1 className="text-3xl font-bold mb-8">Biletlerim</h1>
+                <h1 className="text-3xl font-bold mb-8 text-foreground">Biletlerim</h1>
 
                 {tickets.length === 0 ? (
-                    <div className="text-gray-500 text-center py-12 bg-white/5 rounded-xl border border-white/10">
+                    <div className="text-muted-foreground text-center py-12 bg-muted/30 rounded-xl border border-border">
                         <p className="text-lg mb-4">Henüz biletiniz bulunmamaktadır.</p>
                         <button onClick={() => router.push('/')} className="text-primary hover:underline">
                             Etkinliklere Göz At
@@ -61,26 +61,26 @@ export default function MyTicketsPage() {
                 ) : (
                     <div className="grid gap-4 max-w-3xl mx-auto">
                         {tickets.map((ticket, index) => (
-                            <div key={index} className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 flex flex-col md:flex-row gap-4 hover:border-yellow-500/50 transition-all group">
+                            <div key={index} className="bg-card border border-border rounded-xl p-4 flex flex-col md:flex-row gap-4 hover:border-primary/50 transition-all group shadow-sm">
 
                                 {/* Sol: Tarih Kutusu */}
-                                <div className="bg-neutral-800 rounded-lg p-3 flex flex-col items-center justify-center min-w-[80px]">
-                                    <span className="text-yellow-500 font-bold text-xl">
+                                <div className="bg-muted rounded-lg p-3 flex flex-col items-center justify-center min-w-[80px]">
+                                    <span className="text-primary font-bold text-xl">
                                         {new Date(ticket.eventDate).getDate()}
                                     </span>
-                                    <span className="text-xs uppercase text-gray-400">
+                                    <span className="text-xs uppercase text-muted-foreground">
                                         {new Date(ticket.eventDate).toLocaleDateString('tr-TR', { month: 'short' })}
                                     </span>
                                 </div>
                                 {/* Orta: Bilgiler */}
                                 <div className="flex-grow">
-                                    <h3 className="font-bold text-white text-lg group-hover:text-yellow-500 transition-colors">{ticket.eventTitle}</h3>
-                                    <div className="text-sm text-gray-400 mt-1 flex items-center">
-                                        <MapPin className="w-4 h-4 mr-1 text-yellow-500" />
+                                    <h3 className="font-bold text-foreground text-lg group-hover:text-primary transition-colors">{ticket.eventTitle}</h3>
+                                    <div className="text-sm text-muted-foreground mt-1 flex items-center">
+                                        <MapPin className="w-4 h-4 mr-1 text-primary" />
                                         {ticket.eventLocation}
                                     </div>
-                                    <div className="mt-2 text-xs text-gray-500 flex items-center gap-2">
-                                        <span className="bg-white/10 px-2 py-0.5 rounded">{ticket.ticketCount} Adet</span>
+                                    <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
+                                        <span className="bg-muted px-2 py-0.5 rounded">{ticket.ticketCount} Adet</span>
                                         <span>•</span>
                                         <span>Toplam {ticket.totalAmount} ₺</span>
                                     </div>
@@ -89,7 +89,7 @@ export default function MyTicketsPage() {
                                 <div className="flex items-center justify-end md:justify-center">
                                     <button
                                         onClick={() => setSelectedQr(ticket.qrCode)}
-                                        className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap shadow-lg shadow-yellow-500/10"
+                                        className="bg-primary hover:bg-primary-hover text-black font-bold px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap shadow-lg shadow-primary/10"
                                     >
                                         QR Göster
                                     </button>
@@ -102,16 +102,24 @@ export default function MyTicketsPage() {
 
             {/* QR Kod Modal (Pencere) */}
             {selectedQr && (
-                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 backdrop-blur-sm" onClick={() => setSelectedQr(null)}>
-                    <div className="bg-white p-8 rounded-2xl flex flex-col items-center relative max-w-sm w-full animate-fadeIn" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => setSelectedQr(null)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors" aria-label="Kapat">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm" onClick={() => setSelectedQr(null)}>
+                    <div className="bg-card p-8 rounded-2xl flex flex-col items-center relative max-w-sm w-full animate-fadeIn border border-border" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setSelectedQr(null)} className="absolute top-4 right-4 text-muted-foreground hover:text-red-500 transition-colors" aria-label="Kapat">
                             <X size={24} />
                         </button>
-                        <h3 className="text-black font-bold mb-6 text-xl">Giriş Kodunuz</h3>
+                        <h3 className="text-foreground font-bold mb-6 text-xl">Giriş Kodunuz</h3>
                         <div className="p-4 bg-white border-4 border-black rounded-xl">
                             <QRCodeSVG value={selectedQr} size={200} />
                         </div>
-                        <p className="text-gray-500 text-sm mt-6 text-center leading-relaxed">
+
+                        <div className="mt-6 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 px-4 py-2 rounded-lg text-center w-full">
+                            <span className="text-xs text-neutral-500 dark:text-neutral-400 block mb-1">Bilet Kodu</span>
+                            <code className="text-lg font-mono font-bold text-neutral-900 dark:text-neutral-100 tracking-wider select-all break-all">
+                                {selectedQr}
+                            </code>
+                        </div>
+
+                        <p className="text-muted-foreground text-sm mt-4 text-center leading-relaxed">
                             Bu kodu etkinlik girişindeki<br />görevliye okutunuz.
                         </p>
                     </div>
