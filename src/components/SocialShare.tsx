@@ -41,7 +41,7 @@ export default function SocialShare({ eventTitle, eventUrl }: SocialShareProps) 
                     url: eventUrl,
                 });
             } catch (err) {
-                console.log('Share cancelled');
+                // Share cancelled
             }
         } else {
             handleCopyLink();

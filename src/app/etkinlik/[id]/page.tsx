@@ -182,7 +182,7 @@ export default function EventDetailPage() {
                         )}
 
                         {/* Açıklama */}
-                        <div className="animate-slideInUp" style={{ animationDelay: '0.1s', opacity: 0, animationFillMode: 'forwards' }}>
+                        <div className="animate-slideInUp opacity-0 [animation-delay:0.1s] [animation-fill-mode:forwards]">
                             <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-3">
                                 <span className="w-1 h-8 bg-primary rounded-full" />
                                 Etkinlik Detayları
@@ -199,7 +199,7 @@ export default function EventDetailPage() {
 
                         {/* Koltuk Seçimi */}
                         {event.hasSeating && event.seatingConfig && (
-                            <div className="animate-slideInUp" style={{ animationDelay: '0.15s', opacity: 0, animationFillMode: 'forwards' }}>
+                            <div className="animate-slideInUp opacity-0 [animation-delay:0.15s] [animation-fill-mode:forwards]">
                                 <div className="glass-strong border border-border rounded-2xl p-6">
                                     <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
                                         <span className="w-1 h-8 bg-primary rounded-full" />
@@ -219,14 +219,14 @@ export default function EventDetailPage() {
                         )}
 
                         {/* Değerlendirmeler Section */}
-                        <div className="animate-slideInUp" style={{ animationDelay: '0.2s', opacity: 0, animationFillMode: 'forwards' }}>
+                        <div className="animate-slideInUp opacity-0 [animation-delay:0.2s] [animation-fill-mode:forwards]">
                             <ReviewsSection eventId={event.id} />
                         </div>
                     </div>
 
                     {/* SAĞ SÜTUN */}
                     <div>
-                        <div className="sticky top-24 space-y-6 animate-slideInUp" style={{ animationDelay: '0.2s', opacity: 0, animationFillMode: 'forwards' }}>
+                        <div className="sticky top-24 space-y-6 animate-slideInUp opacity-0 [animation-delay:0.2s] [animation-fill-mode:forwards]">
 
                             {/* Title & Favorite */}
                             <div className="flex justify-between items-start gap-4">
