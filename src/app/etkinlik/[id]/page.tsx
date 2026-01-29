@@ -14,6 +14,7 @@ import CountdownTimer from '@/components/CountdownTimer';
 import Modal from '@/components/Modal';
 import SeatSelector from '@/components/SeatSelector';
 import ReviewsSection from '@/components/ReviewsSection';
+import SponsorSection from '@/components/SponsorSection';
 import { Seat } from '@/types/seating';
 import dynamic from 'next/dynamic';
 import FavoriteButton from '@/components/FavoriteButton';

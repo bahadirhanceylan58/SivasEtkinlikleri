@@ -21,6 +21,7 @@ import AdminDashboard from '@/components/admin/AdminDashboard';
 import UserManagement from '@/components/admin/UserManagement';
 import TicketValidator from '@/components/admin/TicketValidator';
 import VenueEditor from '@/components/VenueEditor';
+import SponsorManagement from '@/components/admin/SponsorManagement';
 import { SeatingConfig } from '@/types/seating';
 import { generateSeatsForEvent } from '@/lib/seatUtils';
 
@@ -78,7 +79,7 @@ interface SidebarButtonProps {
 export default function AdminPage() {
     const { user, loading, isAdmin } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'applications' | 'discounts' | 'users' | 'validator' | 'clubs'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'applications' | 'discounts' | 'users' | 'validator' | 'clubs' | 'sponsors'>('dashboard');
     const [eventViewMode, setEventViewMode] = useState<'list' | 'form'>('list');
 
     // Form States
@@ -429,6 +430,12 @@ export default function AdminPage() {
                         onClick={() => { setActiveTab('clubs'); fetchClubs(); }}
                     />
                     <SidebarButton
+                        active={activeTab === 'sponsors'}
+                        icon={<CreditCard className="w-5 h-5" />}
+                        label="Sponsorluklar"
+                        onClick={() => setActiveTab('sponsors')}
+                    />
+                    <SidebarButton
                         active={activeTab === 'discounts'}
                         icon={<Tag className="w-5 h-5" />}
                         label="İndirim Kodları"
@@ -468,6 +475,7 @@ export default function AdminPage() {
                         {activeTab === 'discounts' && 'İndirim Kodları'}
                         {activeTab === 'users' && 'Kullanıcı Yönetimi'}
                         {activeTab === 'validator' && 'Bilet Doğrulama'}
+                        {activeTab === 'sponsors' && 'Sponsorluk Yönetimi'}
                     </h1>
                     <div className="flex items-center gap-4">
                         {activeTab === 'clubs' && (
@@ -499,6 +507,8 @@ export default function AdminPage() {
                     {activeTab === 'users' && <UserManagement />}
 
                     {activeTab === 'validator' && <TicketValidator />}
+
+                    {activeTab === 'sponsors' && <SponsorManagement />}
 
                     {activeTab === 'events' && eventViewMode === 'list' && (
                         <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
