@@ -25,7 +25,7 @@ export default function Navbar() {
     const handleSearch = (term: string) => {
         setSearchTerm(term);
         if (term.trim()) {
-            router.push(`/? search = ${encodeURIComponent(term)} `);
+            router.push(`/?search=${encodeURIComponent(term)}`);
         } else {
             router.push('/');
         }
@@ -266,22 +266,22 @@ export default function Navbar() {
                 </button>
             </div>
 
-            {/* Mobile Menu Overlay */}
+            {/* Mobile Menu Overlay - Z-INDEX GÜNCELLENDİ: z-[60] */}
             {isMobileMenuOpen && (
                 <>
                     {/* Backdrop */}
                     <div
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden animate-fadeIn"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden animate-fadeIn"
                         onClick={closeMobileMenu}
                     ></div>
 
-                    {/* Drawer */}
-                    <div className={`fixed top-0 right-0 bottom-0 w-80 bg-card border-l border-border z-40 md:hidden shadow-2xl transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+                    {/* Drawer - Z-INDEX GÜNCELLENDİ: z-[70] */}
+                    <div className={`fixed top-0 right-0 bottom-0 w-80 bg-card border-l border-border z-[70] md:hidden shadow-2xl transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
                         }`}>
-                        <div className="h-full overflow-y-auto">
+                        <div className="h-full overflow-y-auto flex flex-col">
                             {/* Header */}
                             <div className="p-6 border-b border-border bg-muted/30">
-                                <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-xl font-bold text-primary">Menü</h2>
                                     <button
                                         onClick={closeMobileMenu}
@@ -292,8 +292,20 @@ export default function Navbar() {
                                     </button>
                                 </div>
 
+                                {/* Mobile Search */}
+                                <div className="mb-4 relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <input
+                                        type="text"
+                                        placeholder="Etkinlik ara..."
+                                        value={searchTerm}
+                                        onChange={(e) => handleSearch(e.target.value)}
+                                        className="w-full pl-9 pr-4 py-2 rounded-lg bg-background border border-border text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                    />
+                                </div>
+
                                 {/* User Info */}
-                                {user && (
+                                {user ? (
                                     <div className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border">
                                         <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
                                             {user.email?.[0].toUpperCase()}
@@ -303,11 +315,15 @@ export default function Navbar() {
                                             <p className="text-xs text-muted-foreground">Hoş geldiniz!</p>
                                         </div>
                                     </div>
+                                ) : (
+                                    <div className="p-3 rounded-lg bg-muted/50 border border-border text-center">
+                                        <p className="text-sm text-muted-foreground">Etkinlikler için giriş yapın.</p>
+                                    </div>
                                 )}
                             </div>
 
                             {/* Navigation Links */}
-                            <div className="p-4 space-y-2">
+                            <div className="p-4 space-y-2 flex-1">
                                 {navLinks.map((link, index) => {
                                     const Icon = link.icon;
                                     return (
@@ -325,18 +341,26 @@ export default function Navbar() {
                                 })}
                             </div>
 
-                            {/* Divider */}
-                            <div className="mx-4 border-t border-border"></div>
+                            {/* Mobile Footer Actions */}
+                            <div className="p-4 border-t border-border bg-muted/10">
+                                {/* Theme Toggle Mobile */}
+                                <button
+                                    onClick={toggleTheme}
+                                    className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors text-foreground mb-4 border border-border bg-card"
+                                >
+                                    <span className="flex items-center gap-3">
+                                        {theme === 'dark' ? <Moon className="w-5 h-5 text-primary" /> : <Sun className="w-5 h-5 text-amber-500" />}
+                                        <span className="font-medium">{theme === 'dark' ? 'Koyu Mod' : 'Açık Mod'}</span>
+                                    </span>
+                                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Değiştir</span>
+                                </button>
 
-                            {/* User Actions */}
-                            <div className="p-4 space-y-2">
                                 {user ? (
-                                    <>
+                                    <div className="space-y-2">
                                         <Link
                                             href="/biletlerim"
                                             onClick={closeMobileMenu}
-                                            className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-all hover:translate-x-1 group animate-slideInUp text-foreground"
-                                            style={{ animationDelay: '0.25s' }}
+                                            className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-all hover:translate-x-1 group text-foreground"
                                         >
                                             <Ticket className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
                                             <span className="font-medium">Biletlerim</span>
@@ -346,8 +370,7 @@ export default function Navbar() {
                                             <Link
                                                 href="/admin"
                                                 onClick={closeMobileMenu}
-                                                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-all hover:translate-x-1 group animate-slideInUp text-foreground"
-                                                style={{ animationDelay: '0.3s' }}
+                                                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-all hover:translate-x-1 group text-foreground"
                                             >
                                                 <Shield className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
                                                 <span className="font-medium">Admin Panel</span>
@@ -356,15 +379,14 @@ export default function Navbar() {
 
                                         <button
                                             onClick={handleLogout}
-                                            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-500/10 transition-all hover:translate-x-1 text-red-500 group animate-slideInUp"
-                                            style={{ animationDelay: '0.35s' }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-500/10 transition-all hover:translate-x-1 text-red-500 group"
                                         >
                                             <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
                                             <span className="font-medium">Çıkış Yap</span>
                                         </button>
-                                    </>
+                                    </div>
                                 ) : (
-                                    <div className="space-y-3 animate-slideInUp" style={{ animationDelay: '0.25s' }}>
+                                    <div className="space-y-3">
                                         <Link
                                             href="/login"
                                             onClick={closeMobileMenu}
@@ -381,11 +403,8 @@ export default function Navbar() {
                                         </Link>
                                     </div>
                                 )}
-                            </div>
 
-                            {/* Footer */}
-                            <div className="p-4 border-t border-border mt-auto">
-                                <p className="text-xs text-muted-foreground text-center">
+                                <p className="text-xs text-muted-foreground text-center mt-4">
                                     © {new Date().getFullYear()} Sivas Etkinlikleri
                                 </p>
                             </div>
