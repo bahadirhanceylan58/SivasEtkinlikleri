@@ -219,6 +219,7 @@ export async function getSeatCounts(eventId: string): Promise<{
     available: number;
     reserved: number;
     sold: number;
+    blocked: number;
 }> {
     const seatsRef = collection(db, `events/${eventId}/seats`);
     const snapshot = await getDocs(seatsRef);
@@ -227,7 +228,8 @@ export async function getSeatCounts(eventId: string): Promise<{
         total: 0,
         available: 0,
         reserved: 0,
-        sold: 0
+        sold: 0,
+        blocked: 0
     };
 
     snapshot.docs.forEach(doc => {

@@ -6,7 +6,16 @@ import { db } from '@/lib/firebase';
 import { Users, Search, Trash2, Shield, UserX, UserCheck, Mail } from 'lucide-react';
 
 export default function UserManagement() {
-    const [users, setUsers] = useState<any[]>([]);
+    interface User {
+        id: string;
+        displayName?: string;
+        email?: string;
+        role?: 'admin' | 'user' | string;
+        createdAt?: any; // Firestore Timestamp
+        [key: string]: any;
+    }
+
+    const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -17,7 +26,7 @@ export default function UserManagement() {
     const fetchUsers = async () => {
         try {
             const querySnapshot = await getDocs(collection(db, "users"));
-            const usersList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const usersList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as User[];
             setUsers(usersList);
         } catch (error) {
             console.error("Error fetching users:", error);
@@ -46,7 +55,7 @@ export default function UserManagement() {
         if (confirm("Bu kullanıcıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
             try {
                 await deleteDoc(doc(db, "users", userId));
-                setUsers(users.filter(u => u.id !== userId));
+                setUsers((prev) => prev.filter(u => u.id !== userId));
                 alert("Kullanıcı silindi.");
             } catch (error) {
                 console.error("Error deleting user:", error);

@@ -19,33 +19,21 @@ export default function SponsorManagement() {
             const snapshot = await getDocs(q);
             const apps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Sponsor[];
 
-            // Get event titles efficiently
-            const eventIds = [...new Set(apps.map(a => a.eventId))];
-            const eventTitles: Record<string, string> = {};
+            // Get event titles
+            // Optimization: Only fetch events that are referenced by sponsors
+            // However, for admin simplicity, fetching all events (metadata only if possible) is okay for now.
+            // Ideally we would use `documentId` in `eventIds` but limit is 10.
+            // Let's just do one read of all events for now, replacing the broken N+1 loop.
 
-            // In a real app with many events, we might want to optimize this or store title in sponsor doc
-            // For now, let's just fetch individual events or assume we have a way to display them
-            // To keep it simple and performant, I'll fetch events in parallel
-            await Promise.all(eventIds.map(async (eid) => {
-                const eventDoc = await getDocs(query(collection(db, 'events'), orderBy('createdAt', 'desc')));
-                // Wait, getting ALL events to find one is bad. 
-                // Let's rely on eventId for now or just get the specific docs if needed.
-                // Actually, let's just display Event ID if we can't get title easily without N+1 reads, 
-                // OR better: store eventTitle in the sponsor document during creation (Optimization).
-                // Assuming we don't have it yet, let's try to get it from a cache or simple lookup.
-            }));
-
-            // Let's just create a map from the `events` collection since we are admin and listing all?
-            // Or just fetch the specific Event doc for each.
-            // For MVP:
             const eventsSnap = await getDocs(collection(db, 'events'));
+            const eventTitles: Record<string, string> = {};
             eventsSnap.forEach(d => {
                 eventTitles[d.id] = d.data().title;
             });
 
             const enrichedApps = apps.map(app => ({
                 ...app,
-                eventTitle: eventTitles[app.eventId] || 'Bilinmeyen Etkinlik'
+                eventTitle: eventTitles[app.eventId] || 'Bilinmeyen Etkinlik (Silinmiş olabilir)'
             }));
 
             setApplications(enrichedApps);
@@ -110,14 +98,20 @@ export default function SponsorManagement() {
                                     <tr key={app.id} className="hover:bg-neutral-50 dark:bg-zinc-900 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="relative w-10 h-10 rounded bg-white p-1 border border-gray-200">
-                                                    <Image
-                                                        src={app.logoUrl}
-                                                        alt={app.companyName}
-                                                        fill
-                                                        className="object-contain"
-                                                        unoptimized
-                                                    />
+                                                <div className="relative w-10 h-10 rounded bg-white p-1 border border-gray-200 overflow-hidden">
+                                                    {app.logoUrl ? (
+                                                        <Image
+                                                            src={app.logoUrl}
+                                                            alt={app.companyName || 'Sponsor'}
+                                                            fill
+                                                            className="object-contain"
+                                                            unoptimized
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                                                            <Building2 size={16} />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <div className="font-bold text-foreground">{app.companyName}</div>

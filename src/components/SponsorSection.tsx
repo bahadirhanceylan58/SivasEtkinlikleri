@@ -70,13 +70,19 @@ export default function SponsorSection({ eventId }: SponsorSectionProps) {
                                 {tierSponsors.map(sponsor => (
                                     <div key={sponsor.id} className="group relative">
                                         <div className={`relative ${getLogoSizeClass(tierId)} transition-all duration-300 transform group-hover:scale-110 grayscale group-hover:grayscale-0`}>
-                                            <Image
-                                                src={sponsor.logoUrl}
-                                                alt={sponsor.companyName}
-                                                fill
-                                                className="object-contain"
-                                                unoptimized
-                                            />
+                                            {sponsor.logoUrl ? (
+                                                <Image
+                                                    src={sponsor.logoUrl}
+                                                    alt={sponsor.companyName || 'Sponsor'}
+                                                    fill
+                                                    className="object-contain"
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-muted-foreground font-bold text-xs border border-dashed border-muted rounded">
+                                                    {sponsor.companyName}
+                                                </div>
+                                            )}
                                         </div>
 
                                         {sponsor.website && (

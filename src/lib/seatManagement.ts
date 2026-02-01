@@ -1,4 +1,4 @@
-import { Seat } from '@/components/SeatMap';
+import { Seat } from '@/types/seating';
 
 /**
  * Basit bir salon düzeni oluşturur (Demo için)

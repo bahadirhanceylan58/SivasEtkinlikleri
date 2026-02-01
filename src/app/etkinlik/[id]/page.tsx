@@ -44,11 +44,6 @@ export default function EventDetailPage() {
             return;
         }
 
-        if (event.hasSeating && selectedSeats.length === 0) {
-            alert('Lütfen en az bir koltuk seçin.');
-            return;
-        }
-
         if (event.hasSeating) {
             sessionStorage.setItem('selectedSeats', JSON.stringify(selectedSeats));
         }
@@ -63,7 +58,8 @@ export default function EventDetailPage() {
                 const docRef = doc(db, 'events', id as string);
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
-                    setEvent({ id: docSnap.id, ...docSnap.data() });
+                    const eventData = { id: docSnap.id, ...docSnap.data() };
+                    setEvent(eventData);
                 }
             } catch (error) {
                 console.error("Error fetching event:", error);
@@ -112,6 +108,7 @@ export default function EventDetailPage() {
                                     fill
                                     className="object-contain"
                                     unoptimized
+                                    priority
                                 />
 
                                 {eventImages.length > 1 && (
@@ -182,7 +179,8 @@ export default function EventDetailPage() {
                         )}
 
                         {/* Açıklama */}
-                        <div className="animate-slideInUp opacity-0 [animation-delay:0.1s] [animation-fill-mode:forwards]">
+                        {/* OPACITY-0 KALDIRILDI */}
+                        <div>
                             <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-3">
                                 <span className="w-1 h-8 bg-primary rounded-full" />
                                 Etkinlik Detayları
@@ -199,7 +197,8 @@ export default function EventDetailPage() {
 
                         {/* Koltuk Seçimi */}
                         {event.hasSeating && event.seatingConfig && (
-                            <div className="animate-slideInUp opacity-0 [animation-delay:0.15s] [animation-fill-mode:forwards]">
+                            // OPACITY-0 KALDIRILDI
+                            <div>
                                 <div className="glass-strong border border-border rounded-2xl p-6">
                                     <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
                                         <span className="w-1 h-8 bg-primary rounded-full" />
@@ -219,14 +218,16 @@ export default function EventDetailPage() {
                         )}
 
                         {/* Değerlendirmeler Section */}
-                        <div className="animate-slideInUp opacity-0 [animation-delay:0.2s] [animation-fill-mode:forwards]">
+                        {/* OPACITY-0 KALDIRILDI */}
+                        <div>
                             <ReviewsSection eventId={event.id} />
                         </div>
                     </div>
 
                     {/* SAĞ SÜTUN */}
                     <div>
-                        <div className="sticky top-24 space-y-6 animate-slideInUp opacity-0 [animation-delay:0.2s] [animation-fill-mode:forwards]">
+                        {/* BURASI DÜZELTİLDİ: Animasyon ve opacity-0 silindi, sticky kaldı */}
+                        <div className="sticky top-24 space-y-6">
 
                             {/* Title & Favorite */}
                             <div className="flex justify-between items-start gap-4">
@@ -241,64 +242,62 @@ export default function EventDetailPage() {
                                 <FavoriteButton eventId={event.id} className="flex-shrink-0" iconSize={24} />
                             </div>
 
-                            {/* Bilet Satın Al */}
-                            {!event.hasSeating && (
-                                <>
-                                    <div className="space-y-3">
-                                        <label className="text-sm font-medium text-muted-foreground">Bilet Adedi</label>
-                                        <div className="flex items-center gap-4">
-                                            <button
-                                                onClick={() => setTicketQuantity(q => Math.max(1, q - 1))}
-                                                disabled={ticketQuantity <= 1}
-                                                className="w-12 h-12 rounded-lg bg-card hover:bg-muted border border-border hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                                            >
-                                                <Minus className="w-5 h-5 mx-auto text-foreground" />
-                                            </button>
-                                            <input
-                                                type="number"
-                                                value={ticketQuantity}
-                                                onChange={(e) => {
-                                                    const val = parseInt(e.target.value) || 1;
-                                                    setTicketQuantity(Math.max(1, Math.min(10, val)));
-                                                }}
-                                                className="w-20 text-center text-2xl font-bold bg-card border border-border rounded-lg py-3 text-foreground focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
-                                                min="1"
-                                                max="10"
-                                            />
-                                            <button
-                                                onClick={() => setTicketQuantity(q => Math.min(10, q + 1))}
-                                                disabled={ticketQuantity >= 10}
-                                                className="w-12 h-12 rounded-lg bg-card hover:bg-muted border border-border hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                                            >
-                                                <Plus className="w-5 h-5 mx-auto text-foreground" />
-                                            </button>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground">Maksimum 10 bilet seçebilirsiniz</p>
+                            {/* Bilet Satın Al Kutusu */}
+                            <div className="glass-strong border border-border p-6 rounded-2xl">
+                                <div className="space-y-3">
+                                    <label className="text-sm font-medium text-muted-foreground">Bilet Adedi</label>
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            onClick={() => setTicketQuantity(q => Math.max(1, q - 1))}
+                                            disabled={ticketQuantity <= 1}
+                                            className="w-12 h-12 rounded-lg bg-card hover:bg-muted border border-border hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                        >
+                                            <Minus className="w-5 h-5 mx-auto text-foreground" />
+                                        </button>
+                                        <input
+                                            type="number"
+                                            value={ticketQuantity}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value) || 1;
+                                                setTicketQuantity(Math.max(1, Math.min(10, val)));
+                                            }}
+                                            className="w-20 text-center text-2xl font-bold bg-card border border-border rounded-lg py-3 text-foreground focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
+                                            min="1"
+                                            max="10"
+                                        />
+                                        <button
+                                            onClick={() => setTicketQuantity(q => Math.min(10, q + 1))}
+                                            disabled={ticketQuantity >= 10}
+                                            className="w-12 h-12 rounded-lg bg-card hover:bg-muted border border-border hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                        >
+                                            <Plus className="w-5 h-5 mx-auto text-foreground" />
+                                        </button>
                                     </div>
+                                    <p className="text-xs text-muted-foreground">Maksimum 10 bilet seçebilirsiniz</p>
+                                </div>
 
-                                    <div className="space-y-3 pt-4 border-t border-border">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Bilet Fiyatı</span>
-                                            <span className="text-foreground font-medium">₺{event.ticketTypes?.[0]?.price || 0}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Adet</span>
-                                            <span className="text-foreground font-medium">x {ticketQuantity}</span>
-                                        </div>
-                                        <div className="flex justify-between pt-3 border-t border-border">
-                                            <span className="text-foreground font-bold">Toplam</span>
-                                            <span className="text-2xl font-bold text-primary">₺{(event.ticketTypes?.[0]?.price || 0) * ticketQuantity}</span>
-                                        </div>
+                                <div className="space-y-3 pt-4 border-t border-border mt-4">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">Bilet Fiyatı</span>
+                                        <span className="text-foreground font-medium">₺{event.ticketTypes?.[0]?.price || 0}</span>
                                     </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">Adet</span>
+                                        <span className="text-foreground font-medium">x {ticketQuantity}</span>
+                                    </div>
+                                    <div className="flex justify-between pt-3 border-t border-border">
+                                        <span className="text-foreground font-bold">Toplam</span>
+                                        <span className="text-2xl font-bold text-primary">₺{(event.ticketTypes?.[0]?.price || 0) * ticketQuantity}</span>
+                                    </div>
+                                </div>
 
-                                    <button
-                                        onClick={handlePurchase}
-                                        className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all transform hover:scale-[1.02] shadow-glow hover:shadow-glow-lg flex items-center justify-center gap-2"
-                                    >
-                                        {event.salesType === 'external' ? 'Bilet Sitesine Git' : `Satın Al (₺${(event.ticketTypes?.[0]?.price || 0) * ticketQuantity})`}
-                                    </button>
-                                </>
-                            )}
+                                <button
+                                    onClick={handlePurchase}
+                                    className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all transform hover:scale-[1.02] shadow-glow hover:shadow-glow-lg flex items-center justify-center gap-2 mt-4"
+                                >
+                                    {event.salesType === 'external' ? 'Bilet Sitesine Git' : `Satın Al (₺${(event.ticketTypes?.[0]?.price || 0) * ticketQuantity})`}
+                                </button>
+                            </div>
 
                             {/* Mekan Kartı */}
                             <div className="glass-strong border border-border p-6 rounded-2xl">
@@ -320,7 +319,7 @@ export default function EventDetailPage() {
                                             const query = event.coordinates
                                                 ? `${event.coordinates.lat},${event.coordinates.lng}`
                                                 : encodeURIComponent(event.location);
-                                            window.open(`https://www.google.com/maps/dir/?api=1&destination=${query}`, '_blank');
+                                            window.open(`http://maps.google.com/?q=${query}`, '_blank');
                                         }}
                                         className="flex items-center justify-center glass hover:bg-muted/10 text-foreground py-2 rounded-lg text-sm transition-all hover:scale-105 border border-border"
                                     >
@@ -357,7 +356,7 @@ export default function EventDetailPage() {
                 </div>
             </div>
 
-            {/* Image Modal - Keep dark for lightbox effect */}
+            {/* Image Modal */}
             {isImageModalOpen && (
                 <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsImageModalOpen(false)}>
                     <button
@@ -397,4 +396,4 @@ export default function EventDetailPage() {
             <Footer />
         </main>
     );
-}// Vercel Guncelleme Kontrol
+}

@@ -101,6 +101,8 @@ export interface Sponsor {
     website?: string;
     message?: string;
     displayOnSite: boolean;
+    status: 'pending' | 'approved' | 'rejected';
+    contactEmail?: string;
     createdAt: Date | string;
 }
 

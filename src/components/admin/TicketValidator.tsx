@@ -6,12 +6,23 @@ import { db } from '@/lib/firebase';
 import { Camera, Search, CheckCircle, XCircle, QrCode, AlertTriangle, Loader2 } from 'lucide-react';
 
 export default function TicketValidator() {
+    interface ValidatedTicket {
+        contactName?: string;
+        eventTitle?: string;
+        ticketCount: number;
+        checkedIn: boolean;
+        checkInTime?: string;
+        qrCode?: string;
+        userUid?: string;
+        [key: string]: any; // Allow other fields from firestore
+    }
+
     const [loading, setLoading] = useState(false);
     const [scanResult, setScanResult] = useState<{
         status: 'idle' | 'success' | 'error' | 'warning';
         message: string;
-        ticketInfo?: any;
-        docRef?: any;
+        ticketInfo?: ValidatedTicket;
+        docRef?: any; // Keeping any for Firestore DocRef complex type for brevity, effectively DocumentReference
     }>({ status: 'idle', message: '' });
 
     const [manualCode, setManualCode] = useState('');
@@ -55,8 +66,6 @@ export default function TicketValidator() {
 
                         if (!legacySnap.empty) {
                             // Find a ticket that either matches code OR has no code (Legacy)
-                            // Heuristic: If multiple, pick first one that isn't checked in? Or just first one.
-                            // We will allow check-in to "claim" this legacy ticket.
                             const match = legacySnap.docs.find(d => d.data().qrCode === cleanCode) ||
                                 legacySnap.docs.find(d => !d.data().qrCode); // Legacy match
 
@@ -75,7 +84,6 @@ export default function TicketValidator() {
             }
 
             // 3. Fallback: Fan-out Search across all events (Last Resort)
-            // If direct parsing failed or returned nothing, we search all events one by one.
             if (!querySnapshot || querySnapshot.empty) {
                 try {
                     // Fetch all active events first
@@ -83,7 +91,6 @@ export default function TicketValidator() {
                     const eventsSnap = await getDocs(eventsRef);
 
                     // Search across all events in parallel
-                    // This is inefficient for huge datasets but fine for <100 events and solves the Index issue completely
                     const searchPromises = eventsSnap.docs.map(async (eventDoc) => {
                         const resRef = collection(db, 'events', eventDoc.id, 'reservations');
                         const q = query(resRef, where('qrCode', '==', cleanCode));
@@ -99,7 +106,6 @@ export default function TicketValidator() {
                     }
                 } catch (err) {
                     console.error("Fallback search failed:", err);
-                    // Don't throw, just let it fail to "Invalid Code" if not found
                 }
             }
 
@@ -114,7 +120,7 @@ export default function TicketValidator() {
 
             // Functionally there should be only one, but we take the first
             const ticketDoc = querySnapshot.docs[0];
-            const ticketData = ticketDoc.data();
+            const ticketData = ticketDoc.data() as ValidatedTicket;
 
             if (ticketData.checkedIn) {
                 setScanResult({

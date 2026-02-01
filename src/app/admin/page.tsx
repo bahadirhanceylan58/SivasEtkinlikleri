@@ -35,8 +35,7 @@ interface Event {
     ticketTypes: { name: string; price: number }[];
     salesType: 'internal' | 'external';
     externalUrl?: string;
-    salesType: 'internal' | 'external';
-    externalUrl?: string;
+
     description?: string;
     coordinates?: { lat: number; lng: number; };
     // Add other fields as necessary
