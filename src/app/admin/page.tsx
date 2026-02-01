@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, Plus, Calendar, Type, Users, Tag, Settings, CreditCard, Ticket, Shield, Check, X, Search, Edit2, Eye, Globe, MapPin, LayoutDashboard, QrCode } from 'lucide-react';
+import { Trash2, Plus, Calendar, Type, Users, Tag, Settings, CreditCard, Ticket, Shield, Check, X, Search, Edit2, Eye, Globe, MapPin, LayoutDashboard, QrCode, Menu, Archive } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 const MapPicker = dynamic(() => import('@/components/MapPicker'), {
@@ -24,6 +24,7 @@ import VenueEditor from '@/components/VenueEditor';
 import SponsorManagement from '@/components/admin/SponsorManagement';
 import { SeatingConfig } from '@/types/seating';
 import { generateSeatsForEvent } from '@/lib/seatUtils';
+import { logAudit } from '@/lib/auditLog';
 
 interface Event {
     id: string;
@@ -38,7 +39,6 @@ interface Event {
 
     description?: string;
     coordinates?: { lat: number; lng: number; };
-    // Add other fields as necessary
 }
 
 interface Application {
@@ -78,8 +78,9 @@ interface SidebarButtonProps {
 export default function AdminPage() {
     const { user, loading, isAdmin } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'applications' | 'discounts' | 'users' | 'validator' | 'clubs' | 'sponsors'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'applications' | 'discounts' | 'users' | 'validator' | 'clubs' | 'sponsors' | 'archive'>('dashboard');
     const [eventViewMode, setEventViewMode] = useState<'list' | 'form'>('list');
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Mobil menü durumu
 
     // Form States
     const [title, setTitle] = useState('');
@@ -89,7 +90,7 @@ export default function AdminPage() {
     const [location, setLocation] = useState('');
     const [coordinates, setCoordinates] = useState<{ lat: number; lng: number; } | null>(null);
     const [ticketTypes, setTicketTypes] = useState<{ name: string, price: number }[]>([{ name: 'Genel Giriş', price: 0 }]);
-    const [salesType, setSalesType] = useState<'internal' | 'external'>('internal');
+    const [salesType, setSalesType] = useState<'internal' | 'external' | 'free' | 'reservation'>('internal');
     const [externalUrl, setExternalUrl] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imageUrl, setImageUrl] = useState('');
@@ -101,11 +102,12 @@ export default function AdminPage() {
 
     // Management State
     const [events, setEvents] = useState<Event[]>([]);
+    const [archivedEvents, setArchivedEvents] = useState<Event[]>([]);
     const [applications, setApplications] = useState<Application[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
 
     // Participants State (Simplified)
-    const [participants, setParticipants] = useState<any[]>([]); // Keeping explicit any for now if structure is unknown or complex
+    const [participants, setParticipants] = useState<any[]>([]);
     const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false);
     const [selectedEventTitle, setSelectedEventTitle] = useState('');
 
@@ -161,9 +163,80 @@ export default function AdminPage() {
     }, [user, loading, isAdmin, router]);
 
     const fetchEvents = async () => {
+        const now = new Date();
+        const oneMonthAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+
         const querySnapshot = await getDocs(collection(db, "events"));
-        const eventsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Event[];
-        setEvents(eventsList);
+        const activeEventsList: Event[] = [];
+        const archivedEventsList: Event[] = [];
+
+        // Auto-archive and auto-delete logic
+        for (const eventDoc of querySnapshot.docs) {
+            const eventData = eventDoc.data();
+            const event = { id: eventDoc.id, ...eventData } as Event;
+            const eventDate = new Date(eventData.date);
+
+            // Auto-delete: If archived for more than 1 month
+            if (eventData.archived && eventData.archivedAt) {
+                const archivedDate = new Date(eventData.archivedAt.seconds * 1000);
+                if (archivedDate < oneMonthAgo) {
+                    await deleteDoc(doc(db, "events", eventDoc.id));
+                    continue; // Skip this event
+                }
+            }
+
+            // Auto-archive: If date has passed and not already archived
+            if (eventDate < now && !eventData.archived) {
+                await updateDoc(doc(db, "events", eventDoc.id), {
+                    archived: true,
+                    archivedAt: new Date()
+                });
+                event.archived = true;
+                event.archivedAt = new Date();
+            }
+
+            // Separate active and archived
+            if (event.archived) {
+                archivedEventsList.push(event);
+            } else {
+                activeEventsList.push(event);
+            }
+        }
+
+        setEvents(activeEventsList);
+        setArchivedEvents(archivedEventsList);
+    };
+
+    const handleArchiveEvent = async (eventId: string) => {
+        if (confirm('Bu etkinliği arşivlemek istediğinize emin misiniz?')) {
+            try {
+                await updateDoc(doc(db, "events", eventId), {
+                    archived: true,
+                    archivedAt: new Date()
+                });
+                fetchEvents();
+                alert('Etkinlik arşivlendi.');
+            } catch (error) {
+                console.error("Error archiving event:", error);
+                alert('Arşivleme sırasında hata oluştu.');
+            }
+        }
+    };
+
+    const handleUnarchiveEvent = async (eventId: string) => {
+        if (confirm('Bu etkinliği geri yüklemek istediğinize emin misiniz?')) {
+            try {
+                await updateDoc(doc(db, "events", eventId), {
+                    archived: false,
+                    archivedAt: null
+                });
+                fetchEvents();
+                alert('Etkinlik geri yüklendi.');
+            } catch (error) {
+                console.error("Error unarchiving event:", error);
+                alert('Geri yükleme sırasında hata oluştu.');
+            }
+        }
     };
 
     const fetchApplications = async () => {
@@ -219,6 +292,7 @@ export default function AdminPage() {
 
     const handleDashboardNavigate = (tab: string, options?: any) => {
         setActiveTab(tab as any);
+        setIsMobileMenuOpen(false); // Mobilde dashboard içinden navigasyon yapılırsa menüyü kapat
         if (tab === 'events' && options?.mode) {
             setEventViewMode(options.mode);
         }
@@ -391,116 +465,159 @@ export default function AdminPage() {
         setTicketTypes(newTickets);
     };
 
+    // Sidebar Content Component (Reusable for Desktop & Mobile)
+    const SidebarContent = () => (
+        <>
+            <div className="h-16 flex items-center px-6 border-b border-border">
+                <Link href="/" className="text-xl font-heading font-bold tracking-tight hover:scale-105 transition-transform group flex items-center">
+                    <span className="text-foreground transition-colors">Sivas</span>
+                    <span className="bg-gradient-to-r from-primary to-amber-500 bg-clip-text text-transparent ml-1">Etkinlikleri</span>
+                </Link>
+                <span className="ml-2 text-xs bg-muted px-2 py-0.5 rounded text-muted-foreground">Admin</span>
+            </div>
+
+            <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+                <SidebarButton
+                    active={activeTab === 'dashboard'}
+                    icon={<LayoutDashboard className="w-5 h-5" />}
+                    label="Dashboard"
+                    onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }}
+                />
+                <SidebarButton
+                    active={activeTab === 'events'}
+                    icon={<Calendar className="w-5 h-5" />}
+                    label="Etkinlik Yönetimi"
+                    onClick={() => { setActiveTab('events'); setEventViewMode('list'); fetchEvents(); setIsMobileMenuOpen(false); }}
+                />
+                <SidebarButton
+                    active={activeTab === 'applications'}
+                    icon={<Users className="w-5 h-5" />}
+                    label="Kulüp Başvuruları"
+                    onClick={() => { setActiveTab('applications'); fetchApplications(); setIsMobileMenuOpen(false); }}
+                    notification={applications.some(a => a.status === 'pending')}
+                />
+                <SidebarButton
+                    active={activeTab === 'clubs'}
+                    icon={<Users className="w-5 h-5" />}
+                    label="Kulüp Yönetimi"
+                    onClick={() => { setActiveTab('clubs'); fetchClubs(); setIsMobileMenuOpen(false); }}
+                />
+                <SidebarButton
+                    active={activeTab === 'sponsors'}
+                    icon={<CreditCard className="w-5 h-5" />}
+                    label="Sponsorluklar"
+                    onClick={() => { setActiveTab('sponsors'); setIsMobileMenuOpen(false); }}
+                />
+                <SidebarButton
+                    active={activeTab === 'discounts'}
+                    icon={<Tag className="w-5 h-5" />}
+                    label="İndirim Kodları"
+                    onClick={() => { setActiveTab('discounts'); fetchDiscountCodes(); setIsMobileMenuOpen(false); }}
+                    count={discountCodes.filter(c => c.isActive).length}
+                />
+                <SidebarButton
+                    active={activeTab === 'users'}
+                    icon={<Users className="w-5 h-5" />}
+                    label="Kullanıcılar"
+                    onClick={() => { setActiveTab('users'); setIsMobileMenuOpen(false); }}
+                />
+                <SidebarButton
+                    active={activeTab === 'validator'}
+                    icon={<QrCode className="w-5 h-5" />}
+                    label="Bilet Doğrulama"
+                    onClick={() => { setActiveTab('validator'); setIsMobileMenuOpen(false); }}
+                />
+                <SidebarButton
+                    active={activeTab === 'archive'}
+                    icon={<Archive className="w-5 h-5" />}
+                    label="Arşiv"
+                    onClick={() => { setActiveTab('archive'); fetchEvents(); setIsMobileMenuOpen(false); }}
+                    count={archivedEvents.length}
+                />
+            </nav>
+
+            <div className="p-4 border-t border-border space-y-1">
+                <Link href="/" target="_blank" className="flex items-center gap-3 px-4 py-3 text-muted-foreground hover:bg-muted hover:text-foreground rounded-xl font-medium transition-colors">
+                    <Globe className="w-5 h-5" />
+                    Siteyi Görüntüle
+                </Link>
+            </div>
+        </>
+    );
+
     if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Yükleniyor...</div>;
 
     return (
         <div className="min-h-screen bg-background flex text-foreground font-sans transition-colors duration-300">
-            {/* Sidebar */}
+
+            {/* Desktop Sidebar (Hidden on mobile) */}
             <aside className="w-64 border-r border-border hidden lg:flex flex-col bg-card/30">
-                <div className="h-16 flex items-center px-6 border-b border-border">
-                    <span className="text-xl font-bold text-primary">Sivas Etkinlik</span>
-                    <span className="ml-2 text-xs bg-muted px-2 py-0.5 rounded text-muted-foreground">Admin</span>
-                </div>
+                <SidebarContent />
+            </aside>
 
-                <nav className="flex-1 p-4 space-y-1">
-                    <SidebarButton
-                        active={activeTab === 'dashboard'}
-                        icon={<LayoutDashboard className="w-5 h-5" />}
-                        label="Dashboard"
-                        onClick={() => setActiveTab('dashboard')}
-                    />
-                    <SidebarButton
-                        active={activeTab === 'events'}
-                        icon={<Calendar className="w-5 h-5" />}
-                        label="Etkinlik Yönetimi"
-                        onClick={() => { setActiveTab('events'); setEventViewMode('list'); fetchEvents(); }}
-                    />
-                    <SidebarButton
-                        active={activeTab === 'applications'}
-                        icon={<Users className="w-5 h-5" />}
-                        label="Kulüp Başvuruları"
-                        onClick={() => { setActiveTab('applications'); fetchApplications(); }}
-                        notification={applications.some(a => a.status === 'pending')}
-                    />
-                    <SidebarButton
-                        active={activeTab === 'clubs'}
-                        icon={<Users className="w-5 h-5" />}
-                        label="Kulüp Yönetimi"
-                        onClick={() => { setActiveTab('clubs'); fetchClubs(); }}
-                    />
-                    <SidebarButton
-                        active={activeTab === 'sponsors'}
-                        icon={<CreditCard className="w-5 h-5" />}
-                        label="Sponsorluklar"
-                        onClick={() => setActiveTab('sponsors')}
-                    />
-                    <SidebarButton
-                        active={activeTab === 'discounts'}
-                        icon={<Tag className="w-5 h-5" />}
-                        label="İndirim Kodları"
-                        onClick={() => { setActiveTab('discounts'); fetchDiscountCodes(); }}
-                        count={discountCodes.filter(c => c.isActive).length}
-                    />
-                    <SidebarButton
-                        active={activeTab === 'users'}
-                        icon={<Users className="w-5 h-5" />}
-                        label="Kullanıcılar"
-                        onClick={() => setActiveTab('users')}
-                    />
-                    <SidebarButton
-                        active={activeTab === 'validator'}
-                        icon={<QrCode className="w-5 h-5" />}
-                        label="Bilet Doğrulama"
-                        onClick={() => setActiveTab('validator')}
-                    />
-                </nav>
-
-                <div className="p-4 border-t border-border space-y-1">
-                    <Link href="/" target="_blank" className="flex items-center gap-3 px-4 py-3 text-muted-foreground hover:bg-muted hover:text-foreground rounded-xl font-medium transition-colors">
-                        <Globe className="w-5 h-5" />
-                        Siteyi Görüntüle
-                    </Link>
-                </div>
+            {/* Mobile Sidebar (Drawer) */}
+            {isMobileMenuOpen && (
+                <div
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+            <aside className={`fixed inset-y-0 left-0 w-64 bg-background border-r border-border z-50 transform transition-transform duration-300 lg:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                <SidebarContent />
             </aside>
 
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto bg-background transition-colors duration-300">
-                <header className="h-16 border-b border-border flex items-center justify-between px-8 bg-background/80 backdrop-blur-md sticky top-0 z-10 transition-colors duration-300">
-                    <h1 className="text-xl font-bold capitalize text-foreground">
-                        {activeTab === 'dashboard' && 'Genel Bakış'}
-                        {activeTab === 'events' && (eventViewMode === 'list' ? 'Etkinlik Listesi' : (editingId ? 'Etkinlik Düzenle' : 'Yeni Etkinlik'))}
-                        {activeTab === 'applications' && 'Kulüp Başvuruları'}
-                        {activeTab === 'clubs' && 'Kulüp Yönetimi'}
-                        {activeTab === 'discounts' && 'İndirim Kodları'}
-                        {activeTab === 'users' && 'Kullanıcı Yönetimi'}
-                        {activeTab === 'validator' && 'Bilet Doğrulama'}
-                        {activeTab === 'sponsors' && 'Sponsorluk Yönetimi'}
-                    </h1>
+                <header className="h-16 border-b border-border flex items-center justify-between px-4 sm:px-8 bg-background/80 backdrop-blur-md sticky top-0 z-10 transition-colors duration-300">
                     <div className="flex items-center gap-4">
+                        {/* Mobile Menu Button */}
+                        <button
+                            onClick={() => setIsMobileMenuOpen(true)}
+                            className="lg:hidden p-2 -ml-2 hover:bg-muted rounded-lg text-foreground transition-colors"
+                        >
+                            <Menu className="w-6 h-6" />
+                        </button>
+
+                        <h1 className="text-lg sm:text-xl font-bold capitalize text-foreground truncate">
+                            {activeTab === 'dashboard' && 'Genel Bakış'}
+                            {activeTab === 'events' && (eventViewMode === 'list' ? 'Etkinlik Listesi' : (editingId ? 'Etkinlik Düzenle' : 'Yeni Etkinlik'))}
+                            {activeTab === 'applications' && 'Kulüp Başvuruları'}
+                            {activeTab === 'clubs' && 'Kulüp Yönetimi'}
+                            {activeTab === 'discounts' && 'İndirim Kodları'}
+                            {activeTab === 'users' && 'Kullanıcı Yönetimi'}
+                            {activeTab === 'validator' && 'Bilet Doğrulama'}
+                            {activeTab === 'sponsors' && 'Sponsorluk Yönetimi'}
+                        </h1>
+                    </div>
+
+                    <div className="flex items-center gap-2 sm:gap-4">
                         {activeTab === 'clubs' && (
-                            <button onClick={() => setClubFormVisible(!clubFormVisible)} className="btn btn-sm bg-primary text-black hover:bg-primary-hover font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-all hover:scale-105">
-                                <Plus className="w-4 h-4" /> {clubFormVisible ? 'İptal' : 'Yeni Kulüp'}
+                            <button onClick={() => setClubFormVisible(!clubFormVisible)} className="btn btn-sm bg-primary text-black hover:bg-primary-hover font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg flex items-center gap-2 transition-all hover:scale-105 text-xs sm:text-sm">
+                                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">{clubFormVisible ? 'İptal' : 'Yeni Kulüp'}</span>
+                                <span className="sm:hidden">Yeni</span>
                             </button>
                         )}
                         {activeTab === 'events' && eventViewMode === 'list' && (
-                            <button onClick={() => { resetForm(); setEventViewMode('form'); }} className="btn btn-sm bg-primary text-black hover:bg-primary-hover font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-all hover:scale-105">
-                                <Plus className="w-4 h-4" /> Yeni Ekle
+                            <button onClick={() => { resetForm(); setEventViewMode('form'); }} className="btn btn-sm bg-primary text-black hover:bg-primary-hover font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg flex items-center gap-2 transition-all hover:scale-105 text-xs sm:text-sm">
+                                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Yeni Ekle</span>
+                                <span className="sm:hidden">Ekle</span>
                             </button>
                         )}
                         {activeTab === 'discounts' && (
-                            <button onClick={() => setDiscountFormVisible(!discountFormVisible)} className="btn btn-sm bg-primary text-black hover:bg-primary-hover font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-all hover:scale-105">
-                                <Plus className="w-4 h-4" /> {discountFormVisible ? 'İptal' : 'Yeni Kod'}
+                            <button onClick={() => setDiscountFormVisible(!discountFormVisible)} className="btn btn-sm bg-primary text-black hover:bg-primary-hover font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg flex items-center gap-2 transition-all hover:scale-105 text-xs sm:text-sm">
+                                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">{discountFormVisible ? 'İptal' : 'Yeni Kod'}</span>
+                                <span className="sm:hidden">Ekle</span>
                             </button>
                         )}
                         {activeTab === 'events' && eventViewMode === 'form' && (
-                            <button onClick={() => { resetForm(); setEventViewMode('list'); }} className="text-sm text-muted-foreground hover:text-foreground">
+                            <button onClick={() => { resetForm(); setEventViewMode('list'); }} className="text-xs sm:text-sm text-muted-foreground hover:text-foreground">
                                 Listeye Dön
                             </button>
                         )}
                     </div>
                 </header>
 
-                <div className="p-8 space-y-8">
+                <div className="p-4 sm:p-8 space-y-8">
                     {activeTab === 'dashboard' && <AdminDashboard onNavigate={handleDashboardNavigate} />}
 
                     {activeTab === 'users' && <UserManagement />}
@@ -508,6 +625,63 @@ export default function AdminPage() {
                     {activeTab === 'validator' && <TicketValidator />}
 
                     {activeTab === 'sponsors' && <SponsorManagement />}
+
+                    {activeTab === 'archive' && (
+                        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+                            <div className="p-6 border-b border-border bg-muted/30">
+                                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                                    <Archive className="w-5 h-5 text-primary" />
+                                    Arşivlenmiş Etkinlikler
+                                </h2>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                    Tarihi geçmiş etkinlikler otomatik olarak arşivlenir. Arşivlendikten 1 ay sonra otomatik silinir.
+                                </p>
+                            </div>
+                            {archivedEvents.length === 0 ? (
+                                <div className="p-8 text-center text-muted-foreground">Arşivde etkinlik yok.</div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-muted text-muted-foreground font-medium border-b border-border">
+                                            <tr>
+                                                <th className="px-6 py-4">Etkinlik Adı</th>
+                                                <th className="px-6 py-4">Tarih</th>
+                                                <th className="px-6 py-4">Arşivlenme</th>
+                                                <th className="px-6 py-4 text-right">İşlemler</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border">
+                                            {archivedEvents.map((event) => (
+                                                <tr key={event.id} className="hover:bg-neutral-50 dark:bg-zinc-900 transition-colors">
+                                                    <td className="px-6 py-4 font-medium text-foreground">{event.title}</td>
+                                                    <td className="px-6 py-4 text-muted-foreground">{event.date?.toString().replace('T', ' ')}</td>
+                                                    <td className="px-6 py-4 text-muted-foreground text-xs">
+                                                        {event.archivedAt ?
+                                                            new Date(event.archivedAt.seconds ? event.archivedAt.seconds * 1000 : event.archivedAt).toLocaleString('tr-TR')
+                                                            : '-'
+                                                        }
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <Link href={`/etkinlik/${event.id}`} target="_blank" className="p-2 bg-muted text-muted-foreground hover:bg-foreground hover:text-background rounded-lg transition-all" aria-label="Görüntüle">
+                                                                <Eye className="w-4 h-4" />
+                                                            </Link>
+                                                            <button onClick={() => handleUnarchiveEvent(event.id)} className="p-2 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-all" aria-label="Geri Yükle">
+                                                                <Archive className="w-4 h-4" />
+                                                            </button>
+                                                            <button onClick={() => handleDeleteEvent(event.id)} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all" aria-label="Kalıcı Sil">
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {activeTab === 'events' && eventViewMode === 'list' && (
                         <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
@@ -592,22 +766,66 @@ export default function AdminPage() {
                                     </div>
                                 </div>
                                 <div className="space-y-3">
-                                    <label className="text-sm font-medium text-foreground flex justify-between items-center">Bilet Kategorileri <button type="button" onClick={() => setTicketTypes([...ticketTypes, { name: '', price: 0 }])} className="text-xs text-primary hover:underline flex items-center gap-1"><Plus size={12} /> Kategori Ekle</button></label>
-                                    {ticketTypes.map((ticket, index) => (
-                                        <div key={index} className="flex gap-3 items-center">
-                                            <input type="text" placeholder="Kategori Adı" value={ticket.name} onChange={(e) => handleTicketChange(index, 'name', e.target.value)} className="flex-1 bg-neutral-50 dark:bg-zinc-900 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground" required />
-                                            <input type="number" placeholder="Fiyat" value={ticket.price} onChange={(e) => handleTicketChange(index, 'price', Number(e.target.value))} className="w-24 bg-neutral-50 dark:bg-zinc-900 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50" required min="0" />
-                                            {ticketTypes.length > 1 && (<button type="button" onClick={() => { const n = [...ticketTypes]; n.splice(index, 1); setTicketTypes(n); }} className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors" aria-label="Sil"><Trash2 size={18} /></button>)}
-                                        </div>
-                                    ))}
+                                    <label className="text-sm font-medium text-foreground flex justify-between items-center">
+                                        {salesType === 'free' ? 'Etkinlik Kategorileri' : 'Bilet Kategorileri'}
+                                        {salesType !== 'free' && (
+                                            <button type="button" onClick={() => setTicketTypes([...ticketTypes, { name: '', price: 0 }])} className="text-xs text-primary hover:underline flex items-center gap-1"><Plus size={12} /> Kategori Ekle</button>
+                                        )}
+                                    </label>
+                                    {salesType === 'free' ? (
+                                        <p className="text-sm text-muted-foreground p-4 bg-muted/30 rounded-lg border border-border">
+                                            Bu ücretsiz bir etkinliktir. Katılımcılar herhangi bir ücret ödemeden katılabilir.
+                                        </p>
+                                    ) : (
+                                        <>
+                                            {ticketTypes.map((ticket, index) => (
+                                                <div key={index} className="flex gap-3 items-center">
+                                                    <input type="text" placeholder="Kategori Adı" value={ticket.name} onChange={(e) => handleTicketChange(index, 'name', e.target.value)} className="flex-1 bg-neutral-50 dark:bg-zinc-900 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground" required />
+                                                    {salesType !== 'reservation' && (
+                                                        <input type="number" placeholder="Fiyat" value={ticket.price} onChange={(e) => handleTicketChange(index, 'price', Number(e.target.value))} className="w-24 bg-neutral-50 dark:bg-zinc-900 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50" required min="0" />
+                                                    )}
+                                                    {salesType === 'reservation' && (
+                                                        <input type="number" placeholder="Kapasite" value={ticket.price} onChange={(e) => handleTicketChange(index, 'price', Number(e.target.value))} className="w-24 bg-neutral-50 dark:bg-zinc-900 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50" required min="1" />
+                                                    )}
+                                                    {ticketTypes.length > 1 && (<button type="button" onClick={() => { const n = [...ticketTypes]; n.splice(index, 1); setTicketTypes(n); }} className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors" aria-label="Sil"><Trash2 size={18} /></button>)}
+                                                </div>
+                                            ))}
+                                        </>
+                                    )}
                                 </div>
                                 <div className="space-y-3 bg-muted/30 border border-border p-4 rounded-xl">
-                                    <label className="text-sm font-medium text-foreground">Satış Türü</label>
-                                    <div className="flex gap-4">
-                                        <label className="flex items-center gap-2 cursor-pointer group"><input type="radio" name="salesType" value="internal" checked={salesType === 'internal'} onChange={(e) => setSalesType(e.target.value as any)} className="accent-primary" /><span className="text-sm text-foreground">Site İçi</span></label>
-                                        <label className="flex items-center gap-2 cursor-pointer group"><input type="radio" name="salesType" value="external" checked={salesType === 'external'} onChange={(e) => setSalesType(e.target.value as any)} className="accent-primary" /><span className="text-sm text-foreground">Dış Bağlantı</span></label>
+                                    <label className="text-sm font-medium text-foreground">Bilet Türü</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <label className="flex items-center gap-2 cursor-pointer group p-3 border border-border rounded-lg hover:border-primary transition-colors bg-card">
+                                            <input type="radio" name="salesType" value="internal" checked={salesType === 'internal'} onChange={(e) => setSalesType(e.target.value as any)} className="accent-primary" />
+                                            <div>
+                                                <span className="text-sm font-medium text-foreground">Site İçi Satış</span>
+                                                <p className="text-xs text-muted-foreground">Standart bilet satışı</p>
+                                            </div>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer group p-3 border border-border rounded-lg hover:border-primary transition-colors bg-card">
+                                            <input type="radio" name="salesType" value="external" checked={salesType === 'external'} onChange={(e) => setSalesType(e.target.value as any)} className="accent-primary" />
+                                            <div>
+                                                <span className="text-sm font-medium text-foreground">Dış Bağlantı</span>
+                                                <p className="text-xs text-muted-foreground">Biletix, Passo vb.</p>
+                                            </div>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer group p-3 border border-border rounded-lg hover:border-primary transition-colors bg-card">
+                                            <input type="radio" name="salesType" value="free" checked={salesType === 'free'} onChange={(e) => setSalesType(e.target.value as any)} className="accent-primary" />
+                                            <div>
+                                                <span className="text-sm font-medium text-foreground">Ücretsiz</span>
+                                                <p className="text-xs text-muted-foreground">Bilet fiyatı yok</p>
+                                            </div>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer group p-3 border border-border rounded-lg hover:border-primary transition-colors bg-card">
+                                            <input type="radio" name="salesType" value="reservation" checked={salesType === 'reservation'} onChange={(e) => setSalesType(e.target.value as any)} className="accent-primary" />
+                                            <div>
+                                                <span className="text-sm font-medium text-foreground">Rezervasyon</span>
+                                                <p className="text-xs text-muted-foreground">Rezervasyon butonu</p>
+                                            </div>
+                                        </label>
                                     </div>
-                                    {salesType === 'external' && (<input type="url" required value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="Link" className="w-full mt-2 bg-neutral-50 dark:bg-zinc-900 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50" />)}
+                                    {salesType === 'external' && (<input type="url" required value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="Dış bilet sitesi linki (örn: https://www.biletix.com/...)" className="w-full mt-3 bg-neutral-50 dark:bg-zinc-900 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground" />)}
                                 </div>
 
                                 {/* Seating System Toggle */}
@@ -815,4 +1033,3 @@ function SidebarButton({ active, icon, label, onClick, notification, count }: Si
         </button>
     );
 }
-// Guncelleme kontrol

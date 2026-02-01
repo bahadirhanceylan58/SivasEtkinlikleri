@@ -39,16 +39,32 @@ export default function EventDetailPage() {
     const eventImages = event ? [event.imageUrl, event.imageUrl, event.imageUrl] : [];
 
     const handlePurchase = () => {
+        // External link - open in new tab
         if (event.salesType === 'external' && event.externalUrl) {
             window.open(event.externalUrl, '_blank');
             return;
         }
 
+        // Free events - just navigate to confirmation
+        if (event.salesType === 'free') {
+            router.push(`/odeme/${event.id}?type=free`);
+            return;
+        }
+
+        // Reservation - navigate to reservation page
+        if (event.salesType === 'reservation') {
+            if (event.hasSeating) {
+                sessionStorage.setItem('selectedSeats', JSON.stringify(selectedSeats));
+            }
+            router.push(`/odeme/${event.id}?type=reservation&quantity=${ticketQuantity}`);
+            return;
+        }
+
+        // Internal sales (default)
         if (event.hasSeating) {
             sessionStorage.setItem('selectedSeats', JSON.stringify(selectedSeats));
         }
-
-        router.push(`/odeme/${event.id}`);
+        router.push(`/odeme/${event.id}?quantity=${ticketQuantity}`);
     };
 
     useEffect(() => {
@@ -244,59 +260,137 @@ export default function EventDetailPage() {
 
                             {/* Bilet Satın Al Kutusu */}
                             <div className="glass-strong border border-border p-6 rounded-2xl">
-                                <div className="space-y-3">
-                                    <label className="text-sm font-medium text-muted-foreground">Bilet Adedi</label>
-                                    <div className="flex items-center gap-4">
+                                {/* Free Event */}
+                                {event.salesType === 'free' && (
+                                    <>
+                                        <div className="text-center space-y-3 py-2">
+                                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full">
+                                                <span className="text-2xl">🎉</span>
+                                                <span className="text-green-500 font-bold">Ücretsiz Etkinlik</span>
+                                            </div>
+                                            <p className="text-sm text-muted-foreground">Bu etkinliğe katılım tamamen ücretsizdir!</p>
+                                        </div>
                                         <button
-                                            onClick={() => setTicketQuantity(q => Math.max(1, q - 1))}
-                                            disabled={ticketQuantity <= 1}
-                                            className="w-12 h-12 rounded-lg bg-card hover:bg-muted border border-border hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                            onClick={handlePurchase}
+                                            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl transition-all transform hover:scale-[1.02] shadow-glow hover:shadow-glow-lg flex items-center justify-center gap-2 mt-4"
                                         >
-                                            <Minus className="w-5 h-5 mx-auto text-foreground" />
+                                            Katıl
                                         </button>
-                                        <input
-                                            type="number"
-                                            value={ticketQuantity}
-                                            onChange={(e) => {
-                                                const val = parseInt(e.target.value) || 1;
-                                                setTicketQuantity(Math.max(1, Math.min(10, val)));
-                                            }}
-                                            className="w-20 text-center text-2xl font-bold bg-card border border-border rounded-lg py-3 text-foreground focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
-                                            min="1"
-                                            max="10"
-                                        />
+                                    </>
+                                )}
+
+                                {/* Reservation */}
+                                {event.salesType === 'reservation' && (
+                                    <>
+                                        <div className="space-y-3">
+                                            <label className="text-sm font-medium text-foreground">Kişi Sayısı</label>
+                                            <div className="flex items-center gap-4">
+                                                <button
+                                                    onClick={() => setTicketQuantity(q => Math.max(1, q - 1))}
+                                                    disabled={ticketQuantity <= 1}
+                                                    className="w-12 h-12 rounded-lg bg-card hover:bg-muted border border-border hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                >
+                                                    <Minus className="w-5 h-5 mx-auto text-foreground" />
+                                                </button>
+                                                <input
+                                                    type="number"
+                                                    value={ticketQuantity}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value) || 1;
+                                                        setTicketQuantity(Math.max(1, Math.min(10, val)));
+                                                    }}
+                                                    className="w-20 text-center text-2xl font-bold bg-background border-2 border-border rounded-lg py-3 text-foreground focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
+                                                    min="1"
+                                                    max="10"
+                                                />
+                                                <button
+                                                    onClick={() => setTicketQuantity(q => Math.min(10, q + 1))}
+                                                    disabled={ticketQuantity >= 10}
+                                                    className="w-12 h-12 rounded-lg bg-card hover:bg-muted border border-border hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                >
+                                                    <Plus className="w-5 h-5 mx-auto text-foreground" />
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">Maksimum 10 kişi rezerve edebilirsiniz</p>
+                                        </div>
+
                                         <button
-                                            onClick={() => setTicketQuantity(q => Math.min(10, q + 1))}
-                                            disabled={ticketQuantity >= 10}
-                                            className="w-12 h-12 rounded-lg bg-card hover:bg-muted border border-border hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                            onClick={handlePurchase}
+                                            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-xl transition-all transform hover:scale-[1.02] shadow-glow hover:shadow-glow-lg flex items-center justify-center gap-2 mt-4"
                                         >
-                                            <Plus className="w-5 h-5 mx-auto text-foreground" />
+                                            Rezervasyon Yap ({ticketQuantity} Kişi)
                                         </button>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">Maksimum 10 bilet seçebilirsiniz</p>
-                                </div>
+                                    </>
+                                )}
 
-                                <div className="space-y-3 pt-4 border-t border-border mt-4">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">Bilet Fiyatı</span>
-                                        <span className="text-foreground font-medium">₺{event.ticketTypes?.[0]?.price || 0}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">Adet</span>
-                                        <span className="text-foreground font-medium">x {ticketQuantity}</span>
-                                    </div>
-                                    <div className="flex justify-between pt-3 border-t border-border">
-                                        <span className="text-foreground font-bold">Toplam</span>
-                                        <span className="text-2xl font-bold text-primary">₺{(event.ticketTypes?.[0]?.price || 0) * ticketQuantity}</span>
-                                    </div>
-                                </div>
+                                {/* Internal Sales */}
+                                {event.salesType === 'internal' && (
+                                    <>
+                                        <div className="space-y-3">
+                                            <label className="text-sm font-medium text-foreground">Bilet Adedi</label>
+                                            <div className="flex items-center gap-4">
+                                                <button
+                                                    onClick={() => setTicketQuantity(q => Math.max(1, q - 1))}
+                                                    disabled={ticketQuantity <= 1}
+                                                    className="w-12 h-12 rounded-lg bg-card hover:bg-muted border border-border hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                >
+                                                    <Minus className="w-5 h-5 mx-auto text-foreground" />
+                                                </button>
+                                                <input
+                                                    type="number"
+                                                    value={ticketQuantity}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value) || 1;
+                                                        setTicketQuantity(Math.max(1, Math.min(10, val)));
+                                                    }}
+                                                    className="w-20 text-center text-2xl font-bold bg-card border border-border rounded-lg py-3 text-foreground focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
+                                                    min="1"
+                                                    max="10"
+                                                />
+                                                <button
+                                                    onClick={() => setTicketQuantity(q => Math.min(10, q + 1))}
+                                                    disabled={ticketQuantity >= 10}
+                                                    className="w-12 h-12 rounded-lg bg-card hover:bg-muted border border-border hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                >
+                                                    <Plus className="w-5 h-5 mx-auto text-foreground" />
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">Maksimum 10 bilet seçebilirsiniz</p>
+                                        </div>
 
-                                <button
-                                    onClick={handlePurchase}
-                                    className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all transform hover:scale-[1.02] shadow-glow hover:shadow-glow-lg flex items-center justify-center gap-2 mt-4"
-                                >
-                                    {event.salesType === 'external' ? 'Bilet Sitesine Git' : `Satın Al (₺${(event.ticketTypes?.[0]?.price || 0) * ticketQuantity})`}
-                                </button>
+                                        <div className="space-y-3 pt-4 border-t border-border mt-4">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-foreground">Bilet Fiyatı</span>
+                                                <span className="text-foreground font-medium">₺{event.ticketTypes?.[0]?.price || 0}</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-foreground">Adet</span>
+                                                <span className="text-foreground font-medium">x {ticketQuantity}</span>
+                                            </div>
+                                            <div className="flex justify-between pt-3 border-t border-border">
+                                                <span className="text-foreground font-bold">Toplam</span>
+                                                <span className="text-2xl font-bold text-primary">₺{(event.ticketTypes?.[0]?.price || 0) * ticketQuantity}</span>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={handlePurchase}
+                                            className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all transform hover:scale-[1.02] shadow-glow hover:shadow-glow-lg flex items-center justify-center gap-2 mt-4"
+                                        >
+                                            Satın Al (₺{(event.ticketTypes?.[0]?.price || 0) * ticketQuantity})
+                                        </button>
+                                    </>
+                                )}
+
+                                {/* External Link */}
+                                {event.salesType === 'external' && (
+                                    <button
+                                        onClick={handlePurchase}
+                                        className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all transform hover:scale-[1.02] shadow-glow hover:shadow-glow-lg flex items-center justify-center gap-2"
+                                    >
+                                        Bilet Sitesine Git
+                                    </button>
+                                )}
                             </div>
 
                             {/* Mekan Kartı */}

@@ -6,12 +6,13 @@ import { doc, getDoc, arrayUnion, setDoc, addDoc, collection } from 'firebase/fi
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import Image from 'next/image';
-import { Phone, User, Ticket, Users as UsersIcon, Armchair, TrendingDown } from 'lucide-react';
+import { Phone, User, Ticket, Users as UsersIcon, Armchair, TrendingDown, CreditCard, Lock } from 'lucide-react';
 import DiscountCodeInput from '@/components/DiscountCodeInput';
 import { DiscountValidationResult } from '@/types/ticketing';
 import { calculateGroupDiscount, getNextTierInfo } from '@/lib/groupTickets';
 import { Seat } from '@/types/seating';
 import { markSeatsAsSold, formatSeatName } from '@/lib/seatUtils';
+import { logAudit } from '@/lib/auditLog';
 
 interface Event {
     id: string;
@@ -44,6 +45,13 @@ export default function PaymentPage() {
     // İndirim kodu state'leri
     const [appliedDiscount, setAppliedDiscount] = useState<DiscountValidationResult | null>(null);
     const [appliedDiscountCode, setAppliedDiscountCode] = useState<string | null>(null);
+
+    // Ödeme yöntemi state'leri
+    const [paymentMethod, setPaymentMethod] = useState<'door' | 'card'>('door');
+    const [cardNumber, setCardNumber] = useState('');
+    const [cardExpiry, setCardExpiry] = useState('');
+    const [cardCvv, setCardCvv] = useState('');
+    const [cardHolder, setCardHolder] = useState('');
 
     // Grup indirimi tier'ları (normalde event'ten gelir, şimdilik varsayılan)
     const groupTiers = event?.groupTickets || [
@@ -119,9 +127,49 @@ export default function PaymentPage() {
             return;
         }
 
+        // Kart ödemesi seçildiyse kart bilgilerini kontrol et
+        if (paymentMethod === 'card') {
+            if (!cardNumber || !cardExpiry || !cardCvv || !cardHolder) {
+                alert('Lütfen kart bilgilerini eksiksiz giriniz.');
+                return;
+            }
+
+            // Basic card validation
+            const cleanCardNumber = cardNumber.replace(/\s/g, '');
+            if (cleanCardNumber.length < 15 || cleanCardNumber.length > 16) {
+                alert('Geçerli bir kart numarası giriniz.');
+                return;
+            }
+
+            if (!/^\d{2}\/\d{2}$/.test(cardExpiry)) {
+                alert('Son kullanma tarihini AA/YY formatında giriniz.');
+                return;
+            }
+
+            if (cardCvv.length < 3) {
+                alert('Geçerli bir CVV giriniz.');
+                return;
+            }
+        }
+
         setProcessing(true);
 
         try {
+            // MOCK ÖDEME İŞLEMİ - Gerçek ödeme simülasyonu
+            if (paymentMethod === 'card') {
+                // Simulate payment processing delay
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Mock payment success (90% success rate for testing)
+                const paymentSuccess = Math.random() > 0.1;
+
+                if (!paymentSuccess) {
+                    alert('Ödeme işlemi başarısız oldu. Lütfen kart bilgilerinizi kontrol edip tekrar deneyin.');
+                    setProcessing(false);
+                    return;
+                }
+            }
+
             // 1. ÖNCE KOLTUKLARI SATIŞA ÇEVİR (En Kritik Adım)
             if (event.hasSeating && selectedSeats.length > 0) {
                 try {
@@ -173,8 +221,9 @@ export default function PaymentPage() {
                 totalAmount: totalAmount,
                 purchaseDate: new Date().toISOString(),
                 qrCode: uniqueQrCode,
-                status: 'reserved',
-                paymentType: 'pay_at_door',
+                status: paymentMethod === 'card' ? 'paid' : 'reserved',
+                paymentType: paymentMethod === 'card' ? 'online_card' : 'pay_at_door',
+                paymentStatus: paymentMethod === 'card' ? 'completed' : 'pending',
                 contactName: fullName,
                 contactPhone: phoneNumber
             };
@@ -207,6 +256,8 @@ export default function PaymentPage() {
                 purchaseDate: new Date().toISOString(),
                 qrCode: uniqueQrCode,
                 status: 'valid',
+                paymentMethod: paymentMethod,
+                paymentStatus: paymentMethod === 'card' ? 'paid' : 'pending',
                 checkedIn: false
             });
 
@@ -227,10 +278,47 @@ export default function PaymentPage() {
                 }
             }
 
-            alert(`Rezervasyonunuz alındı! ${discountAmount > 0 ? `${discountAmount}₺ indirim uygulandı. ` : ''}Biletiniz oluşturuldu. Ödemeyi kapıda yapabilirsiniz.`);
+            const successMessage = paymentMethod === 'card'
+                ? `Ödeme başarılı! ${discountAmount > 0 ? `${discountAmount}₺ indirim uygulandı. ` : ''}Biletiniz oluşturuldu.`
+                : `Rezervasyonunuz alındı! ${discountAmount > 0 ? `${discountAmount}₺ indirim uygulandı. ` : ''}Biletiniz oluşturuldu. Ödemeyi kapıda yapabilirsiniz.`;
+
+            // Audit log for successful payment/reservation
+            await logAudit({
+                userId: user.uid,
+                userEmail: user.email || '',
+                action: paymentMethod === 'card' ? 'payment_completed' : 'reservation_created',
+                resource: 'tickets',
+                resourceId: uniqueQrCode,
+                details: {
+                    eventId: event.id,
+                    eventTitle: event.title,
+                    ticketCount: event.hasSeating ? selectedSeats.length : ticketCount,
+                    totalAmount: totalAmount,
+                    paymentMethod: paymentMethod,
+                    discountAmount: discountAmount,
+                },
+                status: 'success',
+            });
+
+            alert(successMessage);
             router.push('/biletlerim');
         } catch (error) {
             console.error("Hata:", error);
+
+            // Audit log for failed payment/reservation
+            await logAudit({
+                userId: user?.uid || 'unknown',
+                userEmail: user?.email || '',
+                action: paymentMethod === 'card' ? 'payment_failed' : 'reservation_failed',
+                resource: 'tickets',
+                details: {
+                    eventId: event?.id,
+                    errorMessage: (error as Error).message,
+                },
+                status: 'failure',
+                errorMessage: (error as Error).message,
+            });
+
             alert('Bir hata oluştu.');
         } finally {
             setProcessing(false);
@@ -245,14 +333,56 @@ export default function PaymentPage() {
             <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Sol: Rezervasyon Formu */}
                 <div className="bg-card p-6 rounded-2xl border border-border h-fit">
-                    <div className="mb-6 bg-primary/10 border border-primary/20 p-4 rounded-xl">
-                        <h2 className="text-primary font-bold flex items-center gap-2">
-                            <Ticket size={20} /> Kapıda Ödeme / Rezervasyon
-                        </h2>
-                        <p className="text-sm text-muted-foreground mt-2">
-                            Online ödeme sistemi şu an bakımda. Bilgilerinizi girerek yerinizi ayırtabilir, ödemeyi etkinlik girişinde yapabilirsiniz.
-                        </p>
+                    {/* Ödeme Yöntemi Seç */}
+                    <div className="mb-6">
+                        <h3 className="text-sm font-medium text-foreground mb-3">Ödeme Yöntemi</h3>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setPaymentMethod('door')}
+                                className={`p-4 rounded-xl border-2 transition-all ${paymentMethod === 'door'
+                                    ? 'border-primary bg-primary/10 text-primary'
+                                    : 'border-border hover:border-primary/50 text-muted-foreground'
+                                    }`}
+                            >
+                                <Ticket className="w-6 h-6 mx-auto mb-2" />
+                                <span className="text-sm font-medium">Kapıda Ödeme</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPaymentMethod('card')}
+                                className={`p-4 rounded-xl border-2 transition-all ${paymentMethod === 'card'
+                                    ? 'border-primary bg-primary/10 text-primary'
+                                    : 'border-border hover:border-primary/50 text-muted-foreground'
+                                    }`}
+                            >
+                                <CreditCard className="w-6 h-6 mx-auto mb-2" />
+                                <span className="text-sm font-medium">Kredi/Banka Kartı</span>
+                            </button>
+                        </div>
                     </div>
+
+                    {paymentMethod === 'door' && (
+                        <div className="mb-6 bg-primary/10 border border-primary/20 p-4 rounded-xl">
+                            <h2 className="text-primary font-bold flex items-center gap-2">
+                                <Ticket size={20} /> Kapıda Ödeme / Rezervasyon
+                            </h2>
+                            <p className="text-sm text-muted-foreground mt-2">
+                                Bilgilerinizi girerek yerinizi ayırtabilir, ödemeyi etkinlik girişinde yapabilirsiniz.
+                            </p>
+                        </div>
+                    )}
+
+                    {paymentMethod === 'card' && (
+                        <div className="mb-6 bg-green-500/10 border border-green-500/20 p-4 rounded-xl">
+                            <h2 className="text-green-500 font-bold flex items-center gap-2">
+                                <Lock size={20} /> Güvenli Ödeme
+                            </h2>
+                            <p className="text-sm text-muted-foreground mt-2">
+                                Kart bilgileriniz güvenli bir şekilde işlenir. Test amaçlı mock ödeme sistemi aktif.
+                            </p>
+                        </div>
+                    )}
                     <div className="space-y-4">
                         <div>
                             <label className="block text-xs text-muted-foreground mb-1">Ad Soyad</label>
@@ -280,6 +410,78 @@ export default function PaymentPage() {
                                 />
                             </div>
                         </div>
+
+                        {/* Kart Bilgileri (Sadece kart ödemesi seçiliyse göster) */}
+                        {paymentMethod === 'card' && (
+                            <>
+                                <div className="border-t border-border pt-4 mt-4">
+                                    <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                                        <CreditCard size={16} /> Kart Bilgileri
+                                    </h3>
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-muted-foreground mb-1">Kart Üzerindeki İsim</label>
+                                    <input
+                                        type="text"
+                                        value={cardHolder}
+                                        onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
+                                        placeholder="AD SOYAD"
+                                        className="w-full bg-muted/50 border border-border rounded-lg p-3 text-foreground focus:border-primary outline-none transition-colors"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-muted-foreground mb-1">Kart Numarası</label>
+                                    <input
+                                        type="text"
+                                        value={cardNumber}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
+                                            const formatted = value.match(/.{1,4}/g)?.join(' ') || value;
+                                            setCardNumber(formatted);
+                                        }}
+                                        placeholder="1234 5678 9012 3456"
+                                        maxLength={19}
+                                        className="w-full bg-muted/50 border border-border rounded-lg p-3 text-foreground focus:border-primary outline-none transition-colors font-mono"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs text-muted-foreground mb-1">Son Kullanma</label>
+                                        <input
+                                            type="text"
+                                            value={cardExpiry}
+                                            onChange={(e) => {
+                                                let value = e.target.value.replace(/\D/g, '');
+                                                if (value.length >= 2) {
+                                                    value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                                                }
+                                                setCardExpiry(value);
+                                            }}
+                                            placeholder="AA/YY"
+                                            maxLength={5}
+                                            className="w-full bg-muted/50 border border-border rounded-lg p-3 text-foreground focus:border-primary outline-none transition-colors font-mono"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-muted-foreground mb-1">CVV</label>
+                                        <input
+                                            type="text"
+                                            value={cardCvv}
+                                            onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                            placeholder="123"
+                                            maxLength={4}
+                                            className="w-full bg-muted/50 border border-border rounded-lg p-3 text-foreground focus:border-primary outline-none transition-colors font-mono"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="bg-muted/30 border border-border rounded-lg p-3 text-xs text-muted-foreground">
+                                    <p className="flex items-center gap-2">
+                                        <Lock size={14} />
+                                        Kart bilgileriniz şifrelenir ve güvenli bir şekilde işlenir.
+                                    </p>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
                 {/* Sağ: Özet */}
@@ -298,9 +500,9 @@ export default function PaymentPage() {
                         <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg mb-4">
                             <span className="text-muted-foreground">Bilet Adeti</span>
                             <div className="flex items-center gap-3">
-                                <button onClick={() => setTicketCount(Math.max(1, ticketCount - 1))} className="w-8 h-8 bg-muted rounded-full flex items-center justify-center hover:bg-primary hover:text-black transition-colors">-</button>
-                                <span className="font-bold text-foreground w-4 text-center">{ticketCount}</span>
-                                <button onClick={() => setTicketCount(ticketCount + 1)} className="w-8 h-8 bg-muted rounded-full flex items-center justify-center hover:bg-primary hover:text-black transition-colors">+</button>
+                                <button onClick={() => setTicketCount(Math.max(1, ticketCount - 1))} className="w-8 h-8 bg-muted rounded-full flex items-center justify-center hover:bg-primary hover:text-black transition-colors font-bold text-foreground">-</button>
+                                <span className="font-bold text-foreground w-8 text-center text-xl">{ticketCount}</span>
+                                <button onClick={() => setTicketCount(ticketCount + 1)} className="w-8 h-8 bg-muted rounded-full flex items-center justify-center hover:bg-primary hover:text-black transition-colors font-bold text-foreground">+</button>
                             </div>
                         </div>
 
