@@ -146,6 +146,8 @@ const KursOlusturPage = () => {
             });
 
             // Email bildirimi gönder
+            // Email bildirimi devre dışı bırakıldı
+            /*
             try {
                 await fetch('/api/email/send-registration', {
                     method: 'POST',
@@ -168,6 +170,7 @@ const KursOlusturPage = () => {
                 console.error('Email gönderim hatası:', emailError);
                 // Email hatası kurs oluşturmayı engellemez
             }
+            */
 
             setToast({ message: 'Kurs başarıyla oluşturuldu! Admin onayından sonra yayınlanacak.', type: 'success' });
 

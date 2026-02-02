@@ -280,6 +280,8 @@ export default function AdminPage() {
             });
 
             // Email bildirimi gönder
+            // Email bildirimi devre dışı bırakıldı
+            /*
             const course = courses.find(c => c.id === id);
             if (course && course.instructorEmail) {
                 try {
@@ -302,6 +304,7 @@ export default function AdminPage() {
                     console.error('Email gönderim hatası:', emailError);
                 }
             }
+            */
 
             alert(`Kurs ${status === 'approved' ? 'onaylandı' : 'reddedildi'}.`);
             fetchCourses();
