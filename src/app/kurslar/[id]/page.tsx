@@ -53,14 +53,21 @@ export default function CourseDetailPage() {
     const [enrolling, setEnrolling] = useState(false);
     const [isEnrolled, setIsEnrolled] = useState(false);
 
+    console.log('CourseDetailPage rendered. Params:', params);
+
     useEffect(() => {
         const fetchCourse = async () => {
-            if (!params.id) return;
+            if (!params?.id) {
+                console.log('No param ID');
+                return;
+            }
 
+            console.log('Fetching course:', params.id);
             try {
                 const courseDoc = await getDoc(doc(db, 'courses', params.id as string));
                 if (courseDoc.exists()) {
                     const courseData = { id: courseDoc.id, ...courseDoc.data() } as Course;
+                    console.log('Course data fetched:', courseData);
                     setCourse(courseData);
 
                     // Check if user is enrolled
@@ -74,7 +81,7 @@ export default function CourseDetailPage() {
                         setIsEnrolled(!enrollmentSnapshot.empty);
                     }
                 } else {
-                    console.log('Course not found');
+                    console.log('Course not found in Firestore');
                 }
             } catch (error) {
                 console.error('Error fetching course:', error);
@@ -84,7 +91,7 @@ export default function CourseDetailPage() {
         };
 
         fetchCourse();
-    }, [params.id, user]);
+    }, [params?.id, user]);
 
     const handleEnroll = async () => {
         if (!user) {
@@ -106,6 +113,8 @@ export default function CourseDetailPage() {
                 status: 'active',
                 progress: 0
             });
+
+            // Email bildirimi de burada eklenebilir ama şimdilik sadece önceki kodu restore ediyoruz
 
             setIsEnrolled(true);
             alert('Kursa başarıyla kaydoldunuz!');
@@ -190,7 +199,7 @@ export default function CourseDetailPage() {
                         {/* Left: Course Info */}
                         <div>
                             <div className="flex flex-wrap items-center gap-3 mb-4">
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${difficultyColors[course.difficulty]}`}>
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${difficultyColors[course.difficulty] || 'bg-gray-100'}`}>
                                     {course.difficulty}
                                 </span>
                                 <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs font-medium">
@@ -220,7 +229,13 @@ export default function CourseDetailPage() {
                                     <div className="flex items-center gap-2 text-muted-foreground">
                                         <Calendar className="w-5 h-5 text-primary" />
                                         <span>
-                                            {new Date(course.startDate.seconds ? course.startDate.seconds * 1000 : course.startDate).toLocaleDateString('tr-TR')}
+                                            {(() => {
+                                                try {
+                                                    return new Date(course.startDate.seconds ? course.startDate.seconds * 1000 : course.startDate).toLocaleDateString('tr-TR');
+                                                } catch (e) {
+                                                    return '';
+                                                }
+                                            })()}
                                         </span>
                                     </div>
                                 )}

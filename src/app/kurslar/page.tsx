@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebaseConfig';
 import CourseCard, { Course } from '@/components/CourseCard';
-import { Search, Filter, PlusCircle, BookOpen } from 'lucide-react';
+import { Search, Filter, PlusCircle, BookOpen, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import SkeletonLoader from '@/components/SkeletonLoader';
@@ -128,6 +128,10 @@ const KurslarPage = () => {
             {/* Hero Section */}
             <section className="relative py-16 bg-gradient-to-br from-primary/10 via-background to-background">
                 <div className="container mx-auto px-4">
+                    <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6">
+                        <ArrowLeft className="w-5 h-5" />
+                        <span>Ana Sayfa</span>
+                    </Link>
                     <div className="max-w-4xl mx-auto text-center">
                         <div className="inline-block mb-4 px-4 py-2 bg-primary/20 rounded-full">
                             <BookOpen className="w-6 h-6 text-primary inline-block mr-2" />

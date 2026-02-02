@@ -278,6 +278,31 @@ export default function AdminPage() {
                 updatedAt: new Date(),
                 reviewedBy: user?.uid || 'admin'
             });
+
+            // Email bildirimi gönder
+            const course = courses.find(c => c.id === id);
+            if (course && course.instructorEmail) {
+                try {
+                    await fetch('/api/email/course-approval', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            userName: course.instructorName,
+                            userEmail: course.instructorEmail,
+                            courseTitle: course.title,
+                            approved: status === 'approved',
+                            message: status === 'approved'
+                                ? 'Tebrikler! Kursunuz onaylandı ve yayına alındı.'
+                                : 'Kurs başvurunuz incelendi ve şu an için onaylanamadı.'
+                        }),
+                    });
+                } catch (emailError) {
+                    console.error('Email gönderim hatası:', emailError);
+                }
+            }
+
             alert(`Kurs ${status === 'approved' ? 'onaylandı' : 'reddedildi'}.`);
             fetchCourses();
         } catch (error) {

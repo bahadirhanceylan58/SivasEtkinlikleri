@@ -132,17 +132,42 @@ const KursOlusturPage = () => {
             }
 
             // Create course
-            await addDoc(collection(db, 'courses'), {
+            const courseRef = await addDoc(collection(db, 'courses'), {
                 ...formData,
                 imageUrl,
                 instructorId: user.uid,
                 instructorName: user.displayName || user.email?.split('@')[0] || 'Anonim',
+                instructorEmail: user.email, // Email bildirimi için gerekli
                 instructorImage: user.photoURL || null,
                 enrolledCount: 0,
                 status: 'pending', // Admin onayı gerekli
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
             });
+
+            // Email bildirimi gönder
+            try {
+                await fetch('/api/email/send-registration', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: 'course',
+                        userEmail: user.email,
+                        registrationData: {
+                            userName: user.displayName || user.email?.split('@')[0] || 'Kullanıcı',
+                            courseTitle: formData.title,
+                            courseDescription: formData.shortDescription,
+                            userEmail: user.email,
+                            userPhone: user.phoneNumber || 'Belirtilmemiş',
+                        },
+                    }),
+                });
+            } catch (emailError) {
+                console.error('Email gönderim hatası:', emailError);
+                // Email hatası kurs oluşturmayı engellemez
+            }
 
             setToast({ message: 'Kurs başarıyla oluşturuldu! Admin onayından sonra yayınlanacak.', type: 'success' });
 

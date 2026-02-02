@@ -2,11 +2,24 @@
 
 import { Instagram, Facebook, Twitter, Linkedin, Youtube, Music, Apple, Smartphone, CreditCard } from 'lucide-react';
 import Link from 'next/link';
+import NewsletterSubscribe from './NewsletterSubscribe';
 
 export default function Footer() {
     return (
         <footer className="bg-black text-gray-400 py-12 border-t border-neutral-800 font-sans">
             <div className="container mx-auto px-4">
+                {/* Newsletter Section */}
+                <div className="mb-16 pt-8 border-b border-neutral-800 pb-12">
+                    <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+                        <div className="text-center lg:text-left max-w-xl">
+                            <h3 className="text-2xl font-bold text-white mb-2">Sivas'ın Ritmini Yakalayın</h3>
+                            <p className="text-neutral-400">En güncel konserler, tiyatrolar ve festivallerden ilk sizin haberiniz olsun. Özel indirimleri kaçırmayın.</p>
+                        </div>
+                        <div className="w-full lg:w-auto flex-1 max-w-md">
+                            <NewsletterSubscribe />
+                        </div>
+                    </div>
+                </div>
 
                 {/* Top Section: Logo & Socials */}
                 <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">

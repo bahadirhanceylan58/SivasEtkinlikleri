@@ -278,6 +278,40 @@ export default function PaymentPage() {
                 }
             }
 
+            // Email bildirimi gönder
+            try {
+                const emailResponse = await fetch('/api/email/send-registration', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: 'event',
+                        userEmail: user.email,
+                        registrationData: {
+                            userName: fullName,
+                            eventTitle: event.title,
+                            eventDate: new Date(event.date).toLocaleDateString('tr-TR', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            }),
+                            eventLocation: event.location,
+                            registrationId: uniqueQrCode.slice(-8), // Son 8 karakter
+                        },
+                    }),
+                });
+
+                if (!emailResponse.ok) {
+                    console.error('Email gönderilemedi:', await emailResponse.text());
+                }
+            } catch (emailError) {
+                console.error('Email gönderim hatası:', emailError);
+                // Email hatası işlemi engellemez, sadece log'lanır
+            }
+
             const successMessage = paymentMethod === 'card'
                 ? `Ödeme başarılı! ${discountAmount > 0 ? `${discountAmount}₺ indirim uygulandı. ` : ''}Biletiniz oluşturuldu.`
                 : `Rezervasyonunuz alındı! ${discountAmount > 0 ? `${discountAmount}₺ indirim uygulandı. ` : ''}Biletiniz oluşturuldu. Ödemeyi kapıda yapabilirsiniz.`;
