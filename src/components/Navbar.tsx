@@ -6,7 +6,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, Ticket, Shield, LogOut, Info, Search, Home, Phone, User, Calendar, Users, MapPin, Mail, Sun, Moon } from 'lucide-react';
+import { Menu, X, Ticket, Shield, LogOut, Info, Search, Home, Phone, User, Calendar, Users, MapPin, Mail, Sun, Moon, BookOpen } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 
 
@@ -78,6 +78,7 @@ export default function Navbar() {
 
     const navLinks = [
         { href: '/', label: 'Etkinlikler', icon: Home },
+        { href: '/kurslar', label: 'Kurslar', icon: BookOpen },
         { href: '/takvim', label: 'Takvim', icon: Calendar },
         { href: '/kulupler', label: 'Kulüpler', icon: Users },
         { href: '#', label: 'Mekanlar', icon: MapPin },

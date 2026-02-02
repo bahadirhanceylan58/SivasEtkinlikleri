@@ -36,9 +36,9 @@ interface Event {
     ticketTypes: { name: string; price: number }[];
     salesType: 'internal' | 'external';
     externalUrl?: string;
-
     description?: string;
     coordinates?: { lat: number; lng: number; };
+    status?: 'pending' | 'approved' | 'rejected';
 }
 
 interface Application {
@@ -78,7 +78,7 @@ interface SidebarButtonProps {
 export default function AdminPage() {
     const { user, loading, isAdmin } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'applications' | 'discounts' | 'users' | 'validator' | 'clubs' | 'sponsors' | 'archive'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'applications' | 'discounts' | 'users' | 'validator' | 'clubs' | 'sponsors' | 'courses' | 'archive'>('dashboard');
     const [eventViewMode, setEventViewMode] = useState<'list' | 'form'>('list');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Mobil menü durumu
 
@@ -138,6 +138,13 @@ export default function AdminPage() {
         description: ''
     });
 
+    // Courses State
+    const [courses, setCourses] = useState<any[]>([]);
+    const [courseFilter, setCourseFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+
+    // Event Filter State
+    const [eventFilter, setEventFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+
     // Flatten Categories
     const allSubCategories = CATEGORIES.flatMap(cat =>
         cat.sub.map(sub => ({ name: sub, parentId: cat.id, parentName: cat.name }))
@@ -151,6 +158,7 @@ export default function AdminPage() {
         fetchApplications();
         fetchDiscountCodes();
         fetchClubs();
+        fetchCourses();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -257,6 +265,40 @@ export default function AdminPage() {
         setClubs(clubsList);
     };
 
+    const fetchCourses = async () => {
+        const querySnapshot = await getDocs(collection(db, "courses"));
+        const coursesList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setCourses(coursesList);
+    };
+
+    const handleUpdateCourseStatus = async (id: string, status: 'approved' | 'rejected') => {
+        try {
+            await updateDoc(doc(db, "courses", id), {
+                status: status,
+                updatedAt: new Date(),
+                reviewedBy: user?.uid || 'admin'
+            });
+            alert(`Kurs ${status === 'approved' ? 'onaylandı' : 'reddedildi'}.`);
+            fetchCourses();
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Hata oluştu.");
+        }
+    };
+
+    const handleDeleteCourse = async (id: string) => {
+        if (confirm('Bu kursu silmek istediğinize emin misiniz?')) {
+            try {
+                await deleteDoc(doc(db, "courses", id));
+                fetchCourses();
+                alert('Kurs silindi.');
+            } catch (error) {
+                console.error("Error deleting course:", error);
+                alert('Silinirken hata oluştu.');
+            }
+        }
+    };
+
     const handleCreateClub = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -305,6 +347,7 @@ export default function AdminPage() {
         if (tab === 'applications') fetchApplications();
         if (tab === 'discounts') fetchDiscountCodes();
         if (tab === 'clubs') fetchClubs();
+        if (tab === 'courses') fetchCourses();
         if (tab === 'users') {
             // User fetch logic if needed
         }
@@ -402,6 +445,7 @@ export default function AdminPage() {
                 externalUrl: salesType === 'external' ? externalUrl : null,
                 hasSeating,
                 seatingConfig: hasSeating ? seatingConfig : null,
+                status: editingId ? undefined : 'pending', // Yeni etkinlikler pending olarak başlar
                 updatedAt: new Date()
             };
 
@@ -430,6 +474,21 @@ export default function AdminPage() {
         if (confirm('Bu etkinliği silmek istediğinize emin misiniz?')) {
             try { await deleteDoc(doc(db, "events", id)); fetchEvents(); alert('Silindi.'); }
             catch (error) { console.error("Error:", error); alert('Hata.'); }
+        }
+    };
+
+    const handleUpdateEventStatus = async (id: string, status: 'approved' | 'rejected') => {
+        try {
+            await updateDoc(doc(db, "events", id), {
+                status: status,
+                updatedAt: new Date(),
+                reviewedBy: user?.uid || 'admin'
+            });
+            alert(`Etkinlik ${status === 'approved' ? 'onaylandı' : 'reddedildi'}.`);
+            fetchEvents();
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Hata oluştu.");
         }
     };
 
@@ -507,6 +566,14 @@ export default function AdminPage() {
                     icon={<CreditCard className="w-5 h-5" />}
                     label="Sponsorluklar"
                     onClick={() => { setActiveTab('sponsors'); setIsMobileMenuOpen(false); }}
+                />
+                <SidebarButton
+                    active={activeTab === 'courses'}
+                    icon={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>}
+                    label="Kurs Başvuruları"
+                    onClick={() => { setActiveTab('courses'); fetchCourses(); setIsMobileMenuOpen(false); }}
+                    notification={courses.some(c => c.status === 'pending')}
+                    count={courses.filter(c => c.status === 'pending').length}
                 />
                 <SidebarButton
                     active={activeTab === 'discounts'}
@@ -587,6 +654,7 @@ export default function AdminPage() {
                             {activeTab === 'users' && 'Kullanıcı Yönetimi'}
                             {activeTab === 'validator' && 'Bilet Doğrulama'}
                             {activeTab === 'sponsors' && 'Sponsorluk Yönetimi'}
+                            {activeTab === 'courses' && 'Kurs Başvuruları'}
                         </h1>
                     </div>
 
@@ -625,6 +693,82 @@ export default function AdminPage() {
                     {activeTab === 'validator' && <TicketValidator />}
 
                     {activeTab === 'sponsors' && <SponsorManagement />}
+
+                    {activeTab === 'courses' && (
+                        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+                            <div className="p-6 border-b border-border bg-muted/30">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
+                                        Kurs Başvuruları
+                                    </h2>
+                                    <div className="flex gap-2 text-sm">
+                                        <button onClick={() => setCourseFilter('all')} className={`px-3 py-1.5 rounded-lg transition-colors ${courseFilter === 'all' ? 'bg-primary text-black font-medium' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>Tümü ({courses.length})</button>
+                                        <button onClick={() => setCourseFilter('pending')} className={`px-3 py-1.5 rounded-lg transition-colors ${courseFilter === 'pending' ? 'bg-yellow-500 text-black font-medium' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>Bekleyen ({courses.filter(c => c.status === 'pending').length})</button>
+                                        <button onClick={() => setCourseFilter('approved')} className={`px-3 py-1.5 rounded-lg transition-colors ${courseFilter === 'approved' ? 'bg-green-500 text-black font-medium' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>Onaylandı ({courses.filter(c => c.status === 'approved').length})</button>
+                                        <button onClick={() => setCourseFilter('rejected')} className={`px-3 py-1.5 rounded-lg transition-colors ${courseFilter === 'rejected' ? 'bg-red-500 text-white font-medium' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>Reddedildi ({courses.filter(c => c.status === 'rejected').length})</button>
+                                    </div>
+                                </div>
+                            </div>
+                            {courses.filter(c => courseFilter === 'all' || c.status === courseFilter).length === 0 ? (
+                                <div className="p-8 text-center text-muted-foreground">
+                                    {courseFilter === 'all' ? 'Henüz kurs başvurusu yok.' : `${courseFilter === 'pending' ? 'Bekleyen' : courseFilter === 'approved' ? 'Onaylandı' : 'Reddedilen'} kurs yok.`}
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-muted text-muted-foreground font-medium border-b border-border">
+                                            <tr>
+                                                <th className="px-6 py-4">Kurs Adı</th>
+                                                <th className="px-6 py-4">Eğitmen</th>
+                                                <th className="px-6 py-4">Kategori</th>
+                                                <th className="px-6 py-4">Durum</th>
+                                                <th className="px-6 py-4">Başlangıç</th>
+                                                <th className="px-6 py-4 text-right">İşlemler</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border">
+                                            {courses.filter(c => courseFilter === 'all' || c.status === courseFilter).map((course) => (
+                                                <tr key={course.id} className="hover:bg-neutral-50 dark:bg-zinc-900 transition-colors group">
+                                                    <td className="px-6 py-4 font-medium text-foreground max-w-xs truncate">{course.title}</td>
+                                                    <td className="px-6 py-4 text-muted-foreground">{course.instructorName}</td>
+                                                    <td className="px-6 py-4 text-muted-foreground">{course.category}</td>
+                                                    <td className="px-6 py-4">
+                                                        {course.status === 'pending' && <span className="px-2 py-1 bg-yellow-500/10 text-yellow-500 text-xs rounded-full font-medium">Bekliyor</span>}
+                                                        {course.status === 'approved' && <span className="px-2 py-1 bg-green-500/10 text-green-500 text-xs rounded-full font-medium">Onaylandı</span>}
+                                                        {course.status === 'rejected' && <span className="px-2 py-1 bg-red-500/10 text-red-500 text-xs rounded-full font-medium">Reddedildi</span>}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-muted-foreground text-xs">
+                                                        {course.startDate ? new Date(course.startDate.seconds ? course.startDate.seconds * 1000 : course.startDate).toLocaleDateString('tr-TR') : '-'}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <Link href={`/kurslar/${course.id}`} target="_blank" className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-all" aria-label="Görüntüle">
+                                                                <Eye className="w-4 h-4" />
+                                                            </Link>
+                                                            {course.status === 'pending' && (
+                                                                <>
+                                                                    <button onClick={() => handleUpdateCourseStatus(course.id, 'approved')} className="p-2 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-all" aria-label="Onayla">
+                                                                        <Check className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button onClick={() => handleUpdateCourseStatus(course.id, 'rejected')} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all" aria-label="Reddet">
+                                                                        <X className="w-4 h-4" />
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                            <button onClick={() => handleDeleteCourse(course.id)} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all" aria-label="Sil">
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {activeTab === 'archive' && (
                         <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">

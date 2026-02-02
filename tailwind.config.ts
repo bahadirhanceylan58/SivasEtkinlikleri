@@ -99,6 +99,15 @@ const config: Config = {
             },
         },
     },
-    plugins: [],
+    plugins: [
+        function ({ addBase }: any) {
+            addBase({
+                'input::placeholder, textarea::placeholder, select::placeholder': {
+                    color: 'hsl(var(--foreground))',
+                    opacity: '0.6',
+                },
+            });
+        },
+    ],
 };
 export default config;

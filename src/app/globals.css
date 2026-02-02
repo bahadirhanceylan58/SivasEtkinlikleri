@@ -363,3 +363,19 @@ body {
 .fill-forwards {
   animation-fill-mode: forwards;
 }
+
+/* Global Placeholder Styles - Tüm placeholder'ları koyu yap */
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+  color: hsl(var(--foreground)) !important;
+  opacity: 0.7 !important;
+}
+
+/* Dark mode'da da aynı */
+.dark input::placeholder,
+.dark textarea::placeholder,
+.dark select::placeholder {
+  color: hsl(var(--foreground)) !important;
+  opacity: 0.7 !important;
+}

@@ -13,7 +13,7 @@ import SocialShare from '@/components/SocialShare';
 import CountdownTimer from '@/components/CountdownTimer';
 import Modal from '@/components/Modal';
 import SeatSelector from '@/components/SeatSelector';
-import ReviewsSection from '@/components/ReviewsSection';
+import ReviewSection from '@/components/ReviewSection';
 import SponsorSection from '@/components/SponsorSection';
 import { Seat } from '@/types/seating';
 import dynamic from 'next/dynamic';
@@ -236,7 +236,7 @@ export default function EventDetailPage() {
                         {/* Değerlendirmeler Section */}
                         {/* OPACITY-0 KALDIRILDI */}
                         <div>
-                            <ReviewsSection eventId={event.id} />
+                            <ReviewSection eventId={event.id} />
                         </div>
                     </div>
 
