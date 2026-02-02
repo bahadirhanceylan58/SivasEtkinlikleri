@@ -45,26 +45,8 @@ export default function EventDetailPage() {
             return;
         }
 
-        // Free events - just navigate to confirmation
-        if (event.salesType === 'free') {
-            router.push(`/odeme/${event.id}?type=free`);
-            return;
-        }
-
-        // Reservation - navigate to reservation page
-        if (event.salesType === 'reservation') {
-            if (event.hasSeating) {
-                sessionStorage.setItem('selectedSeats', JSON.stringify(selectedSeats));
-            }
-            router.push(`/odeme/${event.id}?type=reservation&quantity=${ticketQuantity}`);
-            return;
-        }
-
-        // Internal sales (default)
-        if (event.hasSeating) {
-            sessionStorage.setItem('selectedSeats', JSON.stringify(selectedSeats));
-        }
-        router.push(`/odeme/${event.id}?quantity=${ticketQuantity}`);
+        // System disabled
+        alert("Ödeme ve rezervasyon sistemi geçici olarak devre dışıdır.");
     };
 
     useEffect(() => {
