@@ -1,15 +1,13 @@
 "use client";
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useState, useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, Ticket, Shield, LogOut, Info, Search, Home, Phone, User, Calendar, Users, MapPin, Mail, Sun, Moon, BookOpen } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { X, Ticket, Shield, LogOut, Info, Search, Home, User, Calendar, Users, MapPin, Mail, Sun, Moon, BookOpen } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
-
 
 export default function Navbar() {
     const { user, loading, isAdmin } = useAuth();
@@ -93,19 +91,12 @@ export default function Navbar() {
             : 'bg-background/80 backdrop-blur-md'
             }`}>
             <div className="container mx-auto max-w-7xl px-4 sm:px-8 h-20 flex items-center justify-between">
-                <Link href="/" className="flex items-center gap-3 hover:scale-105 transition-transform group">
-                    <div className="relative w-10 h-10 overflow-hidden rounded-xl shadow-lg border border-white/10">
-                        <Image
-                            src="/icon-192x192.png"
-                            alt="Sivas Etkinlikleri Logo"
-                            fill
-                            className="object-cover"
-                        />
-                    </div>
-                    <div className="flex flex-col leading-none">
-                        <span className="text-xl font-heading font-bold text-foreground">Sivas</span>
-                        <span className="text-sm font-medium bg-gradient-to-r from-primary to-amber-500 bg-clip-text text-transparent">Etkinlikleri</span>
-                    </div>
+
+                {/* --- LOGO (YAZI VERSİYONU) --- */}
+                <Link href="/" className="flex items-center gap-2 hover:scale-105 transition-transform">
+                    <span className="text-2xl font-bold tracking-tighter text-foreground">
+                        Sivas <span className="text-primary">Etkinlikleri</span>
+                    </span>
                 </Link>
 
                 {/* Desktop Navigation */}
@@ -278,7 +269,7 @@ export default function Navbar() {
                 </button>
             </div>
 
-            {/* Mobile Menu Overlay - Z-INDEX GÜNCELLENDİ: z-[60] */}
+            {/* Mobile Menu Overlay */}
             {isMobileMenuOpen && (
                 <>
                     {/* Backdrop */}
@@ -287,23 +278,18 @@ export default function Navbar() {
                         onClick={closeMobileMenu}
                     ></div>
 
-                    {/* Drawer - Z-INDEX GÜNCELLENDİ: z-[70] */}
+                    {/* Drawer */}
                     <div className={`fixed top-0 right-0 bottom-0 w-80 bg-card border-l border-border z-[70] md:hidden shadow-2xl transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
                         }`}>
                         <div className="h-full overflow-y-auto flex flex-col">
                             {/* Header */}
                             <div className="p-6 border-b border-border bg-muted/30">
                                 <div className="flex items-center justify-between mb-6">
+                                    {/* --- MOBİL MENÜ LOGO (YAZI) --- */}
                                     <div className="flex items-center gap-2">
-                                        <div className="relative w-8 h-8 overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-800">
-                                            <Image
-                                                src="/icon-192x192.png"
-                                                alt="Logo"
-                                                fill
-                                                className="object-cover"
-                                            />
-                                        </div>
-                                        <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-amber-500 bg-clip-text text-transparent">Sivas Etkinlikleri</h2>
+                                        <span className="text-xl font-bold tracking-tighter text-foreground">
+                                            Sivas <span className="text-primary">Etkinlikleri</span>
+                                        </span>
                                     </div>
                                     <button
                                         onClick={closeMobileMenu}
