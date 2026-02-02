@@ -2,6 +2,7 @@
 
 import { Instagram, Facebook, Twitter, Linkedin, Youtube, Music, Apple, Smartphone, CreditCard } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import NewsletterSubscribe from './NewsletterSubscribe';
 
 export default function Footer() {
@@ -25,8 +26,13 @@ export default function Footer() {
                 <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2 group">
-                        <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-black font-bold text-xl group-hover:scale-110 transition-transform">
-                            %
+                        <div className="relative w-10 h-10 overflow-hidden rounded-full border border-neutral-800 group-hover:scale-110 transition-transform">
+                            <Image
+                                src="/icon-192x192.png"
+                                alt="Sivas Etkinlikleri"
+                                fill
+                                className="object-cover"
+                            />
                         </div>
                         <span className="text-2xl font-bold text-primary tracking-tight">sivasetkinlikleri</span>
                     </Link>

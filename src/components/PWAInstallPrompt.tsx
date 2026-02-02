@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Download, Share } from 'lucide-react';
+import Image from 'next/image';
 
 export default function PWAInstallPrompt() {
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -71,8 +72,13 @@ export default function PWAInstallPrompt() {
             </button>
 
             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-black font-bold text-xl shadow-lg shadow-primary/20">
-                    S
+                <div className="relative w-12 h-12 rounded-xl overflow-hidden shadow-lg shadow-primary/20 border border-white/10">
+                    <Image
+                        src="/icon-192x192.png"
+                        alt="Sivas Etkinlikleri"
+                        fill
+                        className="object-cover"
+                    />
                 </div>
                 <div className="flex-1">
                     <h3 className="font-bold text-foreground">Uygulamayı Yükle</h3>
