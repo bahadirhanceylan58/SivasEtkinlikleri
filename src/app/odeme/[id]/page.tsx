@@ -312,6 +312,7 @@ export default function PaymentPage() {
                 console.error('Email gönderim hatası:', emailError);
                 // Email hatası işlemi engellemez, sadece log'lanır
             }
+            */
 
             const successMessage = paymentMethod === 'card'
                 ? `Ödeme başarılı! ${discountAmount > 0 ? `${discountAmount}₺ indirim uygulandı. ` : ''}Biletiniz oluşturuldu.`
@@ -368,273 +369,273 @@ export default function PaymentPage() {
             <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Sol: Rezervasyon Formu */}
                 <div className="bg-card p-6 rounded-2xl border border-border h-fit">
-            {/* Ödeme Yöntemi Seç */}
-            <div className="mb-6">
-                <h3 className="text-sm font-medium text-foreground mb-3">Ödeme Yöntemi</h3>
-                <div className="grid grid-cols-2 gap-3">
-                    <button
-                        type="button"
-                        onClick={() => setPaymentMethod('door')}
-                        className={`p-4 rounded-xl border-2 transition-all ${paymentMethod === 'door'
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border hover:border-primary/50 text-muted-foreground'
-                            }`}
-                    >
-                        <Ticket className="w-6 h-6 mx-auto mb-2" />
-                        <span className="text-sm font-medium">Kapıda Ödeme</span>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setPaymentMethod('card')}
-                        className={`p-4 rounded-xl border-2 transition-all ${paymentMethod === 'card'
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border hover:border-primary/50 text-muted-foreground'
-                            }`}
-                    >
-                        <CreditCard className="w-6 h-6 mx-auto mb-2" />
-                        <span className="text-sm font-medium">Kredi/Banka Kartı</span>
-                    </button>
-                </div>
-            </div>
-
-            {paymentMethod === 'door' && (
-                <div className="mb-6 bg-primary/10 border border-primary/20 p-4 rounded-xl">
-                    <h2 className="text-primary font-bold flex items-center gap-2">
-                        <Ticket size={20} /> Kapıda Ödeme / Rezervasyon
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-2">
-                        Bilgilerinizi girerek yerinizi ayırtabilir, ödemeyi etkinlik girişinde yapabilirsiniz.
-                    </p>
-                </div>
-            )}
-
-            {paymentMethod === 'card' && (
-                <div className="mb-6 bg-green-500/10 border border-green-500/20 p-4 rounded-xl">
-                    <h2 className="text-green-500 font-bold flex items-center gap-2">
-                        <Lock size={20} /> Güvenli Ödeme
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-2">
-                        Kart bilgileriniz güvenli bir şekilde işlenir. Test amaçlı mock ödeme sistemi aktif.
-                    </p>
-                </div>
-            )}
-            <div className="space-y-4">
-                <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Ad Soyad</label>
-                    <div className="relative">
-                        <User className="absolute left-3 top-3 text-muted-foreground" size={18} />
-                        <input
-                            type="text"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            placeholder="Etkinliğe katılacak kişi"
-                            className="w-full bg-muted/50 border border-border rounded-lg p-3 pl-10 text-foreground focus:border-primary outline-none transition-colors"
-                        />
-                    </div>
-                </div>
-                <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Telefon Numarası</label>
-                    <div className="relative">
-                        <Phone className="absolute left-3 top-3 text-muted-foreground" size={18} />
-                        <input
-                            type="tel"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            placeholder="05XX XXX XX XX"
-                            className="w-full bg-muted/50 border border-border rounded-lg p-3 pl-10 text-foreground focus:border-primary outline-none transition-colors"
-                        />
-                    </div>
-                </div>
-
-                {/* Kart Bilgileri (Sadece kart ödemesi seçiliyse göster) */}
-                {paymentMethod === 'card' && (
-                    <>
-                        <div className="border-t border-border pt-4 mt-4">
-                            <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-                                <CreditCard size={16} /> Kart Bilgileri
-                            </h3>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-muted-foreground mb-1">Kart Üzerindeki İsim</label>
-                            <input
-                                type="text"
-                                value={cardHolder}
-                                onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
-                                placeholder="AD SOYAD"
-                                className="w-full bg-muted/50 border border-border rounded-lg p-3 text-foreground focus:border-primary outline-none transition-colors"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-muted-foreground mb-1">Kart Numarası</label>
-                            <input
-                                type="text"
-                                value={cardNumber}
-                                onChange={(e) => {
-                                    const value = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
-                                    const formatted = value.match(/.{1,4}/g)?.join(' ') || value;
-                                    setCardNumber(formatted);
-                                }}
-                                placeholder="1234 5678 9012 3456"
-                                maxLength={19}
-                                className="w-full bg-muted/50 border border-border rounded-lg p-3 text-foreground focus:border-primary outline-none transition-colors font-mono"
-                            />
-                        </div>
+                    {/* Ödeme Yöntemi Seç */}
+                    <div className="mb-6">
+                        <h3 className="text-sm font-medium text-foreground mb-3">Ödeme Yöntemi</h3>
                         <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block text-xs text-muted-foreground mb-1">Son Kullanma</label>
-                                <input
-                                    type="text"
-                                    value={cardExpiry}
-                                    onChange={(e) => {
-                                        let value = e.target.value.replace(/\D/g, '');
-                                        if (value.length >= 2) {
-                                            value = value.slice(0, 2) + '/' + value.slice(2, 4);
-                                        }
-                                        setCardExpiry(value);
-                                    }}
-                                    placeholder="AA/YY"
-                                    maxLength={5}
-                                    className="w-full bg-muted/50 border border-border rounded-lg p-3 text-foreground focus:border-primary outline-none transition-colors font-mono"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-muted-foreground mb-1">CVV</label>
-                                <input
-                                    type="text"
-                                    value={cardCvv}
-                                    onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                                    placeholder="123"
-                                    maxLength={4}
-                                    className="w-full bg-muted/50 border border-border rounded-lg p-3 text-foreground focus:border-primary outline-none transition-colors font-mono"
-                                />
-                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setPaymentMethod('door')}
+                                className={`p-4 rounded-xl border-2 transition-all ${paymentMethod === 'door'
+                                    ? 'border-primary bg-primary/10 text-primary'
+                                    : 'border-border hover:border-primary/50 text-muted-foreground'
+                                    }`}
+                            >
+                                <Ticket className="w-6 h-6 mx-auto mb-2" />
+                                <span className="text-sm font-medium">Kapıda Ödeme</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPaymentMethod('card')}
+                                className={`p-4 rounded-xl border-2 transition-all ${paymentMethod === 'card'
+                                    ? 'border-primary bg-primary/10 text-primary'
+                                    : 'border-border hover:border-primary/50 text-muted-foreground'
+                                    }`}
+                            >
+                                <CreditCard className="w-6 h-6 mx-auto mb-2" />
+                                <span className="text-sm font-medium">Kredi/Banka Kartı</span>
+                            </button>
                         </div>
-                        <div className="bg-muted/30 border border-border rounded-lg p-3 text-xs text-muted-foreground">
-                            <p className="flex items-center gap-2">
-                                <Lock size={14} />
-                                Kart bilgileriniz şifrelenir ve güvenli bir şekilde işlenir.
+                    </div>
+
+                    {paymentMethod === 'door' && (
+                        <div className="mb-6 bg-primary/10 border border-primary/20 p-4 rounded-xl">
+                            <h2 className="text-primary font-bold flex items-center gap-2">
+                                <Ticket size={20} /> Kapıda Ödeme / Rezervasyon
+                            </h2>
+                            <p className="text-sm text-muted-foreground mt-2">
+                                Bilgilerinizi girerek yerinizi ayırtabilir, ödemeyi etkinlik girişinde yapabilirsiniz.
                             </p>
-                        </div>
-                    </>
-                )}
-            </div>
-        </div>
-        {/* Sağ: Özet */ }
-        <div className="space-y-6">
-            <div className="bg-card p-6 rounded-2xl border border-border">
-                <div className="flex gap-4 mb-4">
-                    <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                        <Image src={event.imageUrl || '/placeholder.jpg'} alt="event" fill className="object-cover" unoptimized />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-foreground line-clamp-2">{event.title}</h3>
-                        <p className="text-sm text-muted-foreground mt-1">{event.location}</p>
-                    </div>
-                </div>
-
-                <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg mb-4">
-                    <span className="text-muted-foreground">Bilet Adeti</span>
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => setTicketCount(Math.max(1, ticketCount - 1))} className="w-8 h-8 bg-muted rounded-full flex items-center justify-center hover:bg-primary hover:text-black transition-colors font-bold text-foreground">-</button>
-                        <span className="font-bold text-foreground w-8 text-center text-xl">{ticketCount}</span>
-                        <button onClick={() => setTicketCount(ticketCount + 1)} className="w-8 h-8 bg-muted rounded-full flex items-center justify-center hover:bg-primary hover:text-black transition-colors font-bold text-foreground">+</button>
-                    </div>
-                </div>
-
-                {/* İndirim Kodu Bölümü */}
-                {user && event && (
-                    <div className="mb-4">
-                        <DiscountCodeInput
-                            userId={user.uid}
-                            eventId={event.id}
-                            eventCategory={event.category || ''}
-                            purchaseAmount={ticketCount * ticketPrice}
-                            onDiscountApplied={(result, code) => {
-                                setAppliedDiscount(result);
-                                setAppliedDiscountCode(code);
-                            }}
-                            onDiscountRemoved={() => {
-                                setAppliedDiscount(null);
-                                setAppliedDiscountCode(null);
-                            }}
-                            disabled={processing}
-                        />
-                    </div>
-                )}
-
-                {/* Fiyat Özeti */}
-                <div className="border-t border-border pt-4 space-y-3 mb-6">
-                    {/* Ara Toplam */}
-                    <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Ara Toplam ({ticketCount} bilet)</span>
-                        <span className="text-foreground font-medium">{ticketCount * ticketPrice} ₺</span>
-                    </div>
-
-                    {/* Grup İndirimi */}
-                    {(() => {
-                        const groupDiscount = calculateGroupDiscount(ticketPrice, ticketCount, groupTiers);
-                        const nextTierInfo = getNextTierInfo(ticketCount, groupTiers);
-
-                        return groupDiscount.appliedTier ? (
-                            <>
-                                <div className="flex justify-between items-center text-sm animate-fadeIn">
-                                    <span className="text-blue-500 flex items-center gap-1">
-                                        <UsersIcon className="w-4 h-4" />
-                                        Grup İndirimi (%{groupDiscount.discountPercentage})
-                                    </span>
-                                    <span className="text-blue-500 font-medium">-{groupDiscount.discount} ₺</span>
-                                </div>
-                                {nextTierInfo.hasNextTier && (
-                                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 text-xs text-blue-400">
-                                        💡 {nextTierInfo.ticketsNeeded} bilet daha al, %{nextTierInfo.nextTier!.discount * 100} indirim kazan!
-                                    </div>
-                                )}
-                            </>
-                        ) : null;
-                    })()}
-
-                    {/* İndirim Kodu */}
-                    {appliedDiscount?.valid && appliedDiscount.discountAmount && appliedDiscount.discountAmount > 0 && (
-                        <div className="flex justify-between items-center text-sm animate-fadeIn">
-                            <span className="text-green-500 flex items-center gap-1">
-                                <TrendingDown className="w-4 h-4" />
-                                İndirim Kodu ({appliedDiscountCode})
-                            </span>
-                            <span className="text-green-500 font-medium">-{appliedDiscount.discountAmount} ₺</span>
                         </div>
                     )}
 
-                    {/* Toplam */}
-                    <div className="border-t border-border pt-3 flex justify-between items-center">
-                        <div className="flex flex-col">
-                            <span className="text-lg font-bold text-muted-foreground">Kapıda Ödenecek</span>
-                            <span className="text-xs text-muted-foreground">(Nakit veya Kredi Kartı)</span>
+                    {paymentMethod === 'card' && (
+                        <div className="mb-6 bg-green-500/10 border border-green-500/20 p-4 rounded-xl">
+                            <h2 className="text-green-500 font-bold flex items-center gap-2">
+                                <Lock size={20} /> Güvenli Ödeme
+                            </h2>
+                            <p className="text-sm text-muted-foreground mt-2">
+                                Kart bilgileriniz güvenli bir şekilde işlenir. Test amaçlı mock ödeme sistemi aktif.
+                            </p>
                         </div>
-                        <span className="text-2xl font-bold text-primary">
-                            {(() => {
-                                const groupDiscount = calculateGroupDiscount(ticketPrice, ticketCount, groupTiers);
-                                let total = groupDiscount.finalPrice;
+                    )}
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs text-muted-foreground mb-1">Ad Soyad</label>
+                            <div className="relative">
+                                <User className="absolute left-3 top-3 text-muted-foreground" size={18} />
+                                <input
+                                    type="text"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    placeholder="Etkinliğe katılacak kişi"
+                                    className="w-full bg-muted/50 border border-border rounded-lg p-3 pl-10 text-foreground focus:border-primary outline-none transition-colors"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-muted-foreground mb-1">Telefon Numarası</label>
+                            <div className="relative">
+                                <Phone className="absolute left-3 top-3 text-muted-foreground" size={18} />
+                                <input
+                                    type="tel"
+                                    value={phoneNumber}
+                                    onChange={(e) => setPhoneNumber(e.target.value)}
+                                    placeholder="05XX XXX XX XX"
+                                    className="w-full bg-muted/50 border border-border rounded-lg p-3 pl-10 text-foreground focus:border-primary outline-none transition-colors"
+                                />
+                            </div>
+                        </div>
 
-                                // İndirim kodu varsa uygula
-                                if (appliedDiscount?.finalPrice !== undefined) {
-                                    total = appliedDiscount.finalPrice;
-                                }
-
-                                return Math.round(total);
-                            })()} ₺
-                        </span>
+                        {/* Kart Bilgileri (Sadece kart ödemesi seçiliyse göster) */}
+                        {paymentMethod === 'card' && (
+                            <>
+                                <div className="border-t border-border pt-4 mt-4">
+                                    <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                                        <CreditCard size={16} /> Kart Bilgileri
+                                    </h3>
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-muted-foreground mb-1">Kart Üzerindeki İsim</label>
+                                    <input
+                                        type="text"
+                                        value={cardHolder}
+                                        onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
+                                        placeholder="AD SOYAD"
+                                        className="w-full bg-muted/50 border border-border rounded-lg p-3 text-foreground focus:border-primary outline-none transition-colors"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-muted-foreground mb-1">Kart Numarası</label>
+                                    <input
+                                        type="text"
+                                        value={cardNumber}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
+                                            const formatted = value.match(/.{1,4}/g)?.join(' ') || value;
+                                            setCardNumber(formatted);
+                                        }}
+                                        placeholder="1234 5678 9012 3456"
+                                        maxLength={19}
+                                        className="w-full bg-muted/50 border border-border rounded-lg p-3 text-foreground focus:border-primary outline-none transition-colors font-mono"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs text-muted-foreground mb-1">Son Kullanma</label>
+                                        <input
+                                            type="text"
+                                            value={cardExpiry}
+                                            onChange={(e) => {
+                                                let value = e.target.value.replace(/\D/g, '');
+                                                if (value.length >= 2) {
+                                                    value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                                                }
+                                                setCardExpiry(value);
+                                            }}
+                                            placeholder="AA/YY"
+                                            maxLength={5}
+                                            className="w-full bg-muted/50 border border-border rounded-lg p-3 text-foreground focus:border-primary outline-none transition-colors font-mono"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-muted-foreground mb-1">CVV</label>
+                                        <input
+                                            type="text"
+                                            value={cardCvv}
+                                            onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                            placeholder="123"
+                                            maxLength={4}
+                                            className="w-full bg-muted/50 border border-border rounded-lg p-3 text-foreground focus:border-primary outline-none transition-colors font-mono"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="bg-muted/30 border border-border rounded-lg p-3 text-xs text-muted-foreground">
+                                    <p className="flex items-center gap-2">
+                                        <Lock size={14} />
+                                        Kart bilgileriniz şifrelenir ve güvenli bir şekilde işlenir.
+                                    </p>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
+                {/* Sağ: Özet */}
+                <div className="space-y-6">
+                    <div className="bg-card p-6 rounded-2xl border border-border">
+                        <div className="flex gap-4 mb-4">
+                            <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+                                <Image src={event.imageUrl || '/placeholder.jpg'} alt="event" fill className="object-cover" unoptimized />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-foreground line-clamp-2">{event.title}</h3>
+                                <p className="text-sm text-muted-foreground mt-1">{event.location}</p>
+                            </div>
+                        </div>
 
-                <button
-                    onClick={handleReservation}
-                    disabled={processing}
-                    className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all disabled:opacity-50 transform hover:scale-[1.02] active:scale-[0.98]"
-                >
-                    {processing ? 'İşleniyor...' : 'Rezervasyon Oluştur'}
-                </button>
-            </div>
-        </div>
+                        <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg mb-4">
+                            <span className="text-muted-foreground">Bilet Adeti</span>
+                            <div className="flex items-center gap-3">
+                                <button onClick={() => setTicketCount(Math.max(1, ticketCount - 1))} className="w-8 h-8 bg-muted rounded-full flex items-center justify-center hover:bg-primary hover:text-black transition-colors font-bold text-foreground">-</button>
+                                <span className="font-bold text-foreground w-8 text-center text-xl">{ticketCount}</span>
+                                <button onClick={() => setTicketCount(ticketCount + 1)} className="w-8 h-8 bg-muted rounded-full flex items-center justify-center hover:bg-primary hover:text-black transition-colors font-bold text-foreground">+</button>
+                            </div>
+                        </div>
+
+                        {/* İndirim Kodu Bölümü */}
+                        {user && event && (
+                            <div className="mb-4">
+                                <DiscountCodeInput
+                                    userId={user.uid}
+                                    eventId={event.id}
+                                    eventCategory={event.category || ''}
+                                    purchaseAmount={ticketCount * ticketPrice}
+                                    onDiscountApplied={(result, code) => {
+                                        setAppliedDiscount(result);
+                                        setAppliedDiscountCode(code);
+                                    }}
+                                    onDiscountRemoved={() => {
+                                        setAppliedDiscount(null);
+                                        setAppliedDiscountCode(null);
+                                    }}
+                                    disabled={processing}
+                                />
+                            </div>
+                        )}
+
+                        {/* Fiyat Özeti */}
+                        <div className="border-t border-border pt-4 space-y-3 mb-6">
+                            {/* Ara Toplam */}
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Ara Toplam ({ticketCount} bilet)</span>
+                                <span className="text-foreground font-medium">{ticketCount * ticketPrice} ₺</span>
+                            </div>
+
+                            {/* Grup İndirimi */}
+                            {(() => {
+                                const groupDiscount = calculateGroupDiscount(ticketPrice, ticketCount, groupTiers);
+                                const nextTierInfo = getNextTierInfo(ticketCount, groupTiers);
+
+                                return groupDiscount.appliedTier ? (
+                                    <>
+                                        <div className="flex justify-between items-center text-sm animate-fadeIn">
+                                            <span className="text-blue-500 flex items-center gap-1">
+                                                <UsersIcon className="w-4 h-4" />
+                                                Grup İndirimi (%{groupDiscount.discountPercentage})
+                                            </span>
+                                            <span className="text-blue-500 font-medium">-{groupDiscount.discount} ₺</span>
+                                        </div>
+                                        {nextTierInfo.hasNextTier && (
+                                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 text-xs text-blue-400">
+                                                💡 {nextTierInfo.ticketsNeeded} bilet daha al, %{nextTierInfo.nextTier!.discount * 100} indirim kazan!
+                                            </div>
+                                        )}
+                                    </>
+                                ) : null;
+                            })()}
+
+                            {/* İndirim Kodu */}
+                            {appliedDiscount?.valid && appliedDiscount.discountAmount && appliedDiscount.discountAmount > 0 && (
+                                <div className="flex justify-between items-center text-sm animate-fadeIn">
+                                    <span className="text-green-500 flex items-center gap-1">
+                                        <TrendingDown className="w-4 h-4" />
+                                        İndirim Kodu ({appliedDiscountCode})
+                                    </span>
+                                    <span className="text-green-500 font-medium">-{appliedDiscount.discountAmount} ₺</span>
+                                </div>
+                            )}
+
+                            {/* Toplam */}
+                            <div className="border-t border-border pt-3 flex justify-between items-center">
+                                <div className="flex flex-col">
+                                    <span className="text-lg font-bold text-muted-foreground">Kapıda Ödenecek</span>
+                                    <span className="text-xs text-muted-foreground">(Nakit veya Kredi Kartı)</span>
+                                </div>
+                                <span className="text-2xl font-bold text-primary">
+                                    {(() => {
+                                        const groupDiscount = calculateGroupDiscount(ticketPrice, ticketCount, groupTiers);
+                                        let total = groupDiscount.finalPrice;
+
+                                        // İndirim kodu varsa uygula
+                                        if (appliedDiscount?.finalPrice !== undefined) {
+                                            total = appliedDiscount.finalPrice;
+                                        }
+
+                                        return Math.round(total);
+                                    })()} ₺
+                                </span>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={handleReservation}
+                            disabled={processing}
+                            className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all disabled:opacity-50 transform hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            {processing ? 'İşleniyor...' : 'Rezervasyon Oluştur'}
+                        </button>
+                    </div>
+                </div>
             </div >
         </div >
     );
