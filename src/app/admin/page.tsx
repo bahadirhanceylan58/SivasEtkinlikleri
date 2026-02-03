@@ -98,6 +98,10 @@ export default function AdminPage() {
 
     // Seating System States
     const [hasSeating, setHasSeating] = useState(false);
+
+    // Approval System States
+    const [eventFilter, setEventFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+    const [clubFilter, setClubFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
     const [seatingConfig, setSeatingConfig] = useState<SeatingConfig | null>(null);
 
     // Management State
@@ -142,8 +146,7 @@ export default function AdminPage() {
     const [courses, setCourses] = useState<any[]>([]);
     const [courseFilter, setCourseFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
 
-    // Event Filter State
-    const [eventFilter, setEventFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+
 
     // Flatten Categories
     const allSubCategories = CATEGORIES.flatMap(cat =>
@@ -360,6 +363,38 @@ export default function AdminPage() {
         }
     };
 
+    const handleUpdateEventStatus = async (id: string, status: 'approved' | 'rejected') => {
+        try {
+            await updateDoc(doc(db, "events", id), {
+                status: status,
+                updatedAt: new Date()
+            });
+            alert(`Etkinlik ${status === 'approved' ? 'onaylandı' : 'reddedildi'}.`);
+            fetchEvents();
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Hata oluştu.");
+        }
+    };
+
+    const handleUpdateClubStatus = async (id: string, status: 'approved' | 'rejected') => {
+        try {
+            await updateDoc(doc(db, "clubs", id), {
+                status: status,
+                updatedAt: new Date()
+            });
+            alert(`Kulüp ${status === 'approved' ? 'onaylandı' : 'reddedildi'}.`);
+            fetchClubs();
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Hata oluştu.");
+        }
+    };
+
+
+
+
+
     const handleDashboardNavigate = (tab: string, options?: any) => {
         setActiveTab(tab as any);
         setIsMobileMenuOpen(false); // Mobilde dashboard içinden navigasyon yapılırsa menüyü kapat
@@ -473,14 +508,16 @@ export default function AdminPage() {
                 externalUrl: salesType === 'external' ? externalUrl : null,
                 hasSeating,
                 seatingConfig: hasSeating ? seatingConfig : null,
-                status: editingId ? undefined : 'pending', // Yeni etkinlikler pending olarak başlar
                 updatedAt: new Date()
             };
 
             if (editingId) {
+                // remove undefined fields
+                Object.keys(eventData).forEach(key => eventData[key] === undefined && delete eventData[key]);
                 await updateDoc(doc(db, "events", editingId), eventData);
                 alert('Etkinlik güncellendi!');
             } else {
+                eventData.status = 'pending'; // Yeni etkinlikler pending olarak başlar
                 const docRef = await addDoc(collection(db, "events"), { ...eventData, createdAt: new Date() });
 
                 // Generate seats if seating system is enabled
@@ -505,20 +542,7 @@ export default function AdminPage() {
         }
     };
 
-    const handleUpdateEventStatus = async (id: string, status: 'approved' | 'rejected') => {
-        try {
-            await updateDoc(doc(db, "events", id), {
-                status: status,
-                updatedAt: new Date(),
-                reviewedBy: user?.uid || 'admin'
-            });
-            alert(`Etkinlik ${status === 'approved' ? 'onaylandı' : 'reddedildi'}.`);
-            fetchEvents();
-        } catch (error) {
-            console.error("Error:", error);
-            alert("Hata oluştu.");
-        }
-    };
+
 
     const handleEditEvent = (event: Event) => {
         setEditingId(event.id); setTitle(event.title); setDescription(event.description || ''); setSubCategory(event.subCategory || allSubCategories[0].name);
@@ -724,7 +748,11 @@ export default function AdminPage() {
                 </header>
 
                 <div className="p-4 sm:p-8 space-y-8">
-                    {activeTab === 'dashboard' && <AdminDashboard onNavigate={handleDashboardNavigate} />}
+                    {activeTab === 'dashboard' && (
+                        <div>
+                            <AdminDashboard onNavigate={handleDashboardNavigate} />
+                        </div>
+                    )}
 
                     {activeTab === 'users' && <UserManagement />}
 
@@ -874,20 +902,50 @@ export default function AdminPage() {
                                             <th className="px-6 py-4">Etkinlik Adı</th>
                                             <th className="px-6 py-4">Tarih</th>
                                             <th className="px-6 py-4">Kategori</th>
+                                            <th className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    Durum
+                                                    <select
+                                                        value={eventFilter}
+                                                        onChange={(e) => setEventFilter(e.target.value as any)}
+                                                        className="bg-transparent border border-border rounded px-1 py-0.5 text-xs focus:outline-none"
+                                                    >
+                                                        <option value="all" className="bg-neutral-900">Tümü</option>
+                                                        <option value="pending" className="bg-neutral-900">Bekleyen</option>
+                                                        <option value="approved" className="bg-neutral-900">Onaylı</option>
+                                                        <option value="rejected" className="bg-neutral-900">Red</option>
+                                                    </select>
+                                                </div>
+                                            </th>
                                             <th className="px-6 py-4 text-right">İşlemler</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
-                                        {events.map((event) => (
+                                        {events.filter(e => eventFilter === 'all' || e.status === eventFilter).map((event) => (
                                             <tr key={event.id} className="hover:bg-neutral-50 dark:bg-zinc-900 transition-colors group">
                                                 <td className="px-6 py-4 font-medium text-foreground">{event.title}</td>
                                                 <td className="px-6 py-4 text-muted-foreground">{event.date?.toString().replace('T', ' ')}</td>
                                                 <td className="px-6 py-4 text-muted-foreground">{event.subCategory}</td>
+                                                <td className="px-6 py-4">
+                                                    {event.status === 'pending' && <span className="px-2 py-1 bg-yellow-500/10 text-yellow-500 text-xs rounded-full font-medium">Bekliyor</span>}
+                                                    {event.status === 'approved' && <span className="px-2 py-1 bg-green-500/10 text-green-500 text-xs rounded-full font-medium">Onaylı</span>}
+                                                    {event.status === 'rejected' && <span className="px-2 py-1 bg-red-500/10 text-red-500 text-xs rounded-full font-medium">Red</span>}
+                                                </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <Link href={`/etkinlik/${event.id}`} target="_blank" className="p-2 bg-muted text-muted-foreground hover:bg-foreground hover:text-background rounded-lg transition-all" aria-label="Görüntüle">
                                                             <Eye className="w-4 h-4" />
                                                         </Link>
+                                                        {event.status === 'pending' && (
+                                                            <>
+                                                                <button onClick={() => handleUpdateEventStatus(event.id, 'approved')} className="p-2 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-all" aria-label="Onayla">
+                                                                    <Check className="w-4 h-4" />
+                                                                </button>
+                                                                <button onClick={() => handleUpdateEventStatus(event.id, 'rejected')} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all" aria-label="Reddet">
+                                                                    <X className="w-4 h-4" />
+                                                                </button>
+                                                            </>
+                                                        )}
                                                         <button onClick={() => fetchParticipants(event.id, event.title)} className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-all" aria-label="Katılımcılar">
                                                             <Users className="w-4 h-4" />
                                                         </button>
@@ -1125,20 +1183,52 @@ export default function AdminPage() {
                                                     <th className="px-6 py-4">Kategori</th>
                                                     <th className="px-6 py-4">Üye Sayısı</th>
                                                     <th className="px-6 py-4">Admin Email</th>
+                                                    <th className="px-6 py-4">
+                                                        <div className="flex items-center gap-2">
+                                                            Durum
+                                                            <select
+                                                                value={clubFilter}
+                                                                onChange={(e) => setClubFilter(e.target.value as any)}
+                                                                className="bg-transparent border border-border rounded px-1 py-0.5 text-xs focus:outline-none"
+                                                            >
+                                                                <option value="all" className="bg-neutral-900">Tümü</option>
+                                                                <option value="pending" className="bg-neutral-900">Bekleyen</option>
+                                                                <option value="approved" className="bg-neutral-900">Onaylı</option>
+                                                                <option value="rejected" className="bg-neutral-900">Red</option>
+                                                            </select>
+                                                        </div>
+                                                    </th>
                                                     <th className="px-6 py-4 text-right">İşlemler</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-border">
-                                                {clubs.map((club) => (
+                                                {clubs.filter(c => clubFilter === 'all' || c.status === clubFilter).map((club) => (
                                                     <tr key={club.id} className="hover:bg-neutral-50 dark:bg-zinc-900 transition-colors">
                                                         <td className="px-6 py-4 font-medium text-foreground">{club.name}</td>
                                                         <td className="px-6 py-4 text-muted-foreground capitalize">{club.category}</td>
                                                         <td className="px-6 py-4 text-muted-foreground">{club.memberCount || 0}</td>
                                                         <td className="px-6 py-4 text-muted-foreground">{club.email}</td>
+                                                        <td className="px-6 py-4">
+                                                            {club.status === 'pending' && <span className="px-2 py-1 bg-yellow-500/10 text-yellow-500 text-xs rounded-full font-medium">Bekliyor</span>}
+                                                            {club.status === 'approved' && <span className="px-2 py-1 bg-green-500/10 text-green-500 text-xs rounded-full font-medium">Onaylı</span>}
+                                                            {club.status === 'rejected' && <span className="px-2 py-1 bg-red-500/10 text-red-500 text-xs rounded-full font-medium">Red</span>}
+                                                        </td>
                                                         <td className="px-6 py-4 text-right">
-                                                            <button onClick={() => handleDeleteClub(club.id)} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all" aria-label="Sil">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
+                                                            <div className="flex justify-end gap-2">
+                                                                {club.status === 'pending' && (
+                                                                    <>
+                                                                        <button onClick={() => handleUpdateClubStatus(club.id, 'approved')} className="p-2 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-all" aria-label="Onayla">
+                                                                            <Check className="w-4 h-4" />
+                                                                        </button>
+                                                                        <button onClick={() => handleUpdateClubStatus(club.id, 'rejected')} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all" aria-label="Reddet">
+                                                                            <X className="w-4 h-4" />
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                                <button onClick={() => handleDeleteClub(club.id)} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all" aria-label="Sil">
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))}

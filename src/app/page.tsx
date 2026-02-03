@@ -47,7 +47,7 @@ function HomeContent() {
     const fetchEvents = async () => {
       try {
         // Fetch events
-        const q = query(collection(db, "events"), orderBy("createdAt", "desc"));
+        const q = query(collection(db, "events"), where("status", "==", "approved"), orderBy("createdAt", "desc"));
         const querySnapshot = await getDocs(q);
         const firebaseEvents = querySnapshot.docs.map((doc) => ({
           id: doc.id,

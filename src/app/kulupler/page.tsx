@@ -6,7 +6,7 @@ import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Users, Trophy, Palette, Code, Heart, BookOpen, Music, Cpu, Dumbbell, GraduationCap, Plus, TrendingUp } from "lucide-react";
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 // Category configuration with colors and icons
@@ -76,7 +76,8 @@ export default function ClubsPage() {
     useEffect(() => {
         const fetchClubs = async () => {
             try {
-                const querySnapshot = await getDocs(collection(db, "clubs"));
+                const q = query(collection(db, "clubs"), where("status", "==", "approved"));
+                const querySnapshot = await getDocs(q);
                 const clubsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setClubs(clubsList);
             } catch (error) {

@@ -7,7 +7,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { X, Ticket, Shield, LogOut, Info, Search, Home, Calendar, Users, MapPin, Mail, Sun, Moon, BookOpen, Menu, User, LogIn, UserPlus } from 'lucide-react';
+import { X, Ticket, Shield, LogOut, Info, Search, Home, Calendar, Users, MapPin, Mail, Sun, Moon, BookOpen, Menu, User, LogIn, UserPlus, LayoutDashboard } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 
 export default function Navbar() {
@@ -317,6 +317,10 @@ export default function Navbar() {
                                             <p className="text-sm text-gray-400">{isAdmin ? 'Yönetici' : 'Üye'}</p>
                                         </div>
                                     </div>
+
+                                    <Link href="/panel" className="w-full py-4 bg-gradient-to-r from-primary to-yellow-600 text-black font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg mb-4 mt-4">
+                                        <LayoutDashboard className="w-6 h-6" /> Yönetim Paneli
+                                    </Link>
                                     {isAdmin && (
                                         <Link href="/admin" className="w-full py-3 bg-purple-600/20 text-purple-400 font-bold rounded-xl text-center border border-purple-500/20">
                                             Admin Paneli

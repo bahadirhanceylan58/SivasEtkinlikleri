@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { User, Ticket, FileText, MapPin, LogOut, Settings, Heart, Users, Calendar, Trophy, Activity, Edit2, Mail, Phone, Instagram, Globe, Bell, Lock, Trash2, Download, Share2, X, Camera, Check } from 'lucide-react';
+import { User, Ticket, FileText, MapPin, LogOut, Settings, Heart, Users, Calendar, Trophy, Activity, Edit2, Mail, Phone, Instagram, Globe, Bell, Lock, Trash2, Download, Share2, X, Camera, Check, PlusCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Modal from '@/components/Modal';
@@ -272,6 +272,42 @@ export default function ProfilePage() {
                         {/* Overview Tab */}
                         {activeTab === 'overview' && (
                             <div className="space-y-8">
+                                {/* Hızlı İşlemler */}
+                                <div>
+                                    <h2 className="text-2xl font-bold text-foreground mb-4">Hızlı İşlemler</h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div
+                                            onClick={() => router.push('/etkinlik-olustur')}
+                                            className="cursor-pointer group relative overflow-hidden rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-6 hover:bg-yellow-500/20 transition-all"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-500 text-black">
+                                                    <PlusCircle className="h-6 w-6" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-foreground group-hover:text-yellow-500 transition-colors">Etkinlik Oluştur</h3>
+                                                    <p className="text-sm text-muted-foreground">Toplulukla paylaşmak için etkinlik ekle</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            onClick={() => router.push('/kulup-olustur')}
+                                            className="cursor-pointer group relative overflow-hidden rounded-xl border border-purple-500/20 bg-purple-500/10 p-6 hover:bg-purple-500/20 transition-all"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-600 text-white">
+                                                    <Users className="h-6 w-6" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-foreground group-hover:text-purple-400 transition-colors">Kulüp Kur</h3>
+                                                    <p className="text-sm text-muted-foreground">kendi topluluğunu oluştur ve yönet</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div>
                                     <h2 className="text-2xl font-bold text-foreground mb-4">Son Aktiviteler</h2>
                                     {tickets.length === 0 && joinedClubs.length === 0 ? (
