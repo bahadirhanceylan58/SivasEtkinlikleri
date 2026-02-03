@@ -32,6 +32,7 @@ interface EventDetail {
     price?: string;
     category: string;
     organizer?: string;
+    hasSeating?: boolean;
 }
 
 export default function EventDetailClient() {
@@ -217,9 +218,12 @@ export default function EventDetailClient() {
                                 </div>
                             </div>
 
-                            <Link href={`/odeme/${event.id}`} className="block w-full">
+                            <Link
+                                href={event.hasSeating ? `/etkinlik/${event.id}/koltuk-sec` : `/odeme/${event.id}`}
+                                className="block w-full"
+                            >
                                 <button className="w-full py-3.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-glow mb-4">
-                                    Bilet Al / Rezervasyon
+                                    {event.hasSeating ? 'Koltuk Seç / Bilet Al' : 'Bilet Al / Rezervasyon'}
                                 </button>
                             </Link>
 

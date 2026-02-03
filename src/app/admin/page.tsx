@@ -653,11 +653,21 @@ export default function AdminPage() {
             {/* Mobile Sidebar (Drawer) */}
             {isMobileMenuOpen && (
                 <div
-                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden"
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[90] lg:hidden"
                     onClick={() => setIsMobileMenuOpen(false)}
                 />
             )}
-            <aside className={`fixed inset-y-0 left-0 w-64 bg-background border-r border-border z-50 transform transition-transform duration-300 lg:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+
+            {/* Dedicated Mobile Menu Button (Fixed Position) */}
+            <button
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="lg:hidden fixed top-4 left-4 z-[50] p-3 bg-card border border-border shadow-lg rounded-full text-foreground hover:bg-primary hover:text-black transition-all"
+                aria-label="Menüyü Aç"
+            >
+                <Menu className="w-6 h-6" />
+            </button>
+
+            <aside className={`fixed inset-y-0 left-0 w-64 bg-background border-r border-border z-[100] transform transition-transform duration-300 lg:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <SidebarContent />
             </aside>
 
@@ -668,7 +678,7 @@ export default function AdminPage() {
                         {/* Mobile Menu Button */}
                         <button
                             onClick={() => setIsMobileMenuOpen(true)}
-                            className="lg:hidden p-2 -ml-2 hover:bg-muted rounded-lg text-foreground transition-colors"
+                            className="lg:hidden p-2 hover:bg-muted rounded-lg text-foreground transition-colors mr-2"
                         >
                             <Menu className="w-6 h-6" />
                         </button>
