@@ -24,7 +24,6 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Sivas Etkinlikleri",
   description: "Sivas'taki en güncel etkinlikler, konserler ve topluluklar.",
-  manifest: "/manifest.json",
   icons: {
     icon: "/icon-192x192.png",
     apple: "/icon-192x192.png",

@@ -4,8 +4,7 @@ import type { NextConfig } from "next";
 const withPWA = withPWAInit({
   dest: "public",
   register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === "development",
+  disable: false,
 });
 
 const nextConfig: NextConfig = {
