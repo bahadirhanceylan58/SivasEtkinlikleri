@@ -166,10 +166,15 @@ export default function AdminPage() {
     }, []);
 
     useEffect(() => {
-        if (!loading) {
-            if (!user || !isAdmin) {
-                router.push('/');
-            }
+        if (loading) return;
+
+        if (!user) {
+            router.push('/giris');
+            return;
+        }
+
+        if (!isAdmin) {
+            router.push('/');
         }
     }, [user, loading, isAdmin, router]);
 
@@ -671,6 +676,8 @@ export default function AdminPage() {
     );
 
     if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Yükleniyor...</div>;
+
+    if (!user || !isAdmin) return null;
 
     return (
         <div className="min-h-screen bg-background flex text-foreground font-sans transition-colors duration-300">
