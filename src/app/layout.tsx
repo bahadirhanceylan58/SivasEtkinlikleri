@@ -3,8 +3,7 @@ import { Inter, Playfair_Display, Outfit } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
-
-
+import CookieBanner from "@/components/CookieBanner";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -54,6 +53,7 @@ export default function RootLayout({
         <Providers>
           {children}
           <PWAInstallPrompt />
+          <CookieBanner />
         </Providers>
       </body>
     </html>

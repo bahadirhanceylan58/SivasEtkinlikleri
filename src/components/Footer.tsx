@@ -42,11 +42,11 @@ export default function Footer() {
                     {/* Column 1 */}
                     <div className="space-y-3">
                         <FooterLink href="/hakkimizda">HAKKIMIZDA</FooterLink>
-                        <FooterLink href="#">KULLANICI SÖZLEŞMESİ</FooterLink>
-                        <FooterLink href="#">KULLANIM KOŞULLARI</FooterLink>
-                        <FooterLink href="#">AÇIK RIZA BEYANI</FooterLink>
-                        <FooterLink href="#">ÜYELİK SÖZLEŞMESİ</FooterLink>
-                        <FooterLink href="#">İADE GARANTİSİ HİZMET KOŞULLARI</FooterLink>
+                        <FooterLink href="/sozlesme">KULLANICI SÖZLEŞMESİ</FooterLink>
+                        <FooterLink href="/kullanim-kosullari">KULLANIM KOŞULLARI</FooterLink>
+                        <Link href="/acik-riza-beyani" className="block text-xs font-semibold text-neutral-400 hover:text-yellow-500 transition-colors uppercase tracking-wide">AÇIK RIZA BEYANI</Link>
+                        <Link href="/uyelik-sozlesmesi" className="block text-xs font-semibold text-neutral-400 hover:text-white transition-colors uppercase tracking-wide">ÜYELİK SÖZLEŞMESİ</Link>
+                        <Link href="/iade-garantisi" className="block text-xs font-semibold text-neutral-400 hover:text-white transition-colors uppercase tracking-wide">İADE GARANTİSİ HİZMET KOŞULLARI</Link>
                         <FooterLink href="/iletisim">İLETİŞİM</FooterLink>
                         <FooterLink href="#">BLOG</FooterLink>
                         <Link href="/admin" className="inline-block mt-2 px-3 py-1 bg-neutral-800 text-xs rounded hover:bg-primary hover:text-black transition-colors">
@@ -56,13 +56,13 @@ export default function Footer() {
 
                     {/* Column 2 */}
                     <div className="space-y-3">
-                        <FooterLink href="#">GİZLİLİK</FooterLink>
-                        <FooterLink href="#">ÇEREZ POLİTİKASI</FooterLink>
-                        <FooterLink href="#">KİŞİSEL VERİLERİN KORUNMASI</FooterLink>
-                        <FooterLink href="#">ETKİNLİK PANEL</FooterLink>
-                        <FooterLink href="#">TİCARİ ELEKTRONİK İLETİ BİLGİLENDİRME METNİ</FooterLink>
-                        <FooterLink href="#">SIKÇA SORULAN SORULAR</FooterLink>
-                        <FooterLink href="#">ÇEREZ TERCİHLERİ</FooterLink>
+                        <Link href="/gizlilik" className="block text-xs font-semibold text-neutral-400 hover:text-white transition-colors uppercase tracking-wide">GİZLİLİK</Link>
+                        <Link href="/cerez-politikasi" className="block text-xs font-semibold text-neutral-400 hover:text-white transition-colors uppercase tracking-wide">ÇEREZ POLİTİKASI</Link>
+                        <Link href="/kisisel-verilerin-korunmasi" className="block text-xs font-semibold text-neutral-400 hover:text-white transition-colors uppercase tracking-wide">KİŞİSEL VERİLERİN KORUNMASI</Link>
+                        <Link href="/etkinlik-panel" className="block text-xs font-semibold text-neutral-400 hover:text-white transition-colors uppercase tracking-wide">ETKİNLİK PANEL</Link>
+                        <Link href="/ticari-elektronik-ileti" className="block text-xs font-semibold text-neutral-400 hover:text-white transition-colors uppercase tracking-wide">TİCARİ ELEKTRONİK İLETİ BİLGİLENDİRME METNİ</Link>
+                        <Link href="/sikca-sorulan-sorular" className="block text-xs font-semibold text-neutral-400 hover:text-white transition-colors uppercase tracking-wide">SIKÇA SORULAN SORULAR</Link>
+                        <Link href="/cerez-politikasi" className="block text-xs font-semibold text-neutral-400 hover:text-white transition-colors uppercase tracking-wide">ÇEREZ TERCİHLERİ</Link>
                     </div>
 
                     {/* Column 3 & 4 (Right Side - Apps & Copyright) */}

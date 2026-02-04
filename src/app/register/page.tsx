@@ -339,23 +339,18 @@ export default function RegisterPage() {
           </div>
 
           {/* Terms Checkbox */}
-          <div className="flex items-start gap-3 pt-2">
-            <input
-              type="checkbox"
-              id="terms"
-              checked={acceptTerms}
-              onChange={(e) => setAcceptTerms(e.target.checked)}
-              className="w-4 h-4 mt-0.5 rounded border-border bg-glass text-primary focus:ring-2 focus:ring-primary/50 cursor-pointer"
-            />
-            <label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer">
-              <Link href="#" className="text-primary hover:text-primary-hover font-medium transition-colors">
-                Kullanım Koşulları
-              </Link>
-              {' '}ve{' '}
-              <Link href="#" className="text-primary hover:text-primary-hover font-medium transition-colors">
-                Gizlilik Politikası
-              </Link>
-              'nı okudum ve kabul ediyorum
+          <div className="flex items-start gap-3 mb-4">
+            <div className="flex items-center h-5">
+              <input
+                id="terms"
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="w-4 h-4 border border-gray-600 rounded bg-zinc-800 focus:ring-3 focus:ring-yellow-500 text-yellow-500 cursor-pointer"
+              />
+            </div>
+            <label htmlFor="terms" className="text-sm text-gray-400 select-none">
+              <Link href="/uyelik-sozlesmesi" target="_blank" className="text-yellow-500 hover:underline">Üyelik Sözleşmesi</Link>'ni, <Link href="/kullanim-kosullari" target="_blank" className="text-yellow-500 hover:underline">Kullanım Koşulları</Link>'nı ve <Link href="/acik-riza-beyani" target="_blank" className="text-yellow-500 hover:underline">Açık Rıza Metni</Link>'ni okudum, onaylıyorum.
             </label>
           </div>
 
@@ -363,7 +358,7 @@ export default function RegisterPage() {
             type="submit"
             disabled={loading || !isFormValid}
             className={`w-full font-bold py-3.5 rounded-xl transition-all transform mt-4 flex items-center justify-center gap-2 group ${loading || !isFormValid
-              ? 'bg-muted text-muted-foreground cursor-not-allowed'
+              ? 'opacity-50 cursor-not-allowed bg-primary text-black'
               : 'bg-primary hover:bg-primary-hover text-black shadow-glow hover:shadow-glow-lg hover:scale-[1.02]'
               }`}
           >
