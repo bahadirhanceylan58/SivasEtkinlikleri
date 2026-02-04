@@ -44,7 +44,7 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
     const [fullName, setFullName] = useState('');
 
     const [ticketCount, setTicketCount] = useState(1);
-    const ticketPrice = 150;
+    const [ticketPrice, setTicketPrice] = useState(0);
 
     // İndirim kodu state'leri
     const [appliedDiscount, setAppliedDiscount] = useState<DiscountValidationResult | null>(null);
@@ -86,7 +86,9 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                 const docRef = doc(db, 'events', id);
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
-                    setEvent({ id: docSnap.id, ...docSnap.data() } as Event);
+                    const eventData = docSnap.data();
+                    setEvent({ id: docSnap.id, ...eventData } as Event);
+                    setTicketPrice(Number(eventData.price) || 0);
                 }
             } catch (error) {
                 console.error("Error fetching event:", error);

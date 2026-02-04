@@ -33,7 +33,14 @@ interface EventDetail {
     category: string;
     organizer?: string;
     hasSeating?: boolean;
-    ticketUrl?: string;
+    ticketUrl?: string; // Bilet satış linki (Priority 1)
+    link?: string;      // Alternatif link (Priority 2)
+    ticketTypes?: { name: string; price: number }[];
+    salesType?: 'internal' | 'external' | 'free' | 'reservation';
+    externalUrl?: string; // Admin panelinden gelen dış link
+    ticketUrl?: string; // Legacy support
+    link?: string;      // Legacy support
+    website?: string;   // Legacy support
 }
 
 export default function EventDetailClient() {
@@ -47,6 +54,7 @@ export default function EventDetailClient() {
     const [user, setUser] = useState<any>(null);
     const [reviews, setReviews] = useState<Review[]>([]);
     const [userRating, setUserRating] = useState(0);
+
     const [userComment, setUserComment] = useState("");
     const [submittingReview, setSubmittingReview] = useState(false);
 
@@ -67,7 +75,9 @@ export default function EventDetailClient() {
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
-                    setEvent({ id: docSnap.id, ...docSnap.data() } as EventDetail);
+                    const eventData = docSnap.data();
+                    setEvent({ id: docSnap.id, ...eventData } as EventDetail);
+
 
                     // 2. Yorumları Çek
                     const reviewsRef = collection(db, "reviews");
@@ -214,20 +224,22 @@ export default function EventDetailClient() {
                                 <div>
                                     <span className="text-sm text-muted-foreground block mb-1">Bilet Fiyatı</span>
                                     <span className="text-3xl font-bold text-primary">
-                                        {event.price === "0" || !event.price ? "Ücretsiz" : `${event.price} ₺`}
+                                        {event.ticketTypes && event.ticketTypes.length > 0 && event.ticketTypes[0].price > 0
+                                            ? `${event.ticketTypes[0].price} ₺`
+                                            : (event.price && event.price !== "0" ? `${event.price} ₺` : "Ücretsiz")}
                                     </span>
                                 </div>
                             </div>
 
-                            {event.ticketUrl ? (
+                            {(event.salesType === 'external' && event.externalUrl) || event.ticketUrl || event.link || event.website ? (
                                 <a
-                                    href={event.ticketUrl}
+                                    href={event.externalUrl || event.ticketUrl || event.link || event.website}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="block w-full"
                                 >
                                     <button className="w-full py-3.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-glow mb-4">
-                                        Bilet Satış Sitesine Git
+                                        Bilet Al
                                     </button>
                                 </a>
                             ) : (
