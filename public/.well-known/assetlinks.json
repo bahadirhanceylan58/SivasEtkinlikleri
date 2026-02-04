@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.sivasetkinlikleri.app",
+        "sha256_cert_fingerprints": ["5D:EF:C0:E4:8D:F6:75:64:C0:8A:5C:60:89:A0:72:E7:2E:4E:D6:35:48:EF:9D:D2:00:DC:AE:12:D9:D5:DC:6F"]
+      }
+    }]
