@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/components/Providers";
+import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useEffect, useState } from "react";
@@ -11,13 +11,20 @@ import { PlusCircle, Edit, Trash2, Calendar, Users, LayoutDashboard, GraduationC
 import { useRouter } from "next/navigation";
 
 export default function UserDashboard() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const router = useRouter();
 
     const [events, setEvents] = useState<any[]>([]);
     const [clubs, setClubs] = useState<any[]>([]);
     const [courses, setCourses] = useState<any[]>([]); // Yeni: Kurslar
-    const [loading, setLoading] = useState(true);
+    const [dataLoading, setDataLoading] = useState(true);
+
+    // Auth Check
+    useEffect(() => {
+        if (!authLoading && !user) {
+            router.push('/login');
+        }
+    }, [user, authLoading, router]);
 
     // Verileri Çek
     useEffect(() => {
@@ -43,10 +50,12 @@ export default function UserDashboard() {
             } catch (error) {
                 console.error("Veri çekme hatası:", error);
             } finally {
-                setLoading(false);
+                setDataLoading(false);
             }
         }
-        fetchData();
+        if (user) {
+            fetchData();
+        }
     }, [user]);
 
     // Silme Fonksiyonu
@@ -63,6 +72,7 @@ export default function UserDashboard() {
         }
     };
 
+    if (authLoading || (!user && dataLoading)) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Yükleniyor...</div>;
     if (!user) return null;
 
     return (
@@ -111,7 +121,7 @@ export default function UserDashboard() {
                         <Calendar className="w-5 h-5" /> Etkinliklerim
                     </h2>
 
-                    {loading ? (
+                    {dataLoading ? (
                         <div className="text-gray-500 text-sm">Yükleniyor...</div>
                     ) : events.length === 0 ? (
                         <div className="bg-zinc-900/50 p-6 rounded-2xl text-center border border-zinc-800">
