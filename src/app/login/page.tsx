@@ -5,7 +5,8 @@ import { Mail, Lock, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -69,6 +70,18 @@ export default function LoginPage() {
             const user = userCredential.user;
 
             if (user) {
+                // Eski kullanıcılar için veritabanı kontrolü ve senkronizasyon
+                const userDocRef = doc(db, "users", user.uid);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (!userDocSnap.exists()) {
+                    await setDoc(userDocRef, {
+                        email: user.email,
+                        role: "user",
+                        createdAt: serverTimestamp()
+                    });
+                }
+
                 const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',') || [];
                 if (adminEmails.includes(user.email || '')) {
                     router.push('/admin');

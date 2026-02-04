@@ -48,6 +48,8 @@ const KursOlusturPage = () => {
         // Step 5: Kayıt Bilgileri
         maxStudents: 0,
         price: 0,
+        whatsapp: '',
+        contactEmail: '',
     });
 
     const categories = [
@@ -252,7 +254,7 @@ const KursOlusturPage = () => {
                                     required
                                     value={formData.title}
                                     onChange={(e) => handleInputChange('title', e.target.value)}
-                                    className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     placeholder="Örn: Python ile Programlamaya Giriş"
                                 />
                             </div>
@@ -265,7 +267,7 @@ const KursOlusturPage = () => {
                                     maxLength={150}
                                     value={formData.shortDescription}
                                     onChange={(e) => handleInputChange('shortDescription', e.target.value)}
-                                    className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     placeholder="Kurs kartında görünecek kısa açıklama"
                                 />
                                 <p className="text-xs text-muted-foreground mt-1">{formData.shortDescription.length}/150 karakter</p>
@@ -278,7 +280,7 @@ const KursOlusturPage = () => {
                                     rows={5}
                                     value={formData.description}
                                     onChange={(e) => handleInputChange('description', e.target.value)}
-                                    className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-foreground placeholder:opacity-70"
+                                    className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-foreground placeholder:opacity-70"
                                     placeholder="Kursunuz hakkında detaylı bilgi verin"
                                 />
                             </div>
@@ -290,7 +292,7 @@ const KursOlusturPage = () => {
                                         required
                                         value={formData.category}
                                         onChange={(e) => handleInputChange('category', e.target.value)}
-                                        className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-foreground placeholder:opacity-70"
+                                        className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-foreground placeholder:opacity-70"
                                     >
                                         <option value="">Seçin</option>
                                         {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -303,7 +305,7 @@ const KursOlusturPage = () => {
                                         type="text"
                                         value={formData.subCategory}
                                         onChange={(e) => handleInputChange('subCategory', e.target.value)}
-                                        className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-foreground placeholder:opacity-70"
+                                        className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-foreground placeholder:opacity-70"
                                         placeholder="Örn: Web Geliştirme"
                                     />
                                 </div>
@@ -363,7 +365,7 @@ const KursOlusturPage = () => {
                                     rows={5}
                                     value={formData.instructorBio}
                                     onChange={(e) => handleInputChange('instructorBio', e.target.value)}
-                                    className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-foreground placeholder:opacity-70"
+                                    className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-foreground placeholder:opacity-70"
                                     placeholder="Kendiniz hakkında bilgi verin (uzmanlık alanlarınız, deneyimleriniz vb.)"
                                 />
                             </div>
@@ -382,7 +384,7 @@ const KursOlusturPage = () => {
                                         required
                                         value={formData.difficulty}
                                         onChange={(e) => handleInputChange('difficulty', e.target.value)}
-                                        className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     >
                                         <option value="Başlangıç">Başlangıç</option>
                                         <option value="Orta">Orta</option>
@@ -398,7 +400,7 @@ const KursOlusturPage = () => {
                                         min="1"
                                         value={formData.duration}
                                         onChange={(e) => handleInputChange('duration', parseInt(e.target.value))}
-                                        className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     />
                                 </div>
 
@@ -408,7 +410,7 @@ const KursOlusturPage = () => {
                                         required
                                         value={formData.language}
                                         onChange={(e) => handleInputChange('language', e.target.value)}
-                                        className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     >
                                         <option value="Türkçe">Türkçe</option>
                                         <option value="İngilizce">İngilizce</option>
@@ -421,7 +423,7 @@ const KursOlusturPage = () => {
                                         required
                                         value={formData.locationType}
                                         onChange={(e) => handleInputChange('locationType', e.target.value)}
-                                        className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     >
                                         <option value="online">Online</option>
                                         <option value="physical">Fiziksel Mekan</option>
@@ -438,7 +440,7 @@ const KursOlusturPage = () => {
                                         required
                                         value={formData.location}
                                         onChange={(e) => handleInputChange('location', e.target.value)}
-                                        className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                         placeholder="Örn: Sivas Cumhuriyet Üniversitesi, A Blok"
                                     />
                                 </div>
@@ -452,7 +454,7 @@ const KursOlusturPage = () => {
                                         required
                                         value={formData.startDate}
                                         onChange={(e) => handleInputChange('startDate', e.target.value)}
-                                        className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     />
                                 </div>
 
@@ -463,7 +465,7 @@ const KursOlusturPage = () => {
                                         required
                                         value={formData.endDate}
                                         onChange={(e) => handleInputChange('endDate', e.target.value)}
-                                        className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     />
                                 </div>
                             </div>
@@ -477,14 +479,14 @@ const KursOlusturPage = () => {
                                             placeholder="Gün (örn: Pazartesi)"
                                             value={sch.day}
                                             onChange={(e) => handleArrayItemChange('schedule', index, { ...sch, day: e.target.value })}
-                                            className="flex-1 px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                            className="flex-1 px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                         />
                                         <input
                                             type="text"
                                             placeholder="Saat (örn: 19:00-21:00)"
                                             value={sch.time}
                                             onChange={(e) => handleArrayItemChange('schedule', index, { ...sch, time: e.target.value })}
-                                            className="flex-1 px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                            className="flex-1 px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                         />
                                         {index > 0 && (
                                             <button
@@ -534,7 +536,7 @@ const KursOlusturPage = () => {
                                             placeholder="Hafta başlığı"
                                             value={curr.title}
                                             onChange={(e) => handleArrayItemChange('curriculum', currIndex, { ...curr, title: e.target.value })}
-                                            className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 mb-2"
+                                            className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 mb-2"
                                         />
                                         {curr.topics.map((topic, topicIndex) => (
                                             <div key={topicIndex} className="flex gap-2 mb-2">
@@ -543,7 +545,7 @@ const KursOlusturPage = () => {
                                                     placeholder="Konu"
                                                     value={topic}
                                                     onChange={(e) => handleCurriculumTopicChange(currIndex, topicIndex, e.target.value)}
-                                                    className="flex-1 px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                                    className="flex-1 px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                                 />
                                                 {topicIndex > 0 && (
                                                     <button
@@ -583,7 +585,7 @@ const KursOlusturPage = () => {
                                             placeholder="Ön koşul"
                                             value={req}
                                             onChange={(e) => handleArrayItemChange('requirements', index, e.target.value)}
-                                            className="flex-1 px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                            className="flex-1 px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                         />
                                         {index > 0 && (
                                             <button
@@ -614,7 +616,7 @@ const KursOlusturPage = () => {
                                             placeholder="Öğrenilecek beceri/bilgi"
                                             value={item}
                                             onChange={(e) => handleArrayItemChange('whatYouWillLearn', index, e.target.value)}
-                                            className="flex-1 px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                            className="flex-1 px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                         />
                                         {index > 0 && (
                                             <button
@@ -651,7 +653,7 @@ const KursOlusturPage = () => {
                                     min="1"
                                     value={formData.maxStudents}
                                     onChange={(e) => handleInputChange('maxStudents', parseInt(e.target.value))}
-                                    className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                 />
                             </div>
 
@@ -662,9 +664,37 @@ const KursOlusturPage = () => {
                                     min="0"
                                     value={formData.price}
                                     onChange={(e) => handleInputChange('price', parseInt(e.target.value))}
-                                    className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     placeholder="0 = Ücretsiz"
                                 />
+                            </div>
+
+                            <hr className="border-zinc-800" />
+
+                            <h3 className="text-lg font-semibold">İletişim Bilgileri</h3>
+                            <p className="text-sm text-gray-400 mb-4">Öğrencilerin size ulaşabileceği iletişim kanalları</p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-2">WhatsApp Numarası</label>
+                                    <input
+                                        type="tel"
+                                        value={formData.whatsapp}
+                                        onChange={(e) => handleInputChange('whatsapp', e.target.value)}
+                                        className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        placeholder="Örn: 555 123 4567"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-2">İletişim E-posta</label>
+                                    <input
+                                        type="email"
+                                        value={formData.contactEmail}
+                                        onChange={(e) => handleInputChange('contactEmail', e.target.value)}
+                                        className="w-full px-4 py-2 bg-black border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        placeholder="Örn: iletisim@ornek.com"
+                                    />
+                                </div>
                             </div>
 
                             <div className="glass-strong p-4 rounded-lg">

@@ -103,7 +103,7 @@ export default function Navbar() {
                     </Link>
 
                     {/* Desktop Navigation */}
-                    <div className="hidden md:flex items-center gap-6">
+                    <div className="hidden lg:flex items-center gap-6">
                         {navLinks.map((link) => (
                             <Link
                                 key={link.href}
@@ -117,7 +117,7 @@ export default function Navbar() {
                     </div>
 
                     {/* Desktop User Section */}
-                    <div className="hidden md:flex items-center gap-4">
+                    <div className="hidden lg:flex items-center gap-4">
                         {/* Search Bar */}
                         <div className={`relative flex items-center transition-all duration-300 ${showDropdown ? 'mr-2' : ''}`}>
                             <div className={`
@@ -256,7 +256,7 @@ export default function Navbar() {
                     {/* MOBİL MENÜ BUTONU (Matches User Snippet) */}
                     <button
                         onClick={() => setIsOpen(!isOpen)}
-                        className="md:hidden p-2 text-white hover:text-primary z-50 relative transition-colors"
+                        className="lg:hidden p-2 text-white hover:text-primary z-50 relative transition-colors"
                     >
                         {isOpen ? <X className="w-8 h-8" /> : <Menu className="w-8 h-8" />}
                     </button>

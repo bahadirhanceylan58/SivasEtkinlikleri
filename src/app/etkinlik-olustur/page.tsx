@@ -5,7 +5,7 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { CalendarPlus, Upload, CheckCircle, AlertCircle, Banknote, Users, Image as ImageIcon } from "lucide-react";
@@ -19,6 +19,10 @@ export default function CreateEventPage() {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
     const [ticketType, setTicketType] = useState<"free" | "paid">("free");
+
+    const searchParams = useSearchParams();
+    const clubId = searchParams.get('clubId');
+    const clubName = searchParams.get('clubName');
 
     const [formData, setFormData] = useState({
         title: "",
@@ -70,6 +74,7 @@ export default function CreateEventPage() {
                 ownerName: user.name || user.email?.split('@')[0], // Fallback if name is missing
                 status: isAdmin ? "approved" : "pending",
                 createdAt: serverTimestamp(),
+                clubId: clubId || null
             });
             setSuccess(true);
         } catch (error) {
@@ -114,6 +119,18 @@ export default function CreateEventPage() {
                         </h1>
                         <p className="text-gray-400">Etkinlik detaylarını girerek topluluğuna ulaş.</p>
                     </div>
+
+                    {clubName && (
+                        <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl flex items-center gap-3 mb-8">
+                            <Users className="w-6 h-6 text-blue-500" />
+                            <div>
+                                <p className="font-bold text-blue-400">Kulüp Etkinliği</p>
+                                <p className="text-sm text-gray-400">
+                                    Bu etkinlik <span className="text-white font-semibold">{clubName}</span> adına oluşturuluyor.
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-8">
 

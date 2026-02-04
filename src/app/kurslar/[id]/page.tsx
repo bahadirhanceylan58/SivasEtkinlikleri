@@ -2,17 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, getDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import {
     Clock, Users, Calendar, Award, BookOpen, Star,
     ChevronRight, CheckCircle2, Play, Download,
-    User, Mail, MapPin, ArrowLeft
+    User, Mail, MapPin, ArrowLeft, X, Phone
 } from 'lucide-react';
 import Image from 'next/image';
 import ReviewSection from '@/components/ReviewSection';
+import ViewTracker from '@/components/ViewTracker';
 
 interface Course {
     id: string;
@@ -42,6 +43,8 @@ interface Course {
     schedule?: string;
     status?: 'pending' | 'approved' | 'rejected';
     createdAt?: any;
+    whatsapp?: string;
+    contactEmail?: string;
 }
 
 export default function CourseDetailPage() {
@@ -52,8 +55,14 @@ export default function CourseDetailPage() {
     const [loading, setLoading] = useState(true);
     const [enrolling, setEnrolling] = useState(false);
     const [isEnrolled, setIsEnrolled] = useState(false);
+    const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
 
     console.log('CourseDetailPage rendered. Params:', params);
+
+    // Modal State
+    const [showModal, setShowModal] = useState(false);
+    const [phone, setPhone] = useState("");
+    const [note, setNote] = useState("");
 
     useEffect(() => {
         const fetchCourse = async () => {
@@ -78,7 +87,10 @@ export default function CourseDetailPage() {
                             where('userId', '==', user.uid)
                         );
                         const enrollmentSnapshot = await getDocs(enrollmentQuery);
-                        setIsEnrolled(!enrollmentSnapshot.empty);
+                        if (!enrollmentSnapshot.empty) {
+                            setIsEnrolled(true);
+                            setEnrollmentId(enrollmentSnapshot.docs[0].id);
+                        }
                     }
                 } else {
                     console.log('Course not found in Firestore');
@@ -93,31 +105,58 @@ export default function CourseDetailPage() {
         fetchCourse();
     }, [params?.id, user]);
 
-    const handleEnroll = async () => {
+    // Eski handleEnroll fonksiyonu yerine handleRegister kullanacağız
+    // Ancak handleEnroll'u silmek yerine modal açılışına bağlayacağız
+    const openRegistrationModal = () => {
         if (!user) {
             alert('Kursa kayıt olmak için lütfen giriş yapın.');
             router.push('/login');
             return;
         }
+        setShowModal(true);
+    };
 
-        if (!course) return;
+    const handleRegister = async () => {
+        if (!phone) {
+            alert("Lütfen telefon numaranızı giriniz.");
+            return;
+        }
 
         setEnrolling(true);
         try {
-            await addDoc(collection(db, 'course_enrollments'), {
-                courseId: course.id,
-                userId: user.uid,
-                userName: user.displayName || user.email,
-                userEmail: user.email,
+            // 1. Course Enrollment (Mevcut Mantık)
+            const enrollmentRef = await addDoc(collection(db, 'course_enrollments'), {
+                courseId: course!.id,
+                userId: user!.uid,
+                userName: user!.displayName || user!.email,
+                userEmail: user!.email,
                 enrolledAt: new Date(),
                 status: 'active',
                 progress: 0
             });
+            setEnrollmentId(enrollmentRef.id);
 
-            // Email bildirimi de burada eklenebilir ama şimdilik sadece önceki kodu restore ediyoruz
+            // 2. Registrations Collection (Yeni Mantık)
+            await addDoc(collection(db, 'registrations'), {
+                courseId: course!.id,
+                courseTitle: course!.title,
+                userId: user!.uid,
+                userName: user!.displayName || user!.email,
+                userEmail: user!.email,
+                phone: phone,
+                note: note,
+                date: new Date(),
+                status: 'pending'
+            });
+
+            // 3. Update Course Participant Count (Opsiyonel - Cloud Function yoksa buradan artırılabilir)
+            // await updateDoc(doc(db, 'courses', course!.id), {
+            //     enrolledCount: (course!.enrolledCount || 0) + 1
+            // });
 
             setIsEnrolled(true);
-            alert('Kursa başarıyla kaydoldunuz!');
+            setShowModal(false);
+            alert('Kursa başarıyla kaydoldunuz! Eğitmen sizinle iletişime geçecektir.');
         } catch (error) {
             console.error('Error enrolling:', error);
             alert('Kayıt sırasında bir hata oluştu.');
@@ -125,6 +164,62 @@ export default function CourseDetailPage() {
             setEnrolling(false);
         }
     };
+
+    const handleCancelEnroll = async () => {
+        if (!enrollmentId && user && course) {
+            // Fallback: fetch enrollment id if missing
+            try {
+                const q = query(
+                    collection(db, 'course_enrollments'),
+                    where('courseId', '==', course.id),
+                    where('userId', '==', user.uid)
+                );
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    setEnrollmentId(snap.docs[0].id);
+                } else {
+                    return;
+                }
+            } catch (e) {
+                console.error(e);
+                return;
+            }
+        }
+
+        if (confirm('Bu kurstan kaydınızı silmek istediğinize emin misiniz?')) {
+            setEnrolling(true);
+            try {
+                // If we still don't have ID, we might need to query it again or just fail safely
+                // But generally useEffect sets it. 
+                // Let's use the one in state or re-fetched one.
+                const targetId = enrollmentId;
+                if (!targetId) {
+                    // Last attempt fetch
+                    const q = query(
+                        collection(db, 'course_enrollments'),
+                        where('courseId', '==', course!.id),
+                        where('userId', '==', user!.uid)
+                    );
+                    const snap = await getDocs(q);
+                    if (!snap.empty) {
+                        await deleteDoc(doc(db, 'course_enrollments', snap.docs[0].id));
+                    }
+                } else {
+                    await deleteDoc(doc(db, 'course_enrollments', targetId));
+                }
+
+                setIsEnrolled(false);
+                setEnrollmentId(null);
+                alert('Kaydınız silindi.');
+            } catch (error) {
+                console.error('Error canceling enrollment:', error);
+                alert('Kayıt silinirken hata oluştu.');
+            } finally {
+                setEnrolling(false);
+            }
+        }
+    };
+
 
     if (loading) {
         return (
@@ -300,17 +395,27 @@ export default function CourseDetailPage() {
                                     )}
 
                                     {isEnrolled ? (
-                                        <div className="bg-green-500/10 text-green-500 rounded-xl p-4 text-center font-medium mb-4">
-                                            <CheckCircle2 className="w-6 h-6 mx-auto mb-2" />
-                                            Kursa Kayıtlısınız
+                                        <div className="mb-4 space-y-3">
+                                            <div className="bg-green-500/10 text-green-500 rounded-xl p-4 text-center font-medium">
+                                                <CheckCircle2 className="w-6 h-6 mx-auto mb-2" />
+                                                Kursa Kayıtlısınız
+                                            </div>
+                                            <button
+                                                onClick={handleCancelEnroll}
+                                                disabled={enrolling}
+                                                className="w-full bg-red-500/10 text-red-500 border border-red-500/20 font-semibold py-3 rounded-xl hover:bg-red-500/20 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <X className="w-4 h-4" />
+                                                {enrolling ? 'İşlem yapılıyor...' : 'Kaydı İptal Et / Ayrıl'}
+                                            </button>
                                         </div>
                                     ) : (
                                         <button
-                                            onClick={handleEnroll}
+                                            onClick={openRegistrationModal}
                                             disabled={enrolling || (course.maxStudents ? (course.enrolledCount || 0) >= course.maxStudents : false)}
                                             className="w-full bg-primary text-black font-semibold py-4 rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-4"
                                         >
-                                            {enrolling ? 'Kaydediliyor...' :
+                                            {enrolling ? 'İşlem yapılıyor...' :
                                                 (course.maxStudents && (course.enrolledCount || 0) >= course.maxStudents) ? 'Kontenjan Dolu' :
                                                     'Kursa Kaydol'}
                                         </button>
@@ -327,6 +432,19 @@ export default function CourseDetailPage() {
                                             </svg>
                                             Kursu Düzenle
                                         </Link>
+                                    )}
+
+                                    {/* WhatsApp Contact Button */}
+                                    {course.whatsapp && (
+                                        <a
+                                            href={`https://wa.me/${course.whatsapp.replace(/\s+/g, '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600/10 text-green-500 border border-green-600/20 hover:bg-green-600/20 rounded-xl transition-all font-semibold"
+                                        >
+                                            <Phone className="w-5 h-5" />
+                                            WhatsApp ile İletişime Geç
+                                        </a>
                                     )}
 
                                     <p className="text-xs text-center text-muted-foreground">
@@ -440,6 +558,39 @@ export default function CourseDetailPage() {
                     </section>
                 </div>
             </div>
+            {/* Registration Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+                    <div className="bg-zinc-900 border border-zinc-700 p-6 rounded-2xl w-full max-w-md relative">
+                        <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X /></button>
+                        <h3 className="text-xl font-bold text-white mb-4">Kayıt Bilgileri</h3>
+
+                        <label className="block text-sm text-gray-400 mb-2">Telefon Numaranız <span className="text-red-500">*</span></label>
+                        <input
+                            type="tel"
+                            required
+                            placeholder="05XX..."
+                            className="w-full bg-black border border-zinc-700 p-3 rounded-xl text-white mb-4 focus:border-primary focus:outline-none"
+                            value={phone}
+                            onChange={e => setPhone(e.target.value)}
+                        />
+
+                        <label className="block text-sm text-gray-400 mb-2">Eğitmene Notunuz (Opsiyonel)</label>
+                        <textarea
+                            className="w-full bg-black border border-zinc-700 p-3 rounded-xl text-white mb-6 focus:border-primary focus:outline-none resize-none"
+                            rows={3}
+                            value={note}
+                            onChange={e => setNote(e.target.value)}
+                        />
+
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowModal(false)} className="flex-1 py-3 bg-zinc-800 rounded-xl text-white hover:bg-zinc-700 transition-colors">İptal</button>
+                            <button onClick={handleRegister} className="flex-1 py-3 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 transition-colors">Kaydı Tamamla</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            <ViewTracker collectionName="courses" docId={params.id as string} />
         </div>
     );
 }

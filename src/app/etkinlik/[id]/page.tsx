@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import EventDetailClient from './EventDetailClient';
+import ViewTracker from '@/components/ViewTracker';
 
 type Props = {
     params: Promise<{ id: string }>
@@ -50,6 +51,12 @@ export async function generateMetadata(
     }
 }
 
-export default function Page() {
-    return <EventDetailClient />
+export default async function Page({ params }: Props) {
+    const { id } = await params;
+    return (
+        <>
+            <EventDetailClient />
+            <ViewTracker collectionName="events" docId={id} />
+        </>
+    );
 }

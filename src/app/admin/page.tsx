@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, Plus, Calendar, Type, Users, Tag, Settings, CreditCard, Ticket, Shield, Check, X, Search, Edit2, Eye, Globe, MapPin, LayoutDashboard, QrCode, Menu, Archive } from 'lucide-react';
+import { Trash2, Plus, Calendar, Type, Users, Tag, Settings, CreditCard, Ticket, Shield, Check, X, Search, Edit2, Eye, Globe, MapPin, LayoutDashboard, QrCode, Menu, Archive, GraduationCap } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 const MapPicker = dynamic(() => import('@/components/MapPicker'), {
@@ -626,6 +626,12 @@ export default function AdminPage() {
                     onClick={() => { setActiveTab('courses'); fetchCourses(); setIsMobileMenuOpen(false); }}
                     notification={courses.some(c => c.status === 'pending')}
                     count={courses.filter(c => c.status === 'pending').length}
+                />
+                <SidebarButton
+                    active={false}
+                    icon={<GraduationCap className="w-5 h-5" />}
+                    label="Kurs Yönetimi"
+                    onClick={() => router.push('/admin/kurslar')}
                 />
                 <SidebarButton
                     active={activeTab === 'discounts'}

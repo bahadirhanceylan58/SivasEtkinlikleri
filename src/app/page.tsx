@@ -90,7 +90,17 @@ function HomeContent() {
 
   // 1. New Arrivals: Top 4 sorted by createdAt, only approved or legacy
   const newArrivals = [...allEvents]
-    .filter(event => !event.status || event.status === 'approved') // Only approved or legacy events
+    .filter(event => {
+      // Status Check
+      if (event.status && event.status !== 'approved') return false;
+
+      // Date Check (Hide past events)
+      const eventDate = new Date(event.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to include events happening today
+
+      return eventDate >= today;
+    })
     .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
     .slice(0, 4);
 
@@ -98,6 +108,15 @@ function HomeContent() {
   const upcomingEvents = allEvents.filter((event) => {
     // 0. Status Filter - only show approved or legacy events
     if (event.status && event.status !== 'approved') {
+      return false;
+    }
+
+    // -1. Past Events Filter (Hide events before today)
+    const eventDate = new Date(event.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (eventDate < today) {
       return false;
     }
 
@@ -118,8 +137,6 @@ function HomeContent() {
 
     // 3. Date Filter
     if (filters.date !== 'all') {
-      const eventDate = new Date(event.date);
-      const today = new Date();
       const isToday = eventDate.getDate() === today.getDate() && eventDate.getMonth() === today.getMonth() && eventDate.getFullYear() === today.getFullYear();
 
       if (filters.date === 'today' && !isToday) return false;

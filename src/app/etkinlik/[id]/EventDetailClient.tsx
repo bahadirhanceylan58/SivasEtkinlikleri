@@ -33,6 +33,7 @@ interface EventDetail {
     category: string;
     organizer?: string;
     hasSeating?: boolean;
+    ticketUrl?: string;
 }
 
 export default function EventDetailClient() {
@@ -218,14 +219,27 @@ export default function EventDetailClient() {
                                 </div>
                             </div>
 
-                            <Link
-                                href={event.hasSeating ? `/etkinlik/${event.id}/koltuk-sec` : `/odeme/${event.id}`}
-                                className="block w-full"
-                            >
-                                <button className="w-full py-3.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-glow mb-4">
-                                    {event.hasSeating ? 'Koltuk Seç / Bilet Al' : 'Bilet Al / Rezervasyon'}
-                                </button>
-                            </Link>
+                            {event.ticketUrl ? (
+                                <a
+                                    href={event.ticketUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-full"
+                                >
+                                    <button className="w-full py-3.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-glow mb-4">
+                                        Bilet Satış Sitesine Git
+                                    </button>
+                                </a>
+                            ) : (
+                                <Link
+                                    href={event.hasSeating ? `/etkinlik/${event.id}/koltuk-sec` : `/odeme/${event.id}`}
+                                    className="block w-full"
+                                >
+                                    <button className="w-full py-3.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-glow mb-4">
+                                        {event.hasSeating ? 'Koltuk Seç / Bilet Al' : 'Bilet Al / Rezervasyon'}
+                                    </button>
+                                </Link>
+                            )}
 
                             <div className="text-xs text-muted-foreground text-center mb-4">
                                 Güvenli ödeme ve anında bilet teslimi.

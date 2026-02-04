@@ -5,7 +5,8 @@ import { User, Mail, Lock, ArrowRight, Eye, EyeOff, AlertCircle, Check } from 'l
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -130,6 +131,15 @@ export default function RegisterPage() {
       await updateProfile(userCredential.user, {
         displayName: name
       });
+
+      // Firestore 'users' koleksiyonuna kaydet
+      await setDoc(doc(db, "users", userCredential.user.uid), {
+        name,
+        email,
+        role: "user", // Varsayılan rol
+        createdAt: serverTimestamp()
+      });
+
       router.push('/login');
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {

@@ -168,7 +168,7 @@ const KurslarPage = () => {
                                 placeholder="Kurs ara..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
+                                className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg focus:outline-none focus:border-primary text-white placeholder-zinc-500"
                             />
                         </div>
 
@@ -176,7 +176,7 @@ const KurslarPage = () => {
                         <select
                             value={selectedCategory}
                             onChange={(e) => setSelectedCategory(e.target.value)}
-                            className="px-4 py-2 bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
+                            className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg focus:outline-none focus:border-primary text-white"
                         >
                             {categories.map(cat => (
                                 <option key={cat} value={cat === 'Tümü' ? 'all' : cat}>{cat}</option>
@@ -187,7 +187,7 @@ const KurslarPage = () => {
                         <select
                             value={selectedDifficulty}
                             onChange={(e) => setSelectedDifficulty(e.target.value)}
-                            className="px-4 py-2 bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
+                            className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg focus:outline-none focus:border-primary text-white"
                         >
                             {difficulties.map(diff => (
                                 <option key={diff} value={diff === 'Tümü' ? 'all' : diff}>{diff}</option>
@@ -198,7 +198,7 @@ const KurslarPage = () => {
                         <select
                             value={selectedPriceFilter}
                             onChange={(e) => setSelectedPriceFilter(e.target.value)}
-                            className="px-4 py-2 bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
+                            className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg focus:outline-none focus:border-primary text-white"
                         >
                             <option value="all">Tüm Fiyatlar</option>
                             <option value="free">Ücretsiz</option>
@@ -209,7 +209,7 @@ const KurslarPage = () => {
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
-                            className="px-4 py-2 bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
+                            className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg focus:outline-none focus:border-primary text-white"
                         >
                             <option value="newest">En Yeni</option>
                             <option value="popular">En Popüler</option>

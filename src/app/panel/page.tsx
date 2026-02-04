@@ -1,20 +1,22 @@
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/components/Providers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useEffect, useState } from "react";
 import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Link from "next/link";
-import { PlusCircle, Edit, Trash2, Calendar, Users, LayoutDashboard, ChevronRight } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Calendar, Users, LayoutDashboard, GraduationCap } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function UserDashboard() {
     const { user } = useAuth();
     const router = useRouter();
+
     const [events, setEvents] = useState<any[]>([]);
     const [clubs, setClubs] = useState<any[]>([]);
+    const [courses, setCourses] = useState<any[]>([]); // Yeni: Kurslar
     const [loading, setLoading] = useState(true);
 
     // Verileri Çek
@@ -33,6 +35,11 @@ export default function UserDashboard() {
                 const clubSnaps = await getDocs(clubq);
                 setClubs(clubSnaps.docs.map(d => ({ id: d.id, ...d.data() })));
 
+                // 3. Kurslarım (YENİ)
+                const courseq = query(collection(db, "courses"), where("ownerId", "==", user.uid));
+                const courseSnaps = await getDocs(courseq);
+                setCourses(courseSnaps.docs.map(d => ({ id: d.id, ...d.data() })));
+
             } catch (error) {
                 console.error("Veri çekme hatası:", error);
             } finally {
@@ -50,6 +57,7 @@ export default function UserDashboard() {
             // Listeyi güncelle
             if (collectionName === 'events') setEvents(events.filter(e => e.id !== id));
             if (collectionName === 'clubs') setClubs(clubs.filter(c => c.id !== id));
+            if (collectionName === 'courses') setCourses(courses.filter(c => c.id !== id));
         } catch (error) {
             alert("Silinirken hata oluştu.");
         }
@@ -61,7 +69,7 @@ export default function UserDashboard() {
         <div className="min-h-screen bg-black text-white flex flex-col">
             <Navbar />
 
-            <div className="container mx-auto px-4 py-8 flex-1 pt-24">
+            <div className="container mx-auto px-4 py-8 flex-1">
 
                 {/* Başlık */}
                 <div className="flex items-center gap-3 mb-8">
@@ -75,7 +83,7 @@ export default function UserDashboard() {
                 </div>
 
                 {/* Hızlı Ekleme Butonları */}
-                <div className="grid grid-cols-2 gap-4 mb-10">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10">
                     <Link href="/etkinlik-olustur" className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-zinc-800 transition-all group">
                         <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-black group-hover:scale-110 transition-transform">
                             <PlusCircle className="w-6 h-6" />
@@ -88,6 +96,13 @@ export default function UserDashboard() {
                         </div>
                         <span className="font-bold text-sm">Kulüp Kur</span>
                     </Link>
+                    {/* Kurs Oluştur Butonu (Opsiyonel, varsa link verilebilir) */}
+                    <button className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 opacity-50 cursor-not-allowed">
+                        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white">
+                            <GraduationCap className="w-6 h-6" />
+                        </div>
+                        <span className="font-bold text-sm">Kurs Aç (Yakında)</span>
+                    </button>
                 </div>
 
                 {/* --- ETKİNLİKLERİM LİSTESİ --- */}
@@ -113,11 +128,9 @@ export default function UserDashboard() {
                                         </p>
                                     </div>
                                     <div className="flex gap-2">
-                                        {/* Düzenle (İleride yapılabilir) */}
                                         <button className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20">
                                             <Edit className="w-4 h-4" />
                                         </button>
-                                        {/* Sil */}
                                         <button
                                             onClick={() => handleDelete('events', event.id)}
                                             className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20"
@@ -132,7 +145,7 @@ export default function UserDashboard() {
                 </div>
 
                 {/* --- KULÜPLERİM LİSTESİ --- */}
-                <div>
+                <div className="mb-10">
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-purple-400">
                         <Users className="w-5 h-5" /> Kulüplerim
                     </h2>
@@ -155,6 +168,46 @@ export default function UserDashboard() {
                                         </button>
                                         <button
                                             onClick={() => handleDelete('clubs', club.id)}
+                                            className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* --- KURSLARIM LİSTESİ (YENİ) --- */}
+                <div>
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-blue-400">
+                        <GraduationCap className="w-5 h-5" /> Kurslarım
+                    </h2>
+
+                    {courses.length === 0 ? (
+                        <div className="bg-zinc-900/50 p-6 rounded-2xl text-center border border-zinc-800">
+                            <p className="text-gray-400">Henüz bir kurs oluşturmadın.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {courses.map(course => (
+                                <div key={course.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex items-center justify-between">
+                                    <div>
+                                        <h3 className="font-bold text-white">{course.title}</h3>
+                                        <p className="text-xs text-gray-400">{course.instructor}</p>
+                                        <p className="text-xs mt-1">
+                                            {course.status === 'published' ? <span className="text-green-500">Yayında</span> : <span className="text-yellow-500">Onay Bekliyor</span>}
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {/* Düzenle Butonu - Link eklendi */}
+                                        <Link href={`/kurslar/duzenle/${course.id}`} className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 flex items-center justify-center">
+                                            <Edit className="w-4 h-4" />
+                                        </Link>
+                                        {/* Sil Butonu */}
+                                        <button
+                                            onClick={() => handleDelete('courses', course.id)}
                                             className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20"
                                         >
                                             <Trash2 className="w-4 h-4" />
