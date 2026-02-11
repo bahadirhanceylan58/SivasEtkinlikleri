@@ -161,44 +161,11 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
         setProcessing(true);
 
         try {
-            // MOCK ÖDEME İŞLEMİ - Gerçek ödeme simülasyonu
-            if (paymentMethod === 'card') {
-                // Simulate payment processing delay
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
-                // Mock payment success (90% success rate for testing)
-                const paymentSuccess = Math.random() > 0.1;
-
-                if (!paymentSuccess) {
-                    alert('Ödeme işlemi başarısız oldu. Lütfen kart bilgilerinizi kontrol edip tekrar deneyin.');
-                    setProcessing(false);
-                    return;
-                }
-            }
-
-            // 1. ÖNCE KOLTUKLARI SATIŞA ÇEVİR (En Kritik Adım)
-            if (event.hasSeating && selectedSeats.length > 0) {
-                try {
-                    await markSeatsAsSold(
-                        event.id,
-                        selectedSeats.map(seat => seat.id),
-                        user.uid
-                    );
-                    // Clear sessionStorage immediately after successful lock
-                    sessionStorage.removeItem('selectedSeats');
-                } catch (seatError) {
-                    console.error('Error marking seats as sold:', seatError);
-                    alert('Koltuk rezervasyon süreniz dolmuş veya bu koltuklar başkası tarafından alınmış olabilir. Lütfen tekrar seçim yapınız.');
-                    setProcessing(false);
-                    return; // ABORT TRANSACTION
-                }
-            }
-
             const uniqueQrCode = `${user.uid}-${event.id}-${Date.now()}`;
 
-            // Fiyat hesaplama
-            let subtotal;
-            let basePrice;
+            // Fiyat hesaplama (Ödeme öncesi yapılmalı)
+            let subtotal = 0;
+            let basePrice = 0;
 
             if (event.hasSeating && selectedSeats.length > 0) {
                 // Koltuk bazlı fiyatlandırma
@@ -210,8 +177,56 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                 subtotal = ticketCount * basePrice;
             }
 
+            // Grup indirimi hesapla (Eğer koltuk yoksa)
+            if (!event.hasSeating) {
+                const groupDiscount = calculateGroupDiscount(basePrice, ticketCount, groupTiers);
+                subtotal = groupDiscount.finalPrice; // subtotal artık indirimli grup fiyatı
+            }
+
+            // Kupon indirimi
             const discountAmount = appliedDiscount?.discountAmount || 0;
-            const totalAmount = subtotal - discountAmount;
+            const totalAmount = Math.max(0, subtotal - discountAmount);
+
+            // 1. ÖNCE ÖDEME (API Call)
+            if (paymentMethod === 'card') {
+                const response = await fetch('/api/payment/initialize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user: { uid: user.uid, email: user.email, displayName: user.displayName, phoneNumber: phoneNumber },
+                        event: { id: event.id, title: event.title },
+                        amount: totalAmount,
+                        basketId: uniqueQrCode
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.errorMessage || 'Ödeme başlatılamadı');
+                }
+
+                const paymentResult = await response.json();
+                if (paymentResult.status !== 'success') {
+                    throw new Error('Ödeme başarısız');
+                }
+            }
+
+            // 2. KOLTUKLARI SATIŞA ÇEVİR
+            if (event.hasSeating && selectedSeats.length > 0) {
+                try {
+                    await markSeatsAsSold(
+                        event.id,
+                        selectedSeats.map(seat => seat.id),
+                        user.uid
+                    );
+                    sessionStorage.removeItem('selectedSeats');
+                } catch (seatError) {
+                    console.error('Error marking seats as sold:', seatError);
+                    alert('Koltuk rezervasyon süreniz dolmuş veya bu koltuklar başkası tarafından alınmış olabilir.');
+                    setProcessing(false);
+                    return;
+                }
+            }
 
             const ticketData: any = {
                 eventId: event.id,

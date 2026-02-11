@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { addDoc, collection, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
@@ -22,6 +22,8 @@ export default function CreateEventPage() {
 
     const searchParams = useSearchParams();
     const editId = searchParams.get('id');
+    const clubId = searchParams.get('clubId');
+    const clubName = searchParams.get('clubName');
 
     const [formData, setFormData] = useState({
         title: "",

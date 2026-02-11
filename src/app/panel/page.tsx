@@ -145,12 +145,12 @@ export default function UserDashboard() {
                         <span className="font-bold text-sm">Kulüp Kur</span>
                     </Link>
                     {/* Kurs Oluştur Butonu (Opsiyonel, varsa link verilebilir) */}
-                    <button className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 opacity-50 cursor-not-allowed">
-                        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white">
+                    <Link href="/kurslar/olustur" className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-zinc-800 transition-all group">
+                        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white group-hover:scale-110 transition-transform">
                             <GraduationCap className="w-6 h-6" />
                         </div>
-                        <span className="font-bold text-sm">Kurs Aç (Yakında)</span>
-                    </button>
+                        <span className="font-bold text-sm">Kurs Aç</span>
+                    </Link>
                 </div>
 
                 {/* --- ETKİNLİKLERİM LİSTESİ --- */}

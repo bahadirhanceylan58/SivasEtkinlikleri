@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, collectionGroup, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Users, Ticket, TrendingUp, Calendar, DollarSign, Activity, Eye, BookOpen } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -60,16 +60,26 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                     .slice(0, 5);
                 setPopularContent(sortedPopular);
 
-                // 6. Mock Revenue Calculation (e.g. 50% of events paid * avg price)
-                const estimatedRevenue = (totalEvents * 1500) + (totalCourses * 2000);
+                // 6. Real Revenue Calculation
+                let realRevenue = 0;
+                try {
+                    // Note: This might require a Firestore Index for 'reservations' collection group
+                    const revenueQuery = query(collectionGroup(db, 'reservations'), where('paymentStatus', '==', 'paid'));
+                    const revenueSnap = await getDocs(revenueQuery);
+                    realRevenue = revenueSnap.docs.reduce((acc, doc) => acc + (Number((doc.data() as any).totalAmount) || 0), 0);
+                } catch (error) {
+                    console.warn("Revenue calculation failed (likely missing index):", error);
+                    // Fallback to 0 if index is missing to prevent crash
+                    realRevenue = 0;
+                }
 
                 setStats({
                     totalEvents,
                     totalCourses,
                     activeEvents,
                     totalUsers,
-                    totalRevenue: estimatedRevenue,
-                    pendingApplications: 0 // Simplification for now
+                    totalRevenue: realRevenue,
+                    pendingApplications: 0
                 });
             } catch (error) {
                 console.error("Error fetching admin stats:", error);
