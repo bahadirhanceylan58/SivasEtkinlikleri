@@ -92,9 +92,15 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
                         <div className="flex flex-col">
                             <span className="text-xs text-muted-foreground">Biletler</span>
                             <span className="text-primary font-bold text-lg">
-                                {event.ticketTypes && event.ticketTypes.length > 0 && event.ticketTypes[0].price > 0
-                                    ? `₺${event.ticketTypes[0].price}`
-                                    : 'Ücretsiz'}
+                                {(() => {
+                                    if (event.ticketTypes && event.ticketTypes.length > 0 && event.ticketTypes[0].price > 0) {
+                                        return `${event.ticketTypes[0].price} ₺`;
+                                    }
+                                    if (event.price && Number(event.price) > 0) {
+                                        return `${event.price} ₺`;
+                                    }
+                                    return 'Ücretsiz';
+                                })()}
                             </span>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary group-hover:text-black transition-all duration-300 group-hover:scale-110">

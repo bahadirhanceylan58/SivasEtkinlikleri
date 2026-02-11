@@ -156,7 +156,7 @@ export default function LoginPage() {
                     <div className="space-y-2">
                         <div className="flex justify-between items-center ml-1">
                             <label className="text-sm font-medium text-foreground">Şifre</label>
-                            <Link href="#" className="text-xs text-primary hover:text-primary-hover font-medium transition-colors">
+                            <Link href="/forgot-password" className="text-xs text-primary hover:text-primary-hover font-medium transition-colors">
                                 Şifremi Unuttum?
                             </Link>
                         </div>

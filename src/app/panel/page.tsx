@@ -9,6 +9,7 @@ import { db } from "@/lib/firebase";
 import Link from "next/link";
 import { PlusCircle, Edit, Trash2, Calendar, Users, LayoutDashboard, GraduationCap } from "lucide-react";
 import { useRouter } from "next/navigation";
+import EventAttendeesModal from "@/components/panel/EventAttendeesModal";
 
 export default function UserDashboard() {
     const { user, loading: authLoading } = useAuth();
@@ -18,6 +19,9 @@ export default function UserDashboard() {
     const [clubs, setClubs] = useState<any[]>([]);
     const [courses, setCourses] = useState<any[]>([]); // Yeni: Kurslar
     const [dataLoading, setDataLoading] = useState(true);
+
+    const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+    const [selectedEventTitle, setSelectedEventTitle] = useState("");
 
     // Auth Check
     useEffect(() => {
@@ -79,6 +83,18 @@ export default function UserDashboard() {
         <div className="min-h-screen bg-black text-white flex flex-col">
             <Navbar />
 
+            {/* Modal */}
+            {selectedEventId && (
+                <EventAttendeesModal
+                    eventId={selectedEventId}
+                    eventTitle={selectedEventTitle}
+                    onClose={() => {
+                        setSelectedEventId(null);
+                        setSelectedEventTitle("");
+                    }}
+                />
+            )}
+
             <div className="container mx-auto px-4 py-8 flex-1">
 
                 {/* Başlık */}
@@ -130,20 +146,36 @@ export default function UserDashboard() {
                     ) : (
                         <div className="space-y-3">
                             {events.map(event => (
-                                <div key={event.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex items-center justify-between">
+                                <div key={event.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex items-center justify-between group hover:border-zinc-700 transition-all">
                                     <div>
-                                        <h3 className="font-bold text-white">{event.title}</h3>
-                                        <p className="text-xs text-gray-400">
-                                            {event.status === 'pending' ? <span className="text-yellow-500">Onay Bekliyor</span> : <span className="text-green-500">Yayında</span>}
-                                        </p>
+                                        <h3 className="font-bold text-white group-hover:text-primary transition-colors">{event.title}</h3>
+                                        <div className="flex items-center gap-3 mt-1">
+                                            <p className="text-xs text-gray-400">
+                                                {event.status === 'pending' ? <span className="text-yellow-500">Onay Bekliyor</span> : <span className="text-green-500">Yayında</span>}
+                                            </p>
+                                            <span className="text-zinc-600 text-[10px]">•</span>
+                                            <p className="text-xs text-gray-500">{new Date(event.date).toLocaleDateString('tr-TR')}</p>
+                                        </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        <button className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20">
+                                        <button
+                                            onClick={() => {
+                                                setSelectedEventId(event.id);
+                                                setSelectedEventTitle(event.title);
+                                            }}
+                                            className="px-3 py-2 bg-purple-500/10 text-purple-400 rounded-lg hover:bg-purple-500/20 flex items-center gap-2 text-sm font-medium transition-colors"
+                                            title="Katılımcıları Gör"
+                                        >
+                                            <Users className="w-4 h-4" />
+                                            <span className="hidden md:inline">Katılımcılar</span>
+                                        </button>
+                                        <button className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors" title="Düzenle">
                                             <Edit className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => handleDelete('events', event.id)}
-                                            className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20"
+                                            className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors"
+                                            title="Sil"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>

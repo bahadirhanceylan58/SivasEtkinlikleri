@@ -247,9 +247,41 @@ export default function EventDetailClient() {
                                     href={event.hasSeating ? `/etkinlik/${event.id}/koltuk-sec` : `/odeme/${event.id}`}
                                     className="block w-full"
                                 >
-                                    <button className="w-full py-3.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-glow mb-4">
-                                        {event.hasSeating ? 'Koltuk Seç / Bilet Al' : 'Bilet Al / Rezervasyon'}
-                                    </button>
+                                    {/* 3 Durum Kontrolü */}
+                                    {(() => {
+                                        // Fiyat Belirleme
+                                        let price = 0;
+                                        if (event.ticketTypes && event.ticketTypes.length > 0) {
+                                            price = event.ticketTypes[0].price;
+                                        } else if (event.price) {
+                                            price = Number(event.price);
+                                        }
+
+                                        // Durum 1: Ücretsiz
+                                        if (price === 0 || event.salesType === 'free') {
+                                            return (
+                                                <button className="w-full py-3.5 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 hover:scale-[1.02] transition-all shadow-glow mb-4">
+                                                    Ücretsiz (Rezervasyon)
+                                                </button>
+                                            );
+                                        }
+
+                                        // Durum 2: Rezervasyon (Ücretli - Kapıda ödeme vs.)
+                                        if (event.salesType === 'reservation') {
+                                            return (
+                                                <button className="w-full py-3.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-glow mb-4">
+                                                    Rezervasyon Yap - {price} ₺
+                                                </button>
+                                            );
+                                        }
+
+                                        // Durum 3: Bilet Al (Varsayılan Ücretli)
+                                        return (
+                                            <button className="w-full py-3.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-glow mb-4">
+                                                {event.hasSeating ? 'Koltuk Seç / Bilet Al' : `Bilet Al - ${price} ₺`}
+                                            </button>
+                                        );
+                                    })()}
                                 </Link>
                             )}
 

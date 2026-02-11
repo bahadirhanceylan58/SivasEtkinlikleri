@@ -318,6 +318,17 @@ export default function Navbar() {
                                         </div>
                                     </div>
 
+                                    <div className="grid grid-cols-2 gap-3 mt-4">
+                                        <Link href="/biletlerim" className="flex items-center justify-center gap-2 py-3 bg-zinc-800 rounded-xl text-white font-medium border border-white/10" onClick={() => setIsOpen(false)}>
+                                            <Ticket className="w-5 h-5 text-primary" />
+                                            <span>Biletlerim</span>
+                                        </Link>
+                                        <Link href="/profil" className="flex items-center justify-center gap-2 py-3 bg-zinc-800 rounded-xl text-white font-medium border border-white/10" onClick={() => setIsOpen(false)}>
+                                            <User className="w-5 h-5 text-primary" />
+                                            <span>Profilim</span>
+                                        </Link>
+                                    </div>
+
                                     <Link href="/panel" className="w-full py-4 bg-gradient-to-r from-primary to-yellow-600 text-black font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg mb-4 mt-4">
                                         <LayoutDashboard className="w-6 h-6" /> Yönetim Paneli
                                     </Link>
