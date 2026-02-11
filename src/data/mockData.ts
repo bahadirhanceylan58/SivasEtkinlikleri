@@ -4,6 +4,7 @@ export interface Event {
   id: string;
   title: string;
   date: string; // ISO 8601 format: YYYY-MM-DDTHH:mm:ss
+  time?: string;
   location: string;
   category: string; // Main category ID (e.g., 'sanat')
   subCategory?: string; // e.g., 'Konser'
@@ -11,9 +12,20 @@ export interface Event {
   isFeatured?: boolean;
   ticketTypes?: { name: string; price: number }[];
   badges?: string[]; // e.g., 'Kontenjanlı', 'Sertifikalı'
-  createdAt: string; // ISO 8601 format
-  salesType?: 'internal' | 'external';
+  createdAt: any; // ISO string or Firestore Timestamp
+  salesType?: 'internal' | 'external' | 'free' | 'reservation';
   externalUrl?: string;
+  description?: string;
+  price?: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  archived?: boolean;
+  archivedAt?: any;
+  coordinates?: { lat: number; lng: number };
+  ownerId?: string;
+  ownerName?: string;
+  ticketUrl?: string;
+  link?: string;
+  website?: string;
 }
 
 export interface Club {

@@ -162,7 +162,7 @@ export default function TicketValidator() {
                 ...prev,
                 status: 'warning', // Now it's checked in as "used"
                 message: 'Giriş Başarılı - Bilet Kullanıldı İşaretlendi',
-                ticketInfo: { ...prev.ticketInfo, checkedIn: true }
+                ticketInfo: { ...prev.ticketInfo!, checkedIn: true }
             }));
 
             // Optional: Reset after delay

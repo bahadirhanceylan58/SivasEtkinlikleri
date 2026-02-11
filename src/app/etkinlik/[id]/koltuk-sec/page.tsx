@@ -124,7 +124,6 @@ export default function SeatSelectionPage() {
                     <div className="flex items-center gap-4 text-muted-foreground">
                         <span>
                             {new Date(event.date).toLocaleDateString('tr-TR', {
-                                section: 'events',
                                 weekday: 'long',
                                 year: 'numeric',
                                 month: 'long',

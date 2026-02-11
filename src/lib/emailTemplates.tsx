@@ -52,6 +52,12 @@ const emailStyles = {
         fontSize: '14px',
         textAlign: 'center' as const,
     },
+    title: {
+        color: '#1f2937',
+        fontSize: '22px',
+        fontWeight: 'bold' as const,
+        marginBottom: '16px',
+    },
 };
 
 interface EventRegistrationEmailProps {

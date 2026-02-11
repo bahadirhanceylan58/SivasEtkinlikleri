@@ -35,9 +35,27 @@ export default function CreateEventPage() {
         category: "Konser",
     });
 
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+
+            // Dosya boyutu kontrolü
+            if (file.size > MAX_FILE_SIZE) {
+                alert("Dosya boyutu çok büyük! Maksimum 5MB yükleyebilirsiniz.");
+                e.target.value = '';
+                return;
+            }
+
+            // Dosya türü kontrolü
+            if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+                alert("Sadece JPEG, PNG ve WebP formatları kabul edilmektedir.");
+                e.target.value = '';
+                return;
+            }
+
             setImageFile(file);
             setPreviewUrl(URL.createObjectURL(file));
         }
@@ -71,7 +89,7 @@ export default function CreateEventPage() {
                 imageUrl: downloadURL,
                 price: finalPrice,
                 ownerId: user.uid,
-                ownerName: user.name || user.email?.split('@')[0], // Fallback if name is missing
+                ownerName: user.displayName || user.email?.split('@')[0], // Fallback if name is missing
                 status: isAdmin ? "approved" : "pending",
                 createdAt: serverTimestamp(),
                 clubId: clubId || null

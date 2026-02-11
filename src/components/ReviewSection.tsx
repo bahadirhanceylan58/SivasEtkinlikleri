@@ -47,9 +47,26 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
         }
     };
 
+    const MAX_COMMENT_LENGTH = 1000;
+
+    // HTML etiketlerini temizle
+    const sanitizeInput = (input: string): string => {
+        return input.replace(/<[^>]*>/g, '').trim();
+    };
+
     const handleSubmitReview = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || rating === 0 || !comment.trim()) return;
+
+        const sanitizedComment = sanitizeInput(comment);
+        if (sanitizedComment.length > MAX_COMMENT_LENGTH) {
+            alert(`Yorum en fazla ${MAX_COMMENT_LENGTH} karakter olabilir.`);
+            return;
+        }
+        if (sanitizedComment.length === 0) {
+            alert("Geçerli bir yorum giriniz.");
+            return;
+        }
 
         setSubmitting(true);
         try {
@@ -57,7 +74,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
                 // Update existing review
                 await updateDoc(doc(db, 'reviews', editingReview.id), {
                     rating,
-                    comment: comment.trim(),
+                    comment: sanitizedComment,
                     updatedAt: Timestamp.now(),
                     isEdited: true
                 });
@@ -70,7 +87,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
                     userName: user.displayName || 'Anonim',
                     userAvatar: user.photoURL || null,
                     rating,
-                    comment: comment.trim(),
+                    comment: sanitizedComment,
                     createdAt: Timestamp.now(),
                     updatedAt: Timestamp.now(),
                     likes: 0,

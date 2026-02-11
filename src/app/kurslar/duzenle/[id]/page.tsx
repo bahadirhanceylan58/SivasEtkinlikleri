@@ -10,7 +10,7 @@ import Footer from "@/components/Footer";
 import { Save, ArrowLeft, Loader2, Image as ImageIcon } from "lucide-react";
 
 export default function EditUserCoursePage({ params }: { params: { id: string } }) {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -44,7 +44,7 @@ export default function EditUserCoursePage({ params }: { params: { id: string } 
 
                     // --- GÜVENLİK KONTROLÜ ---
                     // Sadece kursun sahibi veya Admin düzenleyebilir
-                    if (data.ownerId !== user.uid && user.role !== 'admin') {
+                    if (data.ownerId !== user.uid && !isAdmin) {
                         alert("Bu kursu düzenleme yetkiniz yok! Sadece kendi kurslarınızı düzenleyebilirsiniz.");
                         router.push("/panel");
                         return;

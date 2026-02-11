@@ -55,7 +55,7 @@ export default function CreateClubPage() {
                 ...formData,
                 logoUrl: downloadURL,
                 ownerId: user.uid,
-                ownerName: user.name || user.email?.split('@')[0],
+                ownerName: user.displayName || user.email?.split('@')[0],
                 status: "pending",
                 createdAt: serverTimestamp(),
                 membersCount: 1,

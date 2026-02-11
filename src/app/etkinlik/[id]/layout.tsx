@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
     const { id } = await params;
     const docRef = doc(db, 'events', id);
     const docSnap = await getDoc(docRef);
@@ -28,7 +28,7 @@ export default async function EventLayout({
     params,
 }: {
     children: React.ReactNode;
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }) {
     const { id } = await params;
     const docRef = doc(db, 'events', id);

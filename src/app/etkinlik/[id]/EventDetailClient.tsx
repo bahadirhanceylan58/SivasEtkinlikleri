@@ -38,8 +38,6 @@ interface EventDetail {
     ticketTypes?: { name: string; price: number }[];
     salesType?: 'internal' | 'external' | 'free' | 'reservation';
     externalUrl?: string; // Admin panelinden gelen dış link
-    ticketUrl?: string; // Legacy support
-    link?: string;      // Legacy support
     website?: string;   // Legacy support
 }
 

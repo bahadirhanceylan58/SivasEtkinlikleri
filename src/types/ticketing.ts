@@ -91,7 +91,7 @@ export interface SponsorshipTier {
 }
 
 export interface Sponsor {
-    id?: string;
+    id: string;
     userId: string;
     eventId: string;
     tier: string;

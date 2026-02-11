@@ -39,6 +39,8 @@ interface Event {
     description?: string;
     coordinates?: { lat: number; lng: number; };
     status?: 'pending' | 'approved' | 'rejected';
+    archived?: boolean;
+    archivedAt?: any;
 }
 
 interface Application {

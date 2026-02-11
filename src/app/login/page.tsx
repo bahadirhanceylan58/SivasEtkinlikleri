@@ -82,7 +82,7 @@ export default function LoginPage() {
                     });
                 }
 
-                const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',') || [];
+                const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
                 if (adminEmails.includes(user.email || '')) {
                     router.push('/admin');
                 } else {

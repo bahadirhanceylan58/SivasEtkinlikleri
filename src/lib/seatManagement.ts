@@ -5,17 +5,16 @@ import { Seat } from '@/types/seating';
  */
 export function generateSimpleVenue(rows: number = 8, seatsPerRow: number = 12): Seat[] {
     const seats: Seat[] = [];
-    const rowLetters = 'ABCDEFGHIJ'.split('');
 
-    for (let r = 0; r < rows; r++) {
-        const rowLetter = rowLetters[r];
-        const isVipRow = r < 2; // İlk 2 sıra VIP
+    for (let r = 1; r <= rows; r++) {
+        const isVipRow = r <= 2; // İlk 2 sıra VIP
 
         for (let s = 1; s <= seatsPerRow; s++) {
             seats.push({
-                row: rowLetter,
-                number: s,
-                section: isVipRow ? 'vip' : 'normal',
+                id: `R${r}S${s}`,
+                row: r,
+                seat: s,
+                category: isVipRow ? 'vip' : 'normal',
                 status: 'available',
                 price: isVipRow ? 250 : 150
             });
@@ -28,13 +27,13 @@ export function generateSimpleVenue(rows: number = 8, seatsPerRow: number = 12):
 /**
  * Koltuk ID'sini parse eder
  */
-export function parseSeatId(seatId: string): { row: string; number: number } | null {
-    const match = seatId.match(/^([A-Z])(\d+)$/);
+export function parseSeatId(seatId: string): { row: number; seat: number } | null {
+    const match = seatId.match(/^R(\d+)S(\d+)$/);
     if (!match) return null;
 
     return {
-        row: match[1],
-        number: parseInt(match[2])
+        row: parseInt(match[1]),
+        seat: parseInt(match[2])
     };
 }
 
@@ -46,7 +45,7 @@ export function calculateSeatsTotal(seats: Seat[], selectedSeatIds: string[]): n
         const parsed = parseSeatId(seatId);
         if (!parsed) return total;
 
-        const seat = seats.find(s => s.row === parsed.row && s.number === parsed.number);
+        const seat = seats.find(s => s.row === parsed.row && s.seat === parsed.seat);
         return total + (seat?.price || 0);
     }, 0);
 }
@@ -66,7 +65,7 @@ export function formatSelectedSeats(seatIds: string[]): string {
  */
 export function markSoldSeats(seats: Seat[], soldSeatIds: string[]): Seat[] {
     return seats.map(seat => {
-        const seatId = `${seat.row}${seat.number}`;
+        const seatId = seat.id;
         if (soldSeatIds.includes(seatId)) {
             return { ...seat, status: 'sold' as const };
         }
