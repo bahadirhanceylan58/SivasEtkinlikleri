@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
@@ -21,8 +21,7 @@ export default function CreateEventPage() {
     const [ticketType, setTicketType] = useState<"free" | "paid">("free");
 
     const searchParams = useSearchParams();
-    const clubId = searchParams.get('clubId');
-    const clubName = searchParams.get('clubName');
+    const editId = searchParams.get('id');
 
     const [formData, setFormData] = useState({
         title: "",
@@ -33,10 +32,54 @@ export default function CreateEventPage() {
         price: "0",
         quota: "100",
         category: "Konser",
+        imageUrl: "", // Store existing image URL
     });
 
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+    // Fetch data for editing
+    useEffect(() => {
+        const fetchEvent = async () => {
+            if (!editId || !user) return;
+
+            try {
+                setLoading(true);
+                const docRef = doc(db, "events", editId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    // Security Check
+                    if (data.ownerId !== user.uid && !isAdmin) {
+                        alert("Bu etkinliği düzenleme yetkiniz yok.");
+                        router.push("/");
+                        return;
+                    }
+
+                    setFormData({
+                        title: data.title || "",
+                        description: data.description || "",
+                        date: data.date || "",
+                        time: data.time || "",
+                        location: data.location || "",
+                        price: data.price?.toString() || "0",
+                        quota: data.quota?.toString() || "100",
+                        category: data.category || "Konser",
+                        imageUrl: data.imageUrl || "",
+                    });
+                    setPreviewUrl(data.imageUrl);
+                    if (data.price && data.price !== "0") setTicketType("paid");
+                }
+            } catch (error) {
+                console.error("Error fetching event:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchEvent();
+    }, [editId, user, isAdmin, router]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -68,7 +111,7 @@ export default function CreateEventPage() {
             return;
         }
 
-        if (!imageFile) {
+        if (!imageFile && !formData.imageUrl) {
             alert("Lütfen bir afiş görseli yükleyin.");
             return;
         }
@@ -76,24 +119,46 @@ export default function CreateEventPage() {
         setLoading(true);
 
         try {
-            // 1. Resmi Storage'a Yükle
-            const storageRef = ref(storage, `events/${Date.now()}_${imageFile.name}`);
-            const snapshot = await uploadBytes(storageRef, imageFile);
-            const downloadURL = await getDownloadURL(snapshot.ref);
+            let downloadURL = formData.imageUrl;
 
-            // 2. Etkinliği Firestore'a Kaydet
+            // 1. Yeni resim varsa yükle
+            if (imageFile) {
+                const storageRef = ref(storage, `events/${Date.now()}_${imageFile.name}`);
+                const snapshot = await uploadBytes(storageRef, imageFile);
+                downloadURL = await getDownloadURL(snapshot.ref);
+            }
+
+            // 2. Etkinliği Kaydet veya Güncelle
             const finalPrice = ticketType === "free" ? "0" : formData.price;
 
-            await addDoc(collection(db, "events"), {
-                ...formData,
-                imageUrl: downloadURL,
+            const eventData = {
+                title: formData.title,
+                description: formData.description,
+                date: formData.date,
+                time: formData.time,
+                location: formData.location,
+                category: formData.category,
                 price: finalPrice,
-                ownerId: user.uid,
-                ownerName: user.displayName || user.email?.split('@')[0], // Fallback if name is missing
-                status: isAdmin ? "approved" : "pending",
-                createdAt: serverTimestamp(),
-                clubId: clubId || null
-            });
+                quota: formData.quota,
+                imageUrl: downloadURL,
+                updatedAt: serverTimestamp(),
+            };
+
+            if (editId) {
+                // Update
+                await updateDoc(doc(db, "events", editId), eventData);
+            } else {
+                // Create
+                await addDoc(collection(db, "events"), {
+                    ...eventData,
+                    ownerId: user.uid,
+                    ownerName: user.displayName || user.email?.split('@')[0],
+                    status: isAdmin ? "approved" : "pending",
+                    createdAt: serverTimestamp(),
+                    clubId: clubId || null
+                });
+            }
+
             setSuccess(true);
         } catch (error) {
             console.error("Hata:", error);
@@ -107,7 +172,7 @@ export default function CreateEventPage() {
         return (
             <div className="min-h-screen bg-black text-white flex flex-col">
                 <Navbar />
-                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-fadeIn">
+                <div className="flex-1 flex flex-col items-center justify-center p-6 pt-32 text-center animate-fadeIn">
                     <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mb-6 shadow-glow">
                         <CheckCircle className="w-10 h-10 text-white" />
                     </div>

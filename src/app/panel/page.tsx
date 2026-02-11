@@ -191,9 +191,9 @@ export default function UserDashboard() {
                                             <Users className="w-4 h-4" />
                                             <span className="hidden md:inline">Katılımcılar</span>
                                         </button>
-                                        <button className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors" title="Düzenle">
+                                        <Link href={`/etkinlik-olustur?id=${event.id}`} className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors flex items-center justify-center" title="Düzenle">
                                             <Edit className="w-4 h-4" />
-                                        </button>
+                                        </Link>
                                         <button
                                             onClick={() => handleDelete('events', event.id)}
                                             className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors"

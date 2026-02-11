@@ -213,6 +213,15 @@ export default function Navbar() {
                                                 <span>Profilim</span>
                                             </Link>
 
+                                            <Link
+                                                href="/panel"
+                                                onClick={() => setShowDropdown(false)}
+                                                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors text-sm group text-gray-300 hover:text-white"
+                                            >
+                                                <LayoutDashboard className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+                                                <span>Yönetim Paneli</span>
+                                            </Link>
+
                                             {isAdmin && (
                                                 <Link
                                                     href="/admin"
