@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Link from "next/link";
-import { PlusCircle, Edit, Trash2, Calendar, Users, LayoutDashboard, GraduationCap } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Calendar, Users, LayoutDashboard, GraduationCap, Info } from "lucide-react";
 import { useRouter } from "next/navigation";
 import EventAttendeesModal from "@/components/panel/EventAttendeesModal";
 
@@ -105,6 +105,28 @@ export default function UserDashboard() {
                     <div>
                         <h1 className="text-2xl font-bold">Yönetim Paneli</h1>
                         <p className="text-gray-400 text-sm">İçeriklerini buradan yönetebilirsin.</p>
+                    </div>
+                </div>
+
+                {/* Bilgilendirme Kutusu */}
+                <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl mb-8 flex items-start gap-3">
+                    <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+                    <div className="text-sm text-gray-300 space-y-2">
+                        <p className="font-bold text-blue-400">Panel Kullanımı</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-y-2 gap-x-4">
+                            <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-purple-500/10 rounded-lg"><Users className="w-3.5 h-3.5 text-purple-400" /></div>
+                                <span><span className="font-medium text-white">Katılımcılar:</span> Bilet alanları listeler.</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-blue-500/10 rounded-lg"><Edit className="w-3.5 h-3.5 text-blue-400" /></div>
+                                <span><span className="font-medium text-white">Düzenle:</span> İçeriği günceller.</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-red-500/10 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-red-500" /></div>
+                                <span><span className="font-medium text-white">Sil:</span> İçeriği kaldırır.</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
