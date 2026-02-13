@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { CalendarPlus, Upload, CheckCircle, AlertCircle, Banknote, Users, Image as ImageIcon } from "lucide-react";
+import { CalendarPlus, Upload, CheckCircle, AlertCircle, Banknote, Users, Image as ImageIcon, Plus, Trash2, Ticket } from "lucide-react";
 
 export default function CreateEventPage() {
     const { user, isAdmin } = useAuth();
@@ -18,7 +18,12 @@ export default function CreateEventPage() {
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-    const [ticketType, setTicketType] = useState<"free" | "paid">("free");
+    const [salesType, setSalesType] = useState<'internal' | 'external' | 'free'>('internal');
+    const [ticketTypes, setTicketTypes] = useState<{ name: string; price: number; quota: number }[]>([
+        { name: 'Genel Giriş', price: 0, quota: 100 }
+    ]);
+    const [externalUrl, setExternalUrl] = useState('');
+    const [platformName, setPlatformName] = useState('');
 
     const searchParams = useSearchParams();
     const editId = searchParams.get('id');
@@ -71,7 +76,20 @@ export default function CreateEventPage() {
                         imageUrl: data.imageUrl || "",
                     });
                     setPreviewUrl(data.imageUrl);
-                    if (data.price && data.price !== "0") setTicketType("paid");
+                    if (data.salesType) {
+                        setSalesType(data.salesType);
+                        setTicketTypes(data.ticketTypes || []);
+                        setExternalUrl(data.externalUrl || '');
+                        setPlatformName(data.platformName || '');
+                    } else {
+                        // Legacy support
+                        if (data.price && data.price !== "0") {
+                            setSalesType("internal");
+                            setTicketTypes([{ name: "Genel Giriş", price: Number(data.price), quota: Number(data.quota) }]);
+                        } else {
+                            setSalesType("free");
+                        }
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching event:", error);
@@ -131,7 +149,14 @@ export default function CreateEventPage() {
             }
 
             // 2. Etkinliği Kaydet veya Güncelle
-            const finalPrice = ticketType === "free" ? "0" : formData.price;
+            // Calculate starting price for display purposes (lowest price)
+            let displayPrice = "0";
+            if (salesType === 'internal' && ticketTypes.length > 0) {
+                const prices = ticketTypes.map(t => Number(t.price));
+                displayPrice = Math.min(...prices).toString();
+            } else if (salesType === 'free') {
+                displayPrice = "0";
+            }
 
             const eventData = {
                 title: formData.title,
@@ -140,10 +165,16 @@ export default function CreateEventPage() {
                 time: formData.time,
                 location: formData.location,
                 category: formData.category,
-                price: finalPrice,
-                quota: formData.quota,
+                price: displayPrice,
+                // quota: formData.quota, // Legacy field, kept for compatibility if needed, but ticketTypes has detailed quota
                 imageUrl: downloadURL,
                 updatedAt: serverTimestamp(),
+
+                // Advanced Ticket Data
+                salesType,
+                ticketTypes: salesType === 'internal' ? ticketTypes : [],
+                externalUrl: salesType === 'external' ? externalUrl : null,
+                platformName: salesType === 'external' ? platformName : null,
             };
 
             if (editId) {
@@ -295,53 +326,209 @@ export default function CreateEventPage() {
                                 <Banknote className="w-5 h-5 text-green-500" /> Bilet Bilgileri
                             </h3>
 
-                            <div className="mb-6 flex gap-4">
+                            {/* Ticket Type Selection */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                                 <button
                                     type="button"
-                                    onClick={() => setTicketType("free")}
-                                    className={`flex-1 py-3 rounded-xl font-medium transition-all ${ticketType === "free" ? "bg-green-600 text-white shadow-lg" : "bg-zinc-800 text-gray-400 hover:bg-zinc-700"}`}
+                                    onClick={() => setSalesType('internal')}
+                                    className={`p-4 rounded-xl border-2 transition-all text-left group ${salesType === 'internal'
+                                        ? 'border-primary bg-primary/10'
+                                        : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-600'
+                                        }`}
                                 >
-                                    Ücretsiz (Rezervasyon)
+                                    <div className="flex items-center justify-between mb-2">
+                                        <Ticket className={`w-6 h-6 ${salesType === 'internal' ? 'text-primary' : 'text-gray-400'}`} />
+                                        {salesType === 'internal' && <div className="w-3 h-3 rounded-full bg-primary shadow-[0_0_10px_rgba(255,215,0,0.5)]"></div>}
+                                    </div>
+                                    <div className={`font-bold ${salesType === 'internal' ? 'text-white' : 'text-gray-300'}`}>Site İçi Satış</div>
+                                    <div className="text-xs text-gray-500 mt-1">Biletler doğrudan bu site üzerinden satılsın.</div>
                                 </button>
+
                                 <button
                                     type="button"
-                                    onClick={() => setTicketType("paid")}
-                                    className={`flex-1 py-3 rounded-xl font-medium transition-all ${ticketType === "paid" ? "bg-primary text-black shadow-lg" : "bg-zinc-800 text-gray-400 hover:bg-zinc-700"}`}
+                                    onClick={() => setSalesType('external')}
+                                    className={`p-4 rounded-xl border-2 transition-all text-left group ${salesType === 'external'
+                                        ? 'border-blue-500 bg-blue-500/10'
+                                        : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-600'
+                                        }`}
                                 >
-                                    Ücretli Bilet
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex -space-x-2">
+                                            <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px]">🔗</div>
+                                        </div>
+                                        {salesType === 'external' && <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>}
+                                    </div>
+                                    <div className={`font-bold ${salesType === 'external' ? 'text-white' : 'text-gray-300'}`}>Dış Bağlantı</div>
+                                    <div className="text-xs text-gray-500 mt-1">Biletix, Passo, Bubilet vb. yönlendirme linki.</div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSalesType('free');
+                                        // Reset ticket categories to a single free quota if switching to free
+                                        if (salesType !== 'free') {
+                                            setTicketTypes([{ name: 'Ücretsiz Giriş', price: 0, quota: 100 }]);
+                                        }
+                                    }}
+                                    className={`p-4 rounded-xl border-2 transition-all text-left group ${salesType === 'free'
+                                        ? 'border-green-500 bg-green-500/10'
+                                        : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-600'
+                                        }`}
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="w-6 h-6 rounded-full border-2 border-current flex items-center justify-center text-xs font-bold text-green-500">₺</div>
+                                        {salesType === 'free' && <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>}
+                                    </div>
+                                    <div className={`font-bold ${salesType === 'free' ? 'text-white' : 'text-gray-300'}`}>Ücretsiz / Rezervasyon</div>
+                                    <div className="text-xs text-gray-500 mt-1">Katılım ücretsizdir veya sadece rezervasyon gerekir.</div>
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {ticketType === "paid" && (
-                                    <div className="animate-fadeIn">
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">Bilet Fiyatı (₺)</label>
+                            {/* Internal Sales Content */}
+                            {salesType === 'internal' && (
+                                <div className="space-y-4 animate-fadeIn">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="text-sm font-medium text-gray-300">Bilet Kategorileri</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTicketTypes([...ticketTypes, { name: '', price: 0, quota: 100 }])}
+                                            className="text-xs bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                                        >
+                                            <Plus className="w-3 h-3" /> Kategori Ekle
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {ticketTypes.map((ticket, index) => (
+                                            <div key={index} className="flex flex-col md:flex-row gap-3 items-start md:items-center bg-zinc-800/30 p-3 rounded-xl border border-zinc-800">
+                                                <div className="flex-1 w-full">
+                                                    <span className="text-xs text-gray-500 mb-1 block md:hidden">Kategori Adı</span>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Kategori Adı (Örn: Tam, Öğrenci)"
+                                                        value={ticket.name}
+                                                        onChange={(e) => {
+                                                            const newTickets = [...ticketTypes];
+                                                            newTickets[index].name = e.target.value;
+                                                            setTicketTypes(newTickets);
+                                                        }}
+                                                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="w-full md:w-32">
+                                                    <span className="text-xs text-gray-500 mb-1 block md:hidden">Fiyat (₺)</span>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            placeholder="Fiyat"
+                                                            value={ticket.price}
+                                                            onChange={(e) => {
+                                                                const newTickets = [...ticketTypes];
+                                                                newTickets[index].price = Number(e.target.value);
+                                                                setTicketTypes(newTickets);
+                                                            }}
+                                                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg pl-3 pr-8 py-2 text-white text-sm focus:outline-none focus:border-primary"
+                                                            required
+                                                        />
+                                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">₺</span>
+                                                    </div>
+                                                </div>
+                                                <div className="w-full md:w-32">
+                                                    <span className="text-xs text-gray-500 mb-1 block md:hidden">Kontenjan</span>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            placeholder="Adet"
+                                                            value={ticket.quota}
+                                                            onChange={(e) => {
+                                                                const newTickets = [...ticketTypes];
+                                                                newTickets[index].quota = Number(e.target.value);
+                                                                setTicketTypes(newTickets);
+                                                            }}
+                                                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary"
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+                                                {ticketTypes.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newTickets = ticketTypes.filter((_, i) => i !== index);
+                                                            setTicketTypes(newTickets);
+                                                        }}
+                                                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors self-end md:self-auto"
+                                                    >
+                                                        <Trash2 className="w-5 h-5" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* External Sales Content */}
+                            {salesType === 'external' && (
+                                <div className="space-y-4 animate-fadeIn">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">Bilet Satış Linki</label>
+                                        <input
+                                            type="url"
+                                            placeholder="https://www.biletix.com/etkinlik/..."
+                                            value={externalUrl}
+                                            onChange={(e) => setExternalUrl(e.target.value)}
+                                            className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-4 text-white focus:border-primary focus:outline-none"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">Platform Adı</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Örn: Biletix, Passo, Bubilet"
+                                            value={platformName}
+                                            onChange={(e) => setPlatformName(e.target.value)}
+                                            className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-4 text-white focus:border-primary focus:outline-none"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Free / Reservation Content */}
+                            {salesType === 'free' && (
+                                <div className="space-y-4 animate-fadeIn">
+                                    <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-xl">
+                                        <p className="text-sm text-green-400 flex items-center gap-2">
+                                            <CheckCircle className="w-4 h-4" />
+                                            Bu etkinlik katılımcılar için tamamen ücretsiz olacaktır.
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">Toplam Kontenjan</label>
                                         <input
                                             type="number"
                                             min="1"
-                                            required
+                                            placeholder="Örn: 100"
+                                            value={ticketTypes[0]?.quota || 100}
+                                            onChange={(e) => {
+                                                const newTickets = [...ticketTypes];
+                                                if (!newTickets[0]) newTickets[0] = { name: 'Ücretsiz Giriş', price: 0, quota: 100 };
+                                                newTickets[0].quota = Number(e.target.value);
+                                                setTicketTypes(newTickets);
+                                            }}
                                             className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-4 text-white focus:border-primary focus:outline-none"
-                                            value={formData.price}
-                                            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                            required
                                         />
                                     </div>
-                                )}
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-                                        <Users className="w-4 h-4" /> Kontenjan (Kişi Sayısı)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        required
-                                        className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-4 text-white focus:border-primary focus:outline-none"
-                                        placeholder="Örn: 100"
-                                        value={formData.quota}
-                                        onChange={(e) => setFormData({ ...formData, quota: e.target.value })}
-                                    />
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* 3. Görsel ve Açıklama */}
