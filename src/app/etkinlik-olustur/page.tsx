@@ -194,8 +194,20 @@ export default function CreateEventPage() {
 
             setSuccess(true);
         } catch (error) {
-            console.error("Hata:", error);
-            alert("Bir hata oluştu: " + (error as Error).message);
+            console.error("Hata Detayı:", error);
+            let errorMessage = "Bilinmeyen bir hata oluştu.";
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (typeof error === 'object' && error !== null) {
+                try {
+                    errorMessage = JSON.stringify(error);
+                } catch (e) {
+                    errorMessage = String(error);
+                }
+            } else {
+                errorMessage = String(error);
+            }
+            alert("Bir hata oluştu: " + errorMessage);
         } finally {
             setLoading(false);
         }
