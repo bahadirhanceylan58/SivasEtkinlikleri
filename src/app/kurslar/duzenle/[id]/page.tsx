@@ -9,7 +9,10 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Save, ArrowLeft, Loader2, Image as ImageIcon } from "lucide-react";
 
-export default function EditUserCoursePage({ params }: { params: { id: string } }) {
+import { use } from "react";
+
+export default function EditUserCoursePage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const { user, isAdmin } = useAuth();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
@@ -36,7 +39,7 @@ export default function EditUserCoursePage({ params }: { params: { id: string } 
             }
 
             try {
-                const docRef = doc(db, "courses", params.id);
+                const docRef = doc(db, "courses", id);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
@@ -70,14 +73,14 @@ export default function EditUserCoursePage({ params }: { params: { id: string } 
             }
         }
         fetchCourse();
-    }, [user, params.id, router]);
+    }, [user, id, router]);
 
     // Güncelleme İşlemi
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
         try {
-            await updateDoc(doc(db, "courses", params.id), formData);
+            await updateDoc(doc(db, "courses", id), formData);
             alert("Kurs başarıyla güncellendi! ✅");
             router.push("/panel"); // İşlem bitince panele dön
         } catch (error) {
