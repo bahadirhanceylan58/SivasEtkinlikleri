@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import ReviewCard, { Review } from './ReviewCard';
 import RatingStars from './RatingStars';
-import { MessageSquare, Star, BarChart3 } from 'lucide-react';
+import { MessageSquare, Star, BarChart3, Image as ImageIcon, X, ArrowUpDown } from 'lucide-react';
+import Image from 'next/image';
 
 interface ReviewSectionProps {
     eventId?: string;
@@ -18,8 +20,12 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
     const [showForm, setShowForm] = useState(false);
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
+    const [images, setImages] = useState<File[]>([]);
+    const [imageUrls, setImageUrls] = useState<string[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
     const [editingReview, setEditingReview] = useState<Review | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest');
 
     // Fetch reviews
     useEffect(() => {
@@ -39,7 +45,8 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
                 id: doc.id,
                 ...doc.data()
             })) as Review[];
-            setReviews(reviewsData);
+
+            setReviews(sortReviews(reviewsData, sortBy));
         } catch (error) {
             console.error('Error fetching reviews:', error);
         } finally {
@@ -47,11 +54,71 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
         }
     };
 
+    const sortReviews = (data: Review[], sortType: string) => {
+        const sorted = [...data];
+        switch (sortType) {
+            case 'newest':
+                return sorted.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
+            case 'oldest':
+                return sorted.sort((a, b) => a.createdAt?.seconds - b.createdAt?.seconds);
+            case 'highest':
+                return sorted.sort((a, b) => b.rating - a.rating);
+            case 'lowest':
+                return sorted.sort((a, b) => a.rating - b.rating);
+            default:
+                return sorted;
+        }
+    };
+
+    useEffect(() => {
+        setReviews(prev => sortReviews(prev, sortBy));
+    }, [sortBy]);
+
     const MAX_COMMENT_LENGTH = 1000;
 
     // HTML etiketlerini temizle
     const sanitizeInput = (input: string): string => {
         return input.replace(/<[^>]*>/g, '').trim();
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const newImages = Array.from(e.target.files);
+            if (images.length + newImages.length > 3) {
+                alert('En fazla 3 fotoğraf yükleyebilirsiniz.');
+                return;
+            }
+            setImages(prev => [...prev, ...newImages]);
+        }
+    };
+
+    const removeImage = (index: number) => {
+        setImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const removeExistingImage = (urlToRemove: string) => {
+        setImageUrls(prev => prev.filter(url => url !== urlToRemove));
+    }
+
+    const uploadImages = async (): Promise<string[]> => {
+        if (images.length === 0) return [];
+        setIsUploading(true);
+        const uploadedUrls: string[] = [];
+
+        try {
+            for (const image of images) {
+                const storageRef = ref(storage, `reviews/${Date.now()}_${image.name}`);
+                await uploadBytes(storageRef, image);
+                const url = await getDownloadURL(storageRef);
+                uploadedUrls.push(url);
+            }
+        } catch (error) {
+            console.error("Error uploading images:", error);
+            alert("Fotoğraflar yüklenirken bir hata oluştu.");
+        } finally {
+            setIsUploading(false);
+        }
+        return uploadedUrls;
     };
 
     const handleSubmitReview = async (e: React.FormEvent) => {
@@ -70,11 +137,15 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
 
         setSubmitting(true);
         try {
+            const uploadedImageUrls = await uploadImages();
+            const finalImageUrls = [...imageUrls, ...uploadedImageUrls];
+
             if (editingReview) {
                 // Update existing review
                 await updateDoc(doc(db, 'reviews', editingReview.id), {
                     rating,
                     comment: sanitizedComment,
+                    images: finalImageUrls,
                     updatedAt: Timestamp.now(),
                     isEdited: true
                 });
@@ -88,6 +159,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
                     userAvatar: user.photoURL || null,
                     rating,
                     comment: sanitizedComment,
+                    images: finalImageUrls,
                     createdAt: Timestamp.now(),
                     updatedAt: Timestamp.now(),
                     likes: 0,
@@ -99,6 +171,8 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
             // Reset form
             setRating(0);
             setComment('');
+            setImages([]);
+            setImageUrls([]);
             setShowForm(false);
             setEditingReview(null);
             fetchReviews();
@@ -127,9 +201,16 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
                 likedBy: newLikedBy
             });
 
-            fetchReviews();
+            // Optimistic update
+            setReviews(prev => prev.map(r =>
+                r.id === reviewId
+                    ? { ...r, likes: newLikedBy.length, likedBy: newLikedBy }
+                    : r
+            ));
         } catch (error) {
             console.error('Error liking review:', error);
+            // Revert details from server if needed, or fetchReviews
+            fetchReviews();
         }
     };
 
@@ -139,6 +220,8 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
             setEditingReview(review);
             setRating(review.rating);
             setComment(review.comment);
+            setImageUrls(review.images || []);
+            setImages([]);
             setShowForm(true);
         }
     };
@@ -148,10 +231,46 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
 
         try {
             await deleteDoc(doc(db, 'reviews', reviewId));
-            fetchReviews();
+            setReviews(prev => prev.filter(r => r.id !== reviewId));
         } catch (error) {
             console.error('Error deleting review:', error);
             alert('Yorum silinirken bir hata oluştu.');
+        }
+    };
+
+    const handleReply = async (reviewId: string, replyText: string) => {
+        if (!user) return;
+
+        try {
+            const reviewRef = doc(db, 'reviews', reviewId);
+            await updateDoc(reviewRef, {
+                reply: {
+                    text: replyText,
+                    createdAt: Timestamp.now(),
+                    authorName: user.displayName || 'Admin',
+                    authorId: user.uid
+                }
+            });
+
+            // Find the review to get the author ID
+            const review = reviews.find(r => r.id === reviewId);
+            if (review && review.userId !== user.uid) {
+                await addDoc(collection(db, 'notifications'), {
+                    userId: review.userId,
+                    type: 'reply',
+                    title: 'Yorumunuza Yanıt Geldi',
+                    message: `${user.displayName || 'Yönetici'} yorumunuza yanıt verdi.`,
+                    link: `/kurslar/${courseId}?tab=reviews`,
+                    read: false,
+                    createdAt: Timestamp.now()
+                });
+            }
+
+            // Refresh reviews
+            fetchReviews();
+        } catch (error) {
+            console.error("Error replying to review:", error);
+            alert("Yanıt gönderilirken bir hata oluştu.");
         }
     };
 
@@ -171,15 +290,34 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
         <div className="space-y-6">
             {/* Header & Stats */}
             <div className="glass p-6 rounded-2xl border border-border">
-                <div className="flex items-start justify-between mb-6">
+                <div className="flex flex-col md:flex-row md:items-start justify-between mb-6 gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-foreground flex items-center gap-2 mb-2">
                             <MessageSquare className="w-6 h-6 text-primary" />
                             Değerlendirmeler
                         </h2>
-                        <p className="text-muted-foreground text-sm">
-                            {reviews.length} değerlendirme
-                        </p>
+                        <div className="flex items-center gap-4">
+                            <p className="text-muted-foreground text-sm">
+                                {reviews.length} değerlendirme
+                            </p>
+
+                            {/* Sorting Dropdown */}
+                            {reviews.length > 0 && (
+                                <div className="flex items-center gap-2">
+                                    <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value as any)}
+                                        className="bg-transparent text-sm text-foreground border-none focus:ring-0 cursor-pointer"
+                                    >
+                                        <option value="newest" className="text-black">En Yeniler</option>
+                                        <option value="oldest" className="text-black">En Eskiler</option>
+                                        <option value="highest" className="text-black">En Yüksek Puan</option>
+                                        <option value="lowest" className="text-black">En Düşük Puan</option>
+                                    </select>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {user && !showForm && (
@@ -200,9 +338,6 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
                                 {averageRating.toFixed(1)}
                             </div>
                             <RatingStars rating={averageRating} size="lg" showValue={false} />
-                            <p className="text-sm text-muted-foreground mt-2">
-                                {reviews.length} değerlendirme
-                            </p>
                         </div>
 
                         {/* Rating Distribution */}
@@ -262,13 +397,51 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
                             />
                         </div>
 
+                        {/* Image Upload */}
+                        <div>
+                            <label className="block text-sm font-medium text-foreground mb-2">
+                                Fotoğraflar (İsteğe bağlı, maks 3)
+                            </label>
+                            <div className="flex flex-wrap gap-4">
+                                {imageUrls.map((url, index) => (
+                                    <div key={`url-${index}`} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
+                                        <Image src={url} alt="Review" fill className="object-cover" />
+                                        <button type="button" onClick={() => removeExistingImage(url)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                                {images.map((file, index) => (
+                                    <div key={`file-${index}`} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
+                                        <img src={URL.createObjectURL(file)} alt="Preview" className="w-full h-full object-cover" />
+                                        <button type="button" onClick={() => removeImage(index)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                                {(images.length + imageUrls.length) < 3 && (
+                                    <label className="w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors">
+                                        <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                                        <span className="text-[10px] text-muted-foreground mt-1">Ekle</span>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            multiple
+                                            className="hidden"
+                                            onChange={handleImageChange}
+                                        />
+                                    </label>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="flex items-center gap-3">
                             <button
                                 type="submit"
-                                disabled={submitting || rating === 0}
+                                disabled={submitting || rating === 0 || isUploading}
                                 className="px-6 py-2 bg-primary text-black rounded-full font-medium text-sm hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {submitting ? 'Gönderiliyor...' : editingReview ? 'Güncelle' : 'Gönder'}
+                                {submitting || isUploading ? 'Gönderiliyor...' : editingReview ? 'Güncelle' : 'Gönder'}
                             </button>
                             <button
                                 type="button"
@@ -277,6 +450,8 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
                                     setEditingReview(null);
                                     setRating(0);
                                     setComment('');
+                                    setImages([]);
+                                    setImageUrls([]);
                                 }}
                                 className="px-6 py-2 bg-muted text-foreground rounded-full font-medium text-sm hover:bg-muted/80 transition-all"
                             >
@@ -315,6 +490,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ eventId, courseId }) => {
                             onLike={handleLikeReview}
                             onEdit={handleEditReview}
                             onDelete={handleDeleteReview}
+                            onReply={handleReply}
                         />
                     ))
                 )}

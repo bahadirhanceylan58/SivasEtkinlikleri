@@ -53,8 +53,8 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
         <Link href={`/kurslar/${course.id}`} className="group block h-full">
             <div className="glass rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-500 hover:shadow-glow-lg flex flex-col h-full transform hover:scale-[1.02] hover:-translate-y-1 bg-card border-border">
 
-                {/* Image Section */}
-                <div className="relative h-32 w-full overflow-hidden bg-muted">
+                {/* Image Section - Modified for Horizontal/Landscape Format */}
+                <div className="relative aspect-video w-full overflow-hidden bg-muted">
                     {course.imageUrl ? (
                         <>
                             <Image

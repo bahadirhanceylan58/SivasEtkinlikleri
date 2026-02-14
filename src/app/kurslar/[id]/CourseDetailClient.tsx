@@ -403,6 +403,23 @@ export default function CourseDetailClient({ id }: CourseDetailClientProps) {
                                         </button>
                                     )}
 
+                                    {/* Favorite and Share Buttons */}
+                                    <div className="flex gap-2 mb-4">
+                                        <FavoriteButton
+                                            eventId={course.id}
+                                            type='course'
+                                            className="flex-1 justify-center py-3 border border-border rounded-xl hover:bg-muted/50"
+                                            showText
+                                        />
+                                        <button
+                                            onClick={handleShare}
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 border border-border rounded-xl hover:bg-muted/50 text-foreground transition-colors"
+                                        >
+                                            <Share2 className="w-5 h-5" />
+                                            Paylaş
+                                        </button>
+                                    </div>
+
                                     {/* Edit Button for Course Owner */}
                                     {user && course.instructorId === user.uid && (
                                         <Link
@@ -439,107 +456,172 @@ export default function CourseDetailClient({ id }: CourseDetailClientProps) {
                 </div>
             </div>
 
-            {/* Content Sections */}
+            {/* Content Tabs */}
             <div className="container mx-auto px-4 py-12">
                 <div className="max-w-4xl">
-                    {/* Learning Outcomes */}
-                    {course.learningOutcomes && course.learningOutcomes.length > 0 && (
-                        <section className="mb-12">
-                            <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
-                                <Award className="w-6 h-6 text-primary" />
-                                Bu Kursta Neler Öğreneceksiniz?
-                            </h2>
-                            <div className="grid sm:grid-cols-2 gap-4">
-                                {course.learningOutcomes.map((outcome, index) => (
-                                    <div key={index} className="flex items-start gap-3 p-4 bg-card border border-border rounded-lg">
-                                        <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                                        <p className="text-foreground">{outcome}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-                    )}
+                    {/* Tab Navigation */}
+                    <div className="flex items-center gap-1 border-b border-border overflow-x-auto mb-8">
+                        <button
+                            onClick={() => setActiveTab('overview')}
+                            className={`px-4 py-3 font-medium text-sm flex items-center gap-2 whitespace-nowrap transition-colors border-b-2 ${activeTab === 'overview' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                        >
+                            <FileText className="w-4 h-4" />
+                            Genel Bakış
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('curriculum')}
+                            className={`px-4 py-3 font-medium text-sm flex items-center gap-2 whitespace-nowrap transition-colors border-b-2 ${activeTab === 'curriculum' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                        >
+                            <List className="w-4 h-4" />
+                            Müfredat
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('reviews')}
+                            className={`px-4 py-3 font-medium text-sm flex items-center gap-2 whitespace-nowrap transition-colors border-b-2 ${activeTab === 'reviews' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                        >
+                            <Star className="w-4 h-4" />
+                            Değerlendirmeler
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('qa')}
+                            className={`px-4 py-3 font-medium text-sm flex items-center gap-2 whitespace-nowrap transition-colors border-b-2 ${activeTab === 'qa' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                        >
+                            <MessageCircle className="w-4 h-4" />
+                            Soru-Cevap
+                        </button>
+                    </div>
 
-                    {/* Curriculum */}
-                    {course.curriculum && course.curriculum.length > 0 && (
-                        <section className="mb-12">
-                            <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
-                                <BookOpen className="w-6 h-6 text-primary" />
-                                Müfredat
-                            </h2>
-                            <div className="space-y-4">
-                                {course.curriculum.map((week, index) => (
-                                    <details key={index} className="bg-card border border-border rounded-lg overflow-hidden group">
-                                        <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center font-bold">
-                                                    {week.week}
-                                                </div>
-                                                <h3 className="font-semibold text-foreground">{week.title}</h3>
-                                            </div>
-                                            <ChevronRight className="w-5 h-5 text-muted-foreground group-open:rotate-90 transition-transform" />
-                                        </summary>
-                                        <div className="px-4 pb-4 space-y-2">
-                                            {week.topics.map((topic, topicIndex) => (
-                                                <div key={topicIndex} className="flex items-center gap-3 p-2 text-muted-foreground">
-                                                    <Play className="w-4 h-4 text-primary" />
-                                                    <span>{topic}</span>
+                    {/* Tab Content */}
+                    <div>
+                        {activeTab === 'overview' && (
+                            <div className="space-y-8">
+                                {/* Description */}
+                                <section className="mb-12">
+                                    <h2 className="text-2xl font-bold text-foreground mb-6">Kurs Hakkında</h2>
+                                    <p className="text-muted-foreground">{course.description}</p>
+                                </section>
+
+                                {/* Learning Outcomes */}
+                                {course.learningOutcomes && course.learningOutcomes.length > 0 && (
+                                    <section className="mb-12">
+                                        <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
+                                            <Award className="w-6 h-6 text-primary" />
+                                            Bu Kursta Neler Öğreneceksiniz?
+                                        </h2>
+                                        <div className="grid sm:grid-cols-2 gap-4">
+                                            {course.learningOutcomes.map((outcome: string, index: number) => (
+                                                <div key={index} className="flex items-start gap-3 p-4 bg-card border border-border rounded-lg">
+                                                    <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                                                    <p className="text-foreground">{outcome}</p>
                                                 </div>
                                             ))}
                                         </div>
-                                    </details>
-                                ))}
-                            </div>
-                        </section>
-                    )}
+                                    </section>
+                                )}
 
-                    {/* Requirements */}
-                    {course.requirements && course.requirements.length > 0 && (
-                        <section className="mb-12">
-                            <h2 className="text-2xl font-bold text-foreground mb-6">Gereksinimler</h2>
-                            <div className="bg-card border border-border rounded-lg p-6">
-                                <ul className="space-y-3">
-                                    {course.requirements.map((req, index) => (
-                                        <li key={index} className="flex items-start gap-3 text-foreground">
-                                            <ChevronRight className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                                            <span>{req}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </section>
-                    )}
+                                {/* Requirements */}
+                                {course.requirements && course.requirements.length > 0 && (
+                                    <section className="mb-12">
+                                        <h2 className="text-2xl font-bold text-foreground mb-6">Gereksinimler</h2>
+                                        <div className="bg-card border border-border rounded-lg p-6">
+                                            <ul className="space-y-3">
+                                                {course.requirements.map((req: string, index: number) => (
+                                                    <li key={index} className="flex items-start gap-3 text-foreground">
+                                                        <ChevronRight className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                                                        <span>{req}</span>
+                                                    </li>
+                                                ))}
 
-                    {/* Instructor Bio */}
-                    {course.instructorBio && (
-                        <section className="mb-12">
-                            <h2 className="text-2xl font-bold text-foreground mb-6">Eğitmen Hakkında</h2>
-                            <div className="bg-card border border-border rounded-lg p-6">
-                                <div className="flex items-start gap-4 mb-4">
-                                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                                        <User className="w-8 h-8 text-primary" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-semibold text-foreground mb-1">{course.instructorName}</h3>
-                                        {course.instructorEmail && (
-                                            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                                                <Mail className="w-4 h-4" />
-                                                {course.instructorEmail}
+                                            </ul>
+                                        </div>
+                                    </section>
+                                )}
+
+                                {/* Instructor Bio */}
+                                {course.instructorBio && (
+                                    <section className="mb-12">
+                                        <h2 className="text-2xl font-bold text-foreground mb-6">Eğitmen Hakkında</h2>
+                                        <div className="bg-card border border-border rounded-lg p-6">
+                                            <div className="flex items-start gap-4 mb-4">
+                                                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <User className="w-8 h-8 text-primary" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xl font-semibold text-foreground mb-1">{course.instructorName}</h3>
+                                                    {course.instructorEmail && (
+                                                        <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                                                            <Mail className="w-4 h-4" />
+                                                            {course.instructorEmail}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
-                                <p className="text-muted-foreground">{course.instructorBio}</p>
+                                            <p className="text-muted-foreground">{course.instructorBio}</p>
+                                        </div>
+                                    </section>
+                                )}
                             </div>
-                        </section>
-                    )}
+                        )}
 
-                    {/* Reviews Section */}
-                    <section>
-                        <ReviewSection courseId={course.id} />
-                    </section>
+                        {activeTab === 'curriculum' && (
+                            <section className="mb-12">
+                                <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
+                                    <BookOpen className="w-6 h-6 text-primary" />
+                                    Müfredat
+                                </h2>
+                                <div className="space-y-4">
+                                    {course.curriculum && course.curriculum.map((week: any, index: number) => (
+                                        <details key={index} className="bg-card border border-border rounded-lg overflow-hidden group">
+                                            <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center font-bold">
+                                                        {week.week}
+                                                    </div>
+                                                    <h3 className="font-semibold text-foreground">{week.title}</h3>
+                                                </div>
+                                                <ChevronRight className="w-5 h-5 text-muted-foreground group-open:rotate-90 transition-transform" />
+                                            </summary>
+                                            <div className="px-4 pb-4 space-y-2">
+                                                {week.topics.map((topic: string, topicIndex: number) => (
+                                                    <div key={topicIndex} className="flex items-center gap-3 p-2 text-muted-foreground">
+                                                        <PlayCircle className="w-4 h-4 text-primary" />
+                                                        <span>{topic}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </details>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {activeTab === 'reviews' && (
+                            <section>
+                                <ReviewSection courseId={course.id} />
+                            </section>
+                        )}
+
+                        {activeTab === 'qa' && (
+                            <section>
+                                <QuestionSection courseId={course.id} instructorId={course.instructorId} />
+                            </section>
+                        )}
+                    </div>
                 </div>
+
+                {/* More Courses Section */}
+                {instructorCourses.length > 0 && (
+                    <div className="mt-16 pt-8 border-t border-border">
+                        <h2 className="text-2xl font-bold text-foreground mb-6">Eğitmenin Diğer Kursları</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {instructorCourses.map(c => (
+                                <CourseCard key={c.id} course={c} />
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
+
             {/* Registration Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">

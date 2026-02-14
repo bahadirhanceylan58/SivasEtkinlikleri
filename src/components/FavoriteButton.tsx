@@ -8,15 +8,19 @@ import { useAuth } from '@/context/AuthContext';
 
 interface FavoriteButtonProps {
     eventId: string;
+    type?: 'event' | 'course';
     className?: string;
     iconSize?: number;
     showText?: boolean;
 }
 
-export default function FavoriteButton({ eventId, className = "", iconSize = 20, showText = false }: FavoriteButtonProps) {
+export default function FavoriteButton({ eventId, type = 'event', className = "", iconSize = 20, showText = false }: FavoriteButtonProps) {
     const { user } = useAuth();
     const [isFavorite, setIsFavorite] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    // Determine target field based on type
+    const targetField = type === 'course' ? 'favoriteCourses' : 'favorites';
 
     useEffect(() => {
         const checkFavoriteStatus = async () => {
@@ -24,7 +28,7 @@ export default function FavoriteButton({ eventId, className = "", iconSize = 20,
             try {
                 const userDoc = await getDoc(doc(db, "users", user.uid));
                 if (userDoc.exists()) {
-                    const favorites = userDoc.data().favorites || [];
+                    const favorites = userDoc.data()[targetField] || [];
                     setIsFavorite(favorites.includes(eventId));
                 }
             } catch (error) {
@@ -33,14 +37,14 @@ export default function FavoriteButton({ eventId, className = "", iconSize = 20,
         };
 
         checkFavoriteStatus();
-    }, [user, eventId]);
+    }, [user, eventId, targetField]);
 
     const toggleFavorite = async (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
 
         if (!user) {
-            alert("Favorilere eklemek için giriş yapmalısınız.");
+            alert(`Favorilere eklemek için giriş yapmalısınız.`);
             return;
         }
 
@@ -52,17 +56,17 @@ export default function FavoriteButton({ eventId, className = "", iconSize = 20,
             const userDoc = await getDoc(userRef);
 
             if (!userDoc.exists()) {
-                await setDoc(userRef, { favorites: [] }, { merge: true });
+                await setDoc(userRef, { [targetField]: [] }, { merge: true });
             }
 
             if (isFavorite) {
                 await updateDoc(userRef, {
-                    favorites: arrayRemove(eventId)
+                    [targetField]: arrayRemove(eventId)
                 });
                 setIsFavorite(false);
             } else {
                 await updateDoc(userRef, {
-                    favorites: arrayUnion(eventId)
+                    [targetField]: arrayUnion(eventId)
                 });
                 setIsFavorite(true);
             }

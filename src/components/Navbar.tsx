@@ -9,6 +9,9 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { X, Ticket, Shield, LogOut, Info, Search, Home, Calendar, Users, MapPin, Mail, Sun, Moon, BookOpen, Menu, User, LogIn, UserPlus, LayoutDashboard } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
+import { useNotifications } from '@/context/NotificationContext';
+import NotificationDropdown from './NotificationDropdown';
+import { Bell } from 'lucide-react';
 
 export default function Navbar() {
     const { user, loading, isAdmin } = useAuth();
@@ -18,6 +21,8 @@ export default function Navbar() {
     const [showDropdown, setShowDropdown] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [isOpen, setIsOpen] = useState(false); // Renamed to matches user snippet somewhat, but keeping logic consistent
+    const { unreadCount } = useNotifications();
+    const [showNotifications, setShowNotifications] = useState(false);
 
     // Search State
     const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -152,15 +157,57 @@ export default function Navbar() {
                                 <Search className="w-5 h-5" />
                             </button>
 
+
                             {/* Theme Toggle Button */}
                             <button
                                 onClick={toggleTheme}
-                                className="p-2 rounded-full hover:bg-white/10 transition-colors text-gray-300 hover:text-primary"
+                                className="p-2 rounded-full hover:bg-white/10 transition-colors text-gray-300 hover:text-primary mr-2"
                             >
                                 {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                             </button>
 
+                            {/* Notification Bell */}
+                            {user && (
+                                <div className="relative mr-2">
+                                    <button
+                                        onClick={() => setShowNotifications(!showNotifications)}
+                                        className="p-2 rounded-full hover:bg-white/10 transition-colors text-gray-300 hover:text-primary relative"
+                                    >
+                                        <Bell className="w-5 h-5" />
+                                        {unreadCount > 0 && (
+                                            <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-black">
+                                                {unreadCount > 9 ? '9+' : unreadCount}
+                                            </span>
+                                        )}
+                                    </button>
+                                    {showNotifications && (
+                                        <NotificationDropdown onClose={() => setShowNotifications(false)} />
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Notification Bell */}
+                            {user && (
+                                <div className="relative mr-2">
+                                    <button
+                                        onClick={() => setShowNotifications(!showNotifications)}
+                                        className="p-2 rounded-full hover:bg-white/10 transition-colors text-gray-300 hover:text-primary relative"
+                                    >
+                                        <Bell className="w-5 h-5" />
+                                        {unreadCount > 0 && (
+                                            <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-black">
+                                                {unreadCount > 9 ? '9+' : unreadCount}
+                                            </span>
+                                        )}
+                                    </button>
+                                    {showNotifications && (
+                                        <NotificationDropdown onClose={() => setShowNotifications(false)} />
+                                    )}
+                                </div>
+                            )}
+
                             {isSearchOpen && (
+                                // ...
                                 <button
                                     onClick={() => {
                                         setIsSearchOpen(false);

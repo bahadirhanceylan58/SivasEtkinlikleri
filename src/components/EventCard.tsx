@@ -21,8 +21,8 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
         <Link href={`/etkinlik/${event.id}`} className="group block h-full">
             <div className="glass rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-500 hover:shadow-glow-lg flex flex-col h-full transform hover:scale-[1.02] hover:-translate-y-1 bg-card border-border">
 
-                {/* Image Section */}
-                <div className="relative h-48 w-full overflow-hidden bg-muted">
+                {/* Image Section - Modified for Vertical Poster Format (3/4) */}
+                <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
                     {event.imageUrl ? (
                         <>
                             <Image

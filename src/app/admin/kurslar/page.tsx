@@ -40,6 +40,38 @@ export default function AdminCourses() {
         }
     };
 
+    const handleStatusUpdate = async (courseId: string, newStatus: 'approved' | 'rejected') => {
+        if (!confirm(`Bu kursu ${newStatus === 'approved' ? 'onaylamak' : 'reddetmek'} istediğinize emin misiniz?`)) return;
+
+        try {
+            await updateDoc(doc(db, 'courses', courseId), {
+                status: newStatus
+            });
+
+            // Send notification to instructor
+            const course = courses.find(c => c.id === courseId);
+            if (course && course.instructorId) {
+                await addDoc(collection(db, 'notifications'), {
+                    userId: course.instructorId,
+                    type: newStatus === 'approved' ? 'approval' : 'error', // 'error' used for rejection red icon
+                    title: newStatus === 'approved' ? 'Kursunuz Onaylandı! 🎉' : 'Kursunuz Reddedildi',
+                    message: newStatus === 'approved'
+                        ? `"${course.title}" başlıklı kursunuz yayına alındı. Bol öğrencili dileriz!`
+                        : `"${course.title}" başlıklı kursunuz kriterlere uymadığı için reddedildi.`,
+                    link: `/kurslar/${courseId}`,
+                    read: false,
+                    createdAt: new Date()
+                });
+            }
+
+            setCourses(courses.filter(c => c.id !== courseId)); // Remove from list since list shows pending
+            alert(`Kurs başarıyla ${newStatus === 'approved' ? 'onaylandı' : 'reddedildi'}.`);
+        } catch (error) {
+            console.error("Error updating status:", error);
+            alert("İşlem sırasında bir hata oluştu.");
+        }
+    };
+
     return (
         <div className="p-6 text-white min-h-screen">
             <h1 className="text-3xl font-bold mb-8 flex items-center gap-2">

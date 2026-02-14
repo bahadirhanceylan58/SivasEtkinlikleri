@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/Providers";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import CookieBanner from "@/components/CookieBanner";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -52,9 +53,11 @@ export default function RootLayout({
     <html lang="tr">
       <body className={`${inter.variable} ${playfair.variable} ${outfit.variable}`}>
         <Providers>
-          {children}
-          <PWAInstallPrompt />
-          <CookieBanner />
+          <NotificationProvider>
+            {children}
+            <PWAInstallPrompt />
+            <CookieBanner />
+          </NotificationProvider>
         </Providers>
       </body>
     </html>
