@@ -11,9 +11,13 @@ import Footer from '@/components/Footer';
 import Modal from '@/components/Modal';
 import { QRCodeSVG } from 'qrcode.react';
 import Image from 'next/image';
+import { QRCodeSVG } from 'qrcode.react';
+import Image from 'next/image';
 import FavoriteButton from '@/components/FavoriteButton';
+import CourseCard from '@/components/CourseCard';
+import { MessageCircle, Star, BookOpen, HelpCircle } from 'lucide-react';
 
-type TabType = 'overview' | 'tickets' | 'favorites' | 'clubs' | 'applications' | 'settings';
+type TabType = 'overview' | 'tickets' | 'favorites' | 'clubs' | 'courses' | 'questions' | 'reviews' | 'applications' | 'settings';
 
 export default function ProfilePage() {
     const { user, loading: authLoading, logout } = useAuth();
@@ -23,6 +27,9 @@ export default function ProfilePage() {
     const [applications, setApplications] = useState<any[]>([]);
     const [favorites, setFavorites] = useState<any[]>([]);
     const [joinedClubs, setJoinedClubs] = useState<any[]>([]);
+    const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
+    const [myQuestions, setMyQuestions] = useState<any[]>([]);
+    const [myReviews, setMyReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -83,10 +90,53 @@ export default function ProfilePage() {
             }
 
             // Fetch Applications
-            const q = query(collection(db, 'club_applications'), where("userId", "==", user.uid));
-            const querySnapshot = await getDocs(q);
-            const apps = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const qApps = query(collection(db, 'club_applications'), where("userId", "==", user.uid));
+            const appsSnapshot = await getDocs(qApps);
+            const apps = appsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setApplications(apps);
+
+            // Fetch Enrolled Courses
+            const qEnrollments = query(collection(db, 'course_enrollments'), where("userId", "==", user.uid));
+            const enrollmentsSnapshot = await getDocs(qEnrollments);
+            const courseIds = enrollmentsSnapshot.docs.map(doc => doc.data().courseId);
+
+            if (courseIds.length > 0) {
+                const coursesData = await Promise.all(courseIds.map(async (cId) => {
+                    const cDoc = await getDoc(doc(db, 'courses', cId));
+                    return cDoc.exists() ? { id: cDoc.id, ...cDoc.data() } : null;
+                }));
+                setEnrolledCourses(coursesData.filter(c => c !== null));
+            }
+
+            // Fetch My Questions
+            const qQuestions = query(collection(db, 'questions'), where("userId", "==", user.uid));
+            const questionsSnapshot = await getDocs(qQuestions);
+            // We need course titles for questions
+            const questionsData = await Promise.all(questionsSnapshot.docs.map(async (d) => {
+                const qData = d.data();
+                let courseTitle = 'Bilinmeyen Kurs';
+                if (qData.courseId) {
+                    const cDoc = await getDoc(doc(db, 'courses', qData.courseId));
+                    if (cDoc.exists()) courseTitle = cDoc.data().title;
+                }
+                return { id: d.id, ...qData, courseTitle };
+            }));
+            setMyQuestions(questionsData);
+
+            // Fetch My Reviews
+            const qReviews = query(collection(db, 'reviews'), where("userId", "==", user.uid));
+            const reviewsSnapshot = await getDocs(qReviews);
+            // We need course titles for reviews
+            const reviewsData = await Promise.all(reviewsSnapshot.docs.map(async (d) => {
+                const rData = d.data();
+                let courseTitle = 'Bilinmeyen Kurs';
+                if (rData.courseId) {
+                    const cDoc = await getDoc(doc(db, 'courses', rData.courseId));
+                    if (cDoc.exists()) courseTitle = cDoc.data().title;
+                }
+                return { id: d.id, ...rData, courseTitle };
+            }));
+            setMyReviews(reviewsData);
 
         } catch (error) {
             console.error("Error fetching data:", error);
@@ -148,15 +198,18 @@ export default function ProfilePage() {
     const stats = [
         { icon: Ticket, label: 'Biletler', value: tickets.length, color: 'text-blue-500', bg: 'bg-blue-500/10' },
         { icon: Users, label: 'Kulüpler', value: joinedClubs.length, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-        { icon: Calendar, label: 'Etkinlikler', value: tickets.length, color: 'text-green-500', bg: 'bg-green-500/10' },
+        { icon: BookOpen, label: 'Kurslar', value: enrolledCourses.length, color: 'text-orange-500', bg: 'bg-orange-500/10' },
         { icon: Heart, label: 'Favoriler', value: favorites.length, color: 'text-pink-500', bg: 'bg-pink-500/10' }
     ];
 
     const tabs = [
         { id: 'overview' as TabType, label: 'Genel Bakış', icon: Activity },
         { id: 'tickets' as TabType, label: 'Biletlerim', icon: Ticket },
+        { id: 'courses' as TabType, label: 'Kurslarım', icon: BookOpen },
         { id: 'favorites' as TabType, label: 'Favorilerim', icon: Heart },
         { id: 'clubs' as TabType, label: 'Kulüplerim', icon: Users },
+        { id: 'questions' as TabType, label: 'Sorularım', icon: HelpCircle },
+        { id: 'reviews' as TabType, label: 'Değerlendirmelerim', icon: Star },
         { id: 'applications' as TabType, label: 'Başvurularım', icon: FileText },
         { id: 'settings' as TabType, label: 'Ayarlar', icon: Settings }
     ];
@@ -391,6 +444,114 @@ export default function ProfilePage() {
                                                     <QRCodeSVG value={ticket.qrCode} size={80} />
                                                 </div>
                                             </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+
+                        {/* My Courses Tab */}
+                        {activeTab === 'courses' && (
+                            <div>
+                                {enrolledCourses.length === 0 ? (
+                                    <div className="text-center py-12 glass-strong rounded-2xl border border-border">
+                                        <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                                        <h3 className="text-xl font-bold text-foreground mb-2">Henüz Bir Kursa Kayıtlı Değilsiniz</h3>
+                                        <p className="text-muted-foreground mb-6">Kendinizi geliştirmek için kurslara göz atın!</p>
+                                        <button
+                                            onClick={() => router.push('/kurslar')}
+                                            className="px-6 py-3 bg-primary hover:bg-primary-hover text-black font-bold rounded-xl transition-all"
+                                        >
+                                            Kursları Keşfet
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {enrolledCourses.map((course: any) => (
+                                            <CourseCard key={course.id} course={course} />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* My Questions Tab */}
+                        {activeTab === 'questions' && (
+                            <div className="space-y-4">
+                                {myQuestions.length === 0 ? (
+                                    <div className="text-center py-12 glass-strong rounded-2xl border border-border">
+                                        <HelpCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                                        <h3 className="text-xl font-bold text-foreground mb-2">Henüz Soru Sormadınız</h3>
+                                        <p className="text-muted-foreground">Kafanıza takılanları eğitmenlere sorabilirsiniz.</p>
+                                    </div>
+                                ) : (
+                                    myQuestions.map((q: any) => (
+                                        <div key={q.id} className="glass-strong p-6 rounded-xl border border-border hover:border-primary/30 transition-all">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <h4 className="font-bold text-foreground text-lg mb-1">{q.courseTitle}</h4>
+                                                    <p className="text-sm text-muted-foreground">{new Date(q.createdAt?.seconds * 1000).toLocaleDateString('tr-TR')}</p>
+                                                </div>
+                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${q.isAnswered ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'}`}>
+                                                    {q.isAnswered ? 'Yanıtlandı' : 'Bekliyor'}
+                                                </span>
+                                            </div>
+                                            <div className="bg-white/5 p-4 rounded-lg mb-4">
+                                                <p className="text-foreground">{q.text}</p>
+                                            </div>
+                                            {q.answer && (
+                                                <div className="bg-primary/5 border-l-4 border-primary p-4 rounded-r-lg">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <MessageCircle className="w-4 h-4 text-primary" />
+                                                        <span className="font-bold text-primary">Eğitmen Yanıtı</span>
+                                                    </div>
+                                                    <p className="text-foreground/90 text-sm">{q.answer}</p>
+                                                </div>
+                                            )}
+                                            <button
+                                                onClick={() => router.push(`/kurslar/${q.courseId}?tab=qa`)}
+                                                className="mt-4 text-sm text-primary hover:text-primary-hover font-medium flex items-center gap-1"
+                                            >
+                                                Kursa Git <BookOpen className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+
+                        {/* My Reviews Tab */}
+                        {activeTab === 'reviews' && (
+                            <div className="space-y-4">
+                                {myReviews.length === 0 ? (
+                                    <div className="text-center py-12 glass-strong rounded-2xl border border-border">
+                                        <Star className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                                        <h3 className="text-xl font-bold text-foreground mb-2">Henüz Değerlendirme Yapmadınız</h3>
+                                        <p className="text-muted-foreground">Katıldığınız kursları değerlendirerek diğer öğrencilere yardımcı olun.</p>
+                                    </div>
+                                ) : (
+                                    myReviews.map((r: any) => (
+                                        <div key={r.id} className="glass-strong p-6 rounded-xl border border-border hover:border-primary/30 transition-all">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div>
+                                                    <h4 className="font-bold text-foreground text-lg mb-1">{r.courseTitle}</h4>
+                                                    <div className="flex items-center gap-1">
+                                                        {Array.from({ length: 5 }).map((_, i) => (
+                                                            <Star key={i} className={`w-4 h-4 ${i < r.rating ? 'fill-yellow-500 text-yellow-500' : 'text-gray-600'}`} />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {new Date(r.createdAt?.seconds * 1000).toLocaleDateString('tr-TR')}
+                                                </span>
+                                            </div>
+                                            <p className="text-foreground/90 italic">"{r.comment}"</p>
+                                            <button
+                                                onClick={() => router.push(`/kurslar/${r.courseId}?tab=reviews`)}
+                                                className="mt-4 text-sm text-primary hover:text-primary-hover font-medium flex items-center gap-1"
+                                            >
+                                                Kursa Git <BookOpen className="w-3 h-3" />
+                                            </button>
                                         </div>
                                     ))
                                 )}

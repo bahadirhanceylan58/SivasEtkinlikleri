@@ -49,7 +49,7 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
     };
 
     return (
-        <div ref={dropdownRef} className="absolute right-0 mt-2 w-80 sm:w-96 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-slideInDown z-50">
+        <div ref={dropdownRef} className="absolute right-0 mt-2 w-[85vw] sm:w-96 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-slideInDown z-50">
             <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
                 <h3 className="font-semibold text-white">Bildirimler</h3>
                 {unreadCount > 0 && (
