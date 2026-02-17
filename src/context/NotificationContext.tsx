@@ -46,26 +46,35 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
             return;
         }
 
-        const q = query(
-            collection(db, 'notifications'),
-            where('userId', '==', user.uid),
-            orderBy('createdAt', 'desc')
-        );
+        let unsubscribe: (() => void) | undefined;
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const notifs = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            } as Notification));
+        try {
+            const q = query(
+                collection(db, 'notifications'),
+                where('userId', '==', user.uid),
+                orderBy('createdAt', 'desc')
+            );
 
-            setNotifications(notifs);
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                const notifs = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                } as Notification));
+
+                setNotifications(notifs);
+                setLoading(false);
+            }, (error) => {
+                console.error("Error listening to notifications:", error);
+                setLoading(false);
+            });
+        } catch (error) {
+            console.error("Error setting up notification listener:", error);
             setLoading(false);
-        }, (error) => {
-            console.error("Error listening to notifications:", error);
-            setLoading(false);
-        });
+        }
 
-        return () => unsubscribe();
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
     }, [user]);
 
     const unreadCount = notifications.filter(n => !n.read).length;
