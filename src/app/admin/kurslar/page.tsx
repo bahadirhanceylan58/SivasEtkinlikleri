@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Trash2, Edit, Save, X, GraduationCap, Image as ImageIcon, FileText, Calendar, DollarSign, Users } from "lucide-react";
 

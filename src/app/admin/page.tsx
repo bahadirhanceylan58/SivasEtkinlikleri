@@ -171,7 +171,7 @@ export default function AdminPage() {
         if (loading) return;
 
         if (!user) {
-            router.push('/giris');
+            router.push('/login');
             return;
         }
 
@@ -706,7 +706,10 @@ export default function AdminPage() {
                 <Menu className="w-6 h-6" />
             </button>
 
-            <aside className={`fixed inset-y-0 left-0 w-64 bg-background border-r border-border z-[100] transform transition-transform duration-300 lg:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <aside
+                className={`fixed inset-y-0 left-0 w-72 bg-background border-r border-border z-[100] transform transition-transform duration-300 lg:hidden flex flex-col overflow-y-auto ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                style={{ WebkitOverflowScrolling: 'touch' }}
+            >
                 <SidebarContent />
             </aside>
 

@@ -11,8 +11,6 @@ import Footer from '@/components/Footer';
 import Modal from '@/components/Modal';
 import { QRCodeSVG } from 'qrcode.react';
 import Image from 'next/image';
-import { QRCodeSVG } from 'qrcode.react';
-import Image from 'next/image';
 import FavoriteButton from '@/components/FavoriteButton';
 import CourseCard from '@/components/CourseCard';
 import { MessageCircle, Star, BookOpen, HelpCircle } from 'lucide-react';

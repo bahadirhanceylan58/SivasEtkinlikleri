@@ -186,26 +186,6 @@ export default function Navbar() {
                                 </div>
                             )}
 
-                            {/* Notification Bell */}
-                            {user && (
-                                <div className="relative mr-2">
-                                    <button
-                                        onClick={() => setShowNotifications(!showNotifications)}
-                                        className="p-2 rounded-full hover:bg-white/10 transition-colors text-gray-300 hover:text-primary relative"
-                                    >
-                                        <Bell className="w-5 h-5" />
-                                        {unreadCount > 0 && (
-                                            <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-black">
-                                                {unreadCount > 9 ? '9+' : unreadCount}
-                                            </span>
-                                        )}
-                                    </button>
-                                    {showNotifications && (
-                                        <NotificationDropdown onClose={() => setShowNotifications(false)} />
-                                    )}
-                                </div>
-                            )}
-
                             {isSearchOpen && (
                                 // ...
                                 <button

@@ -9,11 +9,15 @@ import Link from 'next/link';
 import {
     Clock, Users, Calendar, Award, BookOpen, Star,
     ChevronRight, CheckCircle2, Play, Download,
-    User, Mail, ArrowLeft, X, Phone
+    User, Mail, ArrowLeft, X, Phone, Share2,
+    List, PlayCircle, MessageCircle, FileText
 } from 'lucide-react';
 import Image from 'next/image';
 import ReviewSection from '@/components/ReviewSection';
 import ViewTracker from '@/components/ViewTracker';
+import FavoriteButton from '@/components/FavoriteButton';
+import CourseCard from '@/components/CourseCard';
+import QuestionSection from '@/components/QuestionSection';
 
 interface Course {
     id: string;
@@ -59,11 +63,22 @@ export default function CourseDetailClient({ id }: CourseDetailClientProps) {
     const [enrolling, setEnrolling] = useState(false);
     const [isEnrolled, setIsEnrolled] = useState(false);
     const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState('overview');
+    const [instructorCourses, setInstructorCourses] = useState<any[]>([]);
 
     // Modal State
     const [showModal, setShowModal] = useState(false);
     const [phone, setPhone] = useState("");
     const [note, setNote] = useState("");
+
+    const handleShare = async () => {
+        try {
+            await navigator.share({ title: course?.title, url: window.location.href });
+        } catch {
+            navigator.clipboard.writeText(window.location.href);
+            alert('Link kopyalandı!');
+        }
+    };
 
     useEffect(() => {
         const fetchCourse = async () => {

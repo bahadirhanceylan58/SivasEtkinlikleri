@@ -379,3 +379,29 @@ select::placeholder {
   color: hsl(var(--foreground)) !important;
   opacity: 0.7 !important;
 }
+
+/* iOS Uyumluluğu */
+/* iOS'ta input'a focus olunca zoom yapmasını engelle */
+@supports (-webkit-touch-callout: none) {
+
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* iOS Safe Area Desteği */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Mobil sidebar scroll iyileştirmesi */
+.mobile-sidebar-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
