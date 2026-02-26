@@ -401,3 +401,87 @@ export const NewsletterWelcomeEmail: React.FC<NewsletterWelcomeEmailProps> = ({
         </div>
     </div>
 );
+export interface TicketConfirmationEmailProps {
+    userName: string;
+    eventTitle: string;
+    eventDate: string;
+    eventLocation: string;
+    qrCode: string;
+    ticketCount: number;
+    totalAmount: number;
+    seats?: string;
+}
+
+export const TicketConfirmationEmail: React.FC<TicketConfirmationEmailProps> = ({
+    userName,
+    eventTitle,
+    eventDate,
+    eventLocation,
+    qrCode,
+    ticketCount,
+    totalAmount,
+    seats,
+}) => {
+    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrCode}`;
+
+    return (
+        <div style={emailStyles.container}>
+            <div style={emailStyles.card}>
+                <h1 style={emailStyles.header}>🎫 Biletiniz Hazır!</h1>
+
+                <p style={emailStyles.text}>
+                    Merhaba <strong>{userName}</strong>,
+                </p>
+
+                <p style={emailStyles.text}>
+                    Ödemeniz başarıyla tamamlandı. <strong>{eventTitle}</strong> etkinliği için biletiniz aşağıdadır.
+                </p>
+
+                <div style={emailStyles.highlight}>
+                    <p style={{ ...emailStyles.text, marginBottom: '8px' }}>
+                        <strong>🕒 Tarih:</strong> {eventDate}
+                    </p>
+                    <p style={{ ...emailStyles.text, marginBottom: '8px' }}>
+                        <strong>📍 Konum:</strong> {eventLocation}
+                    </p>
+                    <p style={{ ...emailStyles.text, marginBottom: '8px' }}>
+                        <strong>👥 Adet:</strong> {ticketCount} Bilet
+                    </p>
+                    {seats && (
+                        <p style={{ ...emailStyles.text, marginBottom: '8px' }}>
+                            <strong>💺 Koltuklar:</strong> {seats}
+                        </p>
+                    )}
+                    <p style={{ ...emailStyles.text, marginBottom: '0' }}>
+                        <strong>💰 Tutar:</strong> {totalAmount}₺
+                    </p>
+                </div>
+
+                <div style={{ textAlign: 'center', margin: '30px 0' }}>
+                    <p style={{ ...emailStyles.text, fontSize: '14px', marginBottom: '10px' }}>
+                        Girişte bu QR kodu okutabilirsiniz:
+                    </p>
+                    <img
+                        src={qrImageUrl}
+                        alt="QR Bilet"
+                        style={{ display: 'inline-block', border: '10px solid #fff', borderRadius: '4px' }}
+                        width="150"
+                        height="150"
+                    />
+                    <p style={{ ...emailStyles.text, fontSize: '12px', marginTop: '10px', color: '#9ca3af' }}>
+                        Kod: {qrCode}
+                    </p>
+                </div>
+
+                <p style={emailStyles.text}>
+                    Keyifli bir etkinlik dileriz! Biletinize dilediğiniz zaman profilinizdeki "Biletlerim" sekmesinden de ulaşabilirsiniz.
+                </p>
+
+                <div style={emailStyles.footer}>
+                    <p>Sivas Etkinlikleri - Şehrin Sosyal Rehberi</p>
+                    <p>© {new Date().getFullYear()} Sivas Etkinlikleri</p>
+                </div>
+            </div>
+        </div>
+    );
+};

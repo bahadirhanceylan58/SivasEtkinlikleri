@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generatePaytrToken } from '@/lib/paytr';
 import { rateLimiter, RATE_LIMITS, getClientIdentifier } from '@/lib/rateLimit';
 import { logAudit, getClientInfo } from '@/lib/auditLog';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase'; // Note: Client SDK used in Edge/Node runtime, ensure it works or use admin SDK. Here we use what is available.
 
 export async function POST(request: NextRequest) {
@@ -65,7 +65,24 @@ export async function POST(request: NextRequest) {
 
         const paytrTokenValue = await generatePaytrToken(paytrParams);
 
-        // 4. Audit Log Success
+        // 4. Save pending order to Firestore for callback processing
+        const orderRef = doc(db, 'orders', basketId);
+        await setDoc(orderRef, {
+            userId: user.uid,
+            userEmail: user.email,
+            userName: user.displayName,
+            userPhone: user.phoneNumber,
+            eventId: event.id,
+            eventTitle: event.title,
+            amount: amount,
+            basketId: basketId,
+            status: 'pending',
+            createdAt: serverTimestamp(),
+            // Store raw body for reconstruction if needed
+            body: body
+        });
+
+        // 5. Audit Log Success
         const clientInfo = getClientInfo(request.headers);
         await logAudit({
             userId: user.uid,

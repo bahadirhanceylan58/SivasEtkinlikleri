@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, getDoc, arrayUnion } from 'firebase/firestore';
+import { sendEmail } from '@/lib/email';
+import { TicketConfirmationEmail } from '@/lib/emailTemplates';
 
 export async function POST(request: NextRequest) {
     try {
@@ -40,17 +42,89 @@ export async function POST(request: NextRequest) {
         }
 
         if (status === 'success') {
-            // Find the reservation in Firestore by merchant_oid (basketId / qrCode)
             console.log(`Payment successful for order: ${merchant_oid}`);
-            // Logic to update reservation status in Firestore would go here.
-            // But since reservation is added AFTER initialize in PaymentPageClient, we need to adapt.
-            // Currently, PaymentPageClient creates the ticket/reservation document upon getting "success" from initialize.
-            // In a real webhook, the ticket should be marked "paid" here.
 
-            // Return OK so PayTR knows we received the callback
+            // 1. Get the order from Firestore
+            const orderDocRef = doc(db, 'orders', merchant_oid);
+            const orderSnap = await getDoc(orderDocRef);
+
+            if (orderSnap.exists()) {
+                const orderData = orderSnap.data();
+
+                // 2. Update order status
+                await updateDoc(orderDocRef, {
+                    status: 'paid',
+                    paytrStatus: status,
+                    paymentAmount: payment_amount,
+                    updatedAt: new Date().toISOString()
+                });
+
+                // 3. Update the ticket status in user's profile and event reservations
+                // We find them by qrCode (which is merchant_oid)
+
+                // Update User's Ticket
+                const userRef = doc(db, 'users', orderData.userId);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    const userData = userSnap.data();
+                    const updatedTickets = (userData.tickets || []).map((t: any) => {
+                        if (t.qrCode === merchant_oid) {
+                            return { ...t, status: 'valid', paymentStatus: 'paid' };
+                        }
+                        return t;
+                    });
+                    await updateDoc(userRef, { tickets: updatedTickets });
+                }
+
+                // Update Event Reservation
+                const reservationQuery = query(
+                    collection(db, 'events', orderData.eventId, 'reservations'),
+                    where('qrCode', '==', merchant_oid)
+                );
+                const reservationSnap = await getDocs(reservationQuery);
+                for (const resDoc of reservationSnap.docs) {
+                    await updateDoc(resDoc.ref, {
+                        paymentStatus: 'paid',
+                        status: 'valid'
+                    });
+                }
+
+                // 4. Send Confirmation Email
+                try {
+                    await sendEmail({
+                        to: orderData.userEmail,
+                        subject: `Biletiniz Hazır! - ${orderData.eventTitle}`,
+                        react: TicketConfirmationEmail({
+                            userName: orderData.userName || 'Değerli Misafirimiz',
+                            eventTitle: orderData.eventTitle,
+                            eventDate: orderData.body?.event?.date || 'Etkinlik Tarihi',
+                            eventLocation: orderData.body?.event?.location || 'Etkinlik Alanı',
+                            qrCode: merchant_oid,
+                            ticketCount: orderData.body?.ticketCount || 1,
+                            totalAmount: Number(payment_amount) / 100, // PayTR sends amount in kuruş
+                            seats: orderData.body?.selectedSeats?.map((s: any) => `${s.row}-${s.seat}`).join(', ')
+                        })
+                    });
+                } catch (emailError) {
+                    console.error('Callback Email Error:', emailError);
+                }
+
+            } else {
+                console.error(`Order not found for callback: ${merchant_oid}`);
+            }
+
             return new NextResponse('OK', { status: 200, headers: { 'Content-Type': 'text/plain' } });
         } else {
             console.error(`Payment failed for order ${merchant_oid}: ${failed_reason_msg}`);
+
+            // Mark order as failed
+            const orderDocRef = doc(db, 'orders', merchant_oid);
+            await updateDoc(orderDocRef, {
+                status: 'failed',
+                failedReason: failed_reason_msg,
+                updatedAt: new Date().toISOString()
+            }).catch(() => { });
+
             return new NextResponse('OK', { status: 200, headers: { 'Content-Type': 'text/plain' } });
         }
 
