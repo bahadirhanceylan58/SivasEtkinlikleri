@@ -38,6 +38,13 @@ export async function POST(request: NextRequest) {
         // Convert amount to kuruş
         const amountInKurus = Math.round(Number(amount) * 100);
 
+        const protocol = request.headers.get('x-forwarded-proto') || 'https';
+        const host = request.headers.get('host') || 'www.sivasetkinlikleri.com';
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`;
+
+        const okUrl = `${baseUrl}/odeme-basarili`;
+        const failUrl = `${baseUrl}/odeme-basarisiz`;
+
         // 3. Generate PayTR Token
         const paytrParams = {
             userEmail: user.email || 'no-email@sivasetkinlik.com',
@@ -51,8 +58,8 @@ export async function POST(request: NextRequest) {
             basket: [
                 [event.title || 'Bilet', amount.toString(), 1]
             ] as Array<[string, string, number]>,
-            merchantOkUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/odeme-basarili`,
-            merchantFailUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/odeme-basarisiz`,
+            merchantOkUrl: okUrl,
+            merchantFailUrl: failUrl,
             testMode: 1 as const // Enable test mode by default
         };
 
