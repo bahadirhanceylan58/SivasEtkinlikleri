@@ -331,7 +331,7 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                 errorMessage: (error as Error).message,
             });
 
-            alert('Bir hata oluştu.');
+            alert(`Bir hata oluştu: ${(error as Error).message}`);
         } finally {
             setProcessing(false);
         }

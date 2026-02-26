@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
             merchantOid: basketId,
             paymentAmount: amountInKurus,
             currency: 'TL' as const,
-            userIp: getClientInfo(request.headers).ipAddress || '127.0.0.1',
+            userIp: (getClientInfo(request.headers).ipAddress || '127.0.0.1').split(',')[0].trim(),
             basket: [
                 [event.title || 'Bilet', amount.toString(), 1]
             ] as Array<[string, string, number]>,
@@ -96,6 +96,6 @@ export async function POST(request: NextRequest) {
             ...clientInfo,
         });
 
-        return NextResponse.json({ status: 'error', message: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ status: 'error', errorMessage: (error as Error).message }, { status: 500 });
     }
 }
