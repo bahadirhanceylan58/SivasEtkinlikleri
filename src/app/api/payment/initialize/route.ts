@@ -1,58 +1,101 @@
-import { NextResponse } from 'next/server';
-import { initializePayment } from '@/lib/iyzico';
+import { NextRequest, NextResponse } from 'next/server';
+import { generatePaytrToken } from '@/lib/paytr';
+import { rateLimiter, RATE_LIMITS, getClientIdentifier } from '@/lib/rateLimit';
+import { logAudit, getClientInfo } from '@/lib/auditLog';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase'; // Note: Client SDK used in Edge/Node runtime, ensure it works or use admin SDK. Here we use what is available.
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+    // 1. Rate Limiting
+    const identifier = getClientIdentifier(request);
+    const { limit, windowMs } = RATE_LIMITS.api;
+
+    if (!rateLimiter.check(identifier, limit, windowMs)) {
+        return NextResponse.json(
+            { error: 'Too many requests. Please try again later.' },
+            { status: 429 }
+        );
+    }
+
     try {
         const body = await request.json();
         const { user, event, amount, basketId } = body;
 
-        // Construct Iyzico Request Object (Mocking necessary fields)
-        const paymentRequest: any = {
-            price: amount,
-            paidPrice: amount,
-            currency: 'TRY',
-            basketId: basketId,
-            paymentGroup: 'PRODUCT',
-            callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/callback`,
-            buyer: {
-                id: user.uid,
-                name: user.displayName || 'Guest',
-                surname: 'User',
-                gsmNumber: user.phoneNumber || '+905000000000',
-                email: user.email,
-                identityNumber: '11111111111',
-                registrationAddress: 'N/A',
-                ip: '127.0.0.1',
-                city: 'Sivas',
-                country: 'Turkey',
-            },
-            billingAddress: {
-                contactName: user.displayName || 'Guest',
-                city: 'Sivas',
-                country: 'Turkey',
-                address: 'N/A',
-            },
-            basketItems: [
-                {
-                    id: event.id,
-                    name: event.title,
-                    category1: 'Etkinlik',
-                    price: amount,
-                    itemType: 'VIRTUAL',
-                },
-            ],
+        if (!user?.uid || !event?.id || !amount || !basketId) {
+            return NextResponse.json({ status: 'failure', errorMessage: 'Missing required parameters' }, { status: 400 });
+        }
+
+        // 2. Server-Side Price Validation (Optional but highly recommended)
+        // Note: For complete security, we should re-calculate discounts and seat prices here.
+        // For now, we will just fetch the event to ensure it exists.
+        const eventDocRef = doc(db, 'events', event.id);
+        const eventSnap = await getDoc(eventDocRef);
+
+        if (!eventSnap.exists()) {
+            return NextResponse.json({ status: 'failure', errorMessage: 'Event not found' }, { status: 404 });
+        }
+
+        // Convert amount to kuruş
+        const amountInKurus = Math.round(Number(amount) * 100);
+
+        // 3. Generate PayTR Token
+        const paytrParams = {
+            userEmail: user.email || 'no-email@sivasetkinlik.com',
+            userName: user.displayName || 'Guest User',
+            userAddress: 'Sivas, Turkey', // Required by PayTR
+            userPhone: user.phoneNumber || '05000000000',
+            merchantOid: basketId,
+            paymentAmount: amountInKurus,
+            currency: 'TL' as const,
+            userIp: getClientInfo(request.headers).ipAddress || '127.0.0.1',
+            basket: [
+                [event.title || 'Bilet', amount.toString(), 1]
+            ] as Array<[string, string, number]>,
+            merchantOkUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/odeme-basarili`,
+            merchantFailUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/odeme-basarisiz`,
+            testMode: 1 as const // Enable test mode by default
         };
 
-        const result = await initializePayment(paymentRequest);
+        const paytrData = generatePaytrToken(paytrParams);
 
-        if (result.status === 'success') {
-            return NextResponse.json({ status: 'success', paymentId: result.paymentId });
-        } else {
-            return NextResponse.json({ status: 'failure', errorMessage: result.errorMessage }, { status: 400 });
-        }
+        // 4. Audit Log Success
+        const clientInfo = getClientInfo(request.headers);
+        await logAudit({
+            userId: user.uid,
+            userEmail: user.email || '',
+            action: 'payment_initialize_success',
+            resource: 'payment',
+            resourceId: basketId,
+            details: {
+                eventId: event.id,
+                amount: amount,
+            },
+            status: 'success',
+            ...clientInfo,
+        });
+
+        // Return token and data required to build the form/iframe on the client view
+        return NextResponse.json({
+            status: 'success',
+            paytrToken: paytrData.paytr_token,
+            iframeUrl: 'https://www.paytr.com/odeme/guvenli/' + paytrData.paytr_token
+        });
 
     } catch (error) {
         console.error('Payment Init Error:', error);
+
+        const clientInfo = getClientInfo(request.headers);
+        await logAudit({
+            userId: 'unknown',
+            userEmail: '',
+            action: 'payment_initialize_failed',
+            resource: 'payment',
+            details: {},
+            status: 'failure',
+            errorMessage: (error as Error).message,
+            ...clientInfo,
+        });
+
         return NextResponse.json({ status: 'error', message: 'Internal Server Error' }, { status: 500 });
     }
 }

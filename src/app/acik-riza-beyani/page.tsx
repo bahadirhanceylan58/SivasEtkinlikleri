@@ -50,7 +50,7 @@ export default function AcikRizaBeyaniPage() {
                         <p className="mb-2">Kişisel verilerimin, hizmetin ifası ve yasal zorunluluklar gereği şu taraflara aktarılmasına onay veriyorum:</p>
                         <ul className="list-disc pl-5 space-y-1 text-gray-400">
                             <li><strong className="text-gray-200">Etkinlik Organizatörleri:</strong> Bilet aldığım etkinliğin giriş kontrollerinin sağlanması amacıyla ilgili organizatör firmaya.</li>
-                            <li><strong className="text-gray-200">Hizmet Sağlayıcılar:</strong> SMS/E-posta gönderimi yapan firmalar, ödeme altyapısı sağlayıcıları (Iyzico vb.), sunucu ve bulut hizmeti sağlayıcıları.</li>
+                            <li><strong className="text-gray-200">Hizmet Sağlayıcılar:</strong> SMS/E-posta gönderimi yapan firmalar, ödeme altyapısı sağlayıcıları (PayTR vb.), sunucu ve bulut hizmeti sağlayıcıları.</li>
                             <li><strong className="text-gray-200">Resmi Kurumlar:</strong> Talep edilmesi halinde Emniyet, Savcılık, Mahkemeler ve diğer yetkili kamu kurumlarına.</li>
                         </ul>
                     </section>

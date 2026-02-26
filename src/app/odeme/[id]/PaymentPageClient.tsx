@@ -188,6 +188,7 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
             const totalAmount = Math.max(0, subtotal - discountAmount);
 
             // 1. ÖNCE ÖDEME (API Call)
+            let paytrUrl = '';
             if (paymentMethod === 'card') {
                 const response = await fetch('/api/payment/initialize', {
                     method: 'POST',
@@ -202,13 +203,15 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.errorMessage || 'Ödeme başlatılamadı');
+                    throw new Error(errorData.errorMessage || errorData.error || 'Ödeme başlatılamadı');
                 }
 
                 const paymentResult = await response.json();
-                if (paymentResult.status !== 'success') {
+                if (paymentResult.status !== 'success' || !paymentResult.iframeUrl) {
                     throw new Error('Ödeme başarısız');
                 }
+
+                paytrUrl = paymentResult.iframeUrl;
             }
 
             // 2. KOLTUKLARI SATIŞA ÇEVİR
@@ -242,9 +245,9 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                 totalAmount: totalAmount,
                 purchaseDate: new Date().toISOString(),
                 qrCode: uniqueQrCode,
-                status: paymentMethod === 'card' ? 'paid' : 'reserved',
+                status: paymentMethod === 'card' ? 'pending_payment' : 'reserved',
                 paymentType: paymentMethod === 'card' ? 'online_card' : 'pay_at_door',
-                paymentStatus: paymentMethod === 'card' ? 'completed' : 'pending',
+                paymentStatus: 'pending', // Will be updated to 'paid' by PayTR webhook
                 contactName: fullName,
                 contactPhone: phoneNumber
             };
@@ -278,7 +281,7 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                 qrCode: uniqueQrCode,
                 status: 'valid',
                 paymentMethod: paymentMethod,
-                paymentStatus: paymentMethod === 'card' ? 'paid' : 'pending',
+                paymentStatus: 'pending', // Will be updated by webhook for cards
                 checkedIn: false
             });
 
@@ -307,7 +310,7 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
             await logAudit({
                 userId: user.uid,
                 userEmail: user.email || '',
-                action: paymentMethod === 'card' ? 'payment_completed' : 'reservation_created',
+                action: paymentMethod === 'card' ? 'payment_initialized' : 'reservation_created',
                 resource: 'tickets',
                 resourceId: uniqueQrCode,
                 details: {
@@ -321,8 +324,13 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                 status: 'success',
             });
 
-            alert(successMessage);
-            router.push('/biletlerim');
+            if (paymentMethod === 'card' && paytrUrl) {
+                // Redirect user to PayTR Checkout page
+                window.location.href = paytrUrl;
+            } else {
+                alert(successMessage);
+                router.push('/biletlerim');
+            }
         } catch (error) {
             console.error("Hata:", error);
 

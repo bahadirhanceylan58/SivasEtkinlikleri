@@ -52,7 +52,7 @@ export default function KisiselVerilerinKorunmasiPage() {
                         <h2 className="text-xl font-bold text-yellow-500 mb-2">4. KİŞİSEL VERİLERİN AKTARILMASI</h2>
                         <p className="mb-2">Verileriniz, hizmetin ifası ve yasal zorunluluklar gereği şu taraflara aktarılabilir:</p>
                         <ul className="list-disc pl-5 space-y-2 text-gray-400">
-                            <li><strong className="text-gray-200">Hizmet Sağlayıcılar:</strong> SMS/E-posta gönderimi yapan firmalar, ödeme altyapısı sağlayıcıları (Iyzico vb.), sunucu hizmeti alınan firmalar.</li>
+                            <li><strong className="text-gray-200">Hizmet Sağlayıcılar:</strong> SMS/E-posta gönderimi yapan firmalar, ödeme altyapısı sağlayıcıları (PayTR vb.), sunucu hizmeti alınan firmalar.</li>
                             <li><strong className="text-gray-200">Resmi Kurumlar:</strong> Yasal bir talep olması halinde Emniyet Müdürlüğü, Savcılıklar, Mahkemeler.</li>
                         </ul>
                     </section>
