@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
             testMode: 1 as const // Enable test mode by default
         };
 
-        const paytrData = generatePaytrToken(paytrParams);
+        const paytrTokenValue = await generatePaytrToken(paytrParams);
 
         // 4. Audit Log Success
         const clientInfo = getClientInfo(request.headers);
@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
         // Return token and data required to build the form/iframe on the client view
         return NextResponse.json({
             status: 'success',
-            paytrToken: paytrData.paytr_token,
-            iframeUrl: 'https://www.paytr.com/odeme/guvenli/' + paytrData.paytr_token
+            paytrToken: paytrTokenValue,
+            iframeUrl: 'https://www.paytr.com/odeme/guvenli/' + paytrTokenValue
         });
 
     } catch (error) {

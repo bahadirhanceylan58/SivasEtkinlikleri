@@ -15,7 +15,7 @@ interface PaytrTokenParams {
     testMode?: 0 | 1;
 }
 
-export function generatePaytrToken(params: PaytrTokenParams) {
+export async function generatePaytrToken(params: PaytrTokenParams): Promise<string> {
     const merchantId = process.env.PAYTR_MERCHANT_ID;
     const merchantKey = process.env.PAYTR_MERCHANT_KEY;
     const merchantSalt = process.env.PAYTR_MERCHANT_SALT;
@@ -62,24 +62,45 @@ export function generatePaytrToken(params: PaytrTokenParams) {
         .update(hashStr + merchantSalt)
         .digest('base64');
 
-    return {
-        merchant_id: merchantId,
-        user_ip: userIp,
-        merchant_oid: merchantOid,
-        email: userEmail,
-        payment_amount: paymentAmount,
-        paytr_token: paytrToken,
-        user_basket: userBasket,
-        debug_on: debugOn,
-        no_installment: noInstallment,
-        max_installment: maxInstallment,
-        user_name: userName,
-        user_address: userAddress,
-        user_phone: userPhone,
-        merchant_ok_url: merchantOkUrl,
-        merchant_fail_url: merchantFailUrl,
-        timeout_limit: timeoutLimit,
-        currency: currency,
-        test_mode: testMode
-    };
+    const formData = new URLSearchParams();
+    formData.append('merchant_id', merchantId);
+    formData.append('user_ip', userIp);
+    formData.append('merchant_oid', merchantOid);
+    formData.append('email', userEmail);
+    formData.append('payment_amount', String(paymentAmount));
+    formData.append('paytr_token', paytrToken);
+    formData.append('user_basket', userBasket);
+    formData.append('debug_on', debugOn);
+    formData.append('no_installment', noInstallment);
+    formData.append('max_installment', maxInstallment);
+    formData.append('user_name', userName);
+    formData.append('user_address', userAddress);
+    formData.append('user_phone', userPhone);
+    formData.append('merchant_ok_url', merchantOkUrl);
+    formData.append('merchant_fail_url', merchantFailUrl);
+    formData.append('timeout_limit', timeoutLimit);
+    formData.append('currency', currency);
+    formData.append('test_mode', testMode.toString());
+
+    try {
+        const response = await fetch('https://www.paytr.com/odeme/api/get-token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            return result.token;
+        } else {
+            console.error('PayTR API Error:', result.reason);
+            throw new Error(`PayTR API Error: ${result.reason}`);
+        }
+    } catch (error) {
+        console.error('Fetch error to PayTR API:', error);
+        throw error;
+    }
 }
