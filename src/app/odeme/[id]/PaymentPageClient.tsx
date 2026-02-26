@@ -144,7 +144,7 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
         setProcessing(true);
 
         try {
-            const uniqueQrCode = `${user.uid}-${event.id}-${Date.now()}`;
+            const uniqueQrCode = `${user.uid}${event.id}${Date.now()}`.replace(/[^a-zA-Z0-9]/g, '');
 
             // Fiyat hesaplama (Ödeme öncesi yapılmalı)
             let subtotal = 0;
