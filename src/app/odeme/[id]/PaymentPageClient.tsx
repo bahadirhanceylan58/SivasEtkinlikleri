@@ -82,8 +82,21 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     const eventData = docSnap.data();
-                    setEvent({ id: docSnap.id, ...eventData } as Event);
-                    setTicketPrice(Number(eventData.price) || 0);
+                    const parsedEvent = { id: docSnap.id, ...eventData } as Event;
+                    setEvent(parsedEvent);
+
+                    // Fiyat belirleme mantığı: 
+                    // 1. Eğer 'price' alanı varsa (sayı veya string), onu kullan
+                    // 2. Eğer 'ticketTypes' dizisi varsa ve en az bir elemanı varsa, ilk elemanın fiyatını kullan
+                    // 3. Hiçbiri yoksa 0 kullan
+                    let defaultPrice = 0;
+                    if (parsedEvent.price !== undefined && parsedEvent.price !== null) {
+                        defaultPrice = Number(parsedEvent.price);
+                    } else if (parsedEvent.ticketTypes && parsedEvent.ticketTypes.length > 0) {
+                        defaultPrice = Number(parsedEvent.ticketTypes[0].price);
+                    }
+
+                    setTicketPrice(isNaN(defaultPrice) ? 0 : defaultPrice);
                 }
             } catch (error) {
                 console.error("Error fetching event:", error);
