@@ -52,11 +52,6 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
 
     // Ödeme yöntemi state'leri
     const [paymentMethod, setPaymentMethod] = useState<'door' | 'card'>('door');
-    const [cardNumber, setCardNumber] = useState('');
-    const [cardExpiry, setCardExpiry] = useState('');
-    const [cardCvv, setCardCvv] = useState('');
-    const [cardHolder, setCardHolder] = useState('');
-
     // Grup indirimi tier'ları (normalde event'ten gelir, şimdilik varsayılan)
     const groupTiers = event?.groupTickets || [
         { id: '1', name: 'Küçük Grup', minTickets: 5, discount: 0.10, description: 'Aile paketi' },
@@ -131,31 +126,6 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
         if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
             alert('Lütfen geçerli bir telefon numarası giriniz (Başında 05 ile, 11 hane).');
             return;
-        }
-
-        // Kart ödemesi seçildiyse kart bilgilerini kontrol et
-        if (paymentMethod === 'card') {
-            if (!cardNumber || !cardExpiry || !cardCvv || !cardHolder) {
-                alert('Lütfen kart bilgilerini eksiksiz giriniz.');
-                return;
-            }
-
-            // Basic card validation
-            const cleanCardNumber = cardNumber.replace(/\s/g, '');
-            if (cleanCardNumber.length < 15 || cleanCardNumber.length > 16) {
-                alert('Geçerli bir kart numarası giriniz.');
-                return;
-            }
-
-            if (!/^\d{2}\/\d{2}$/.test(cardExpiry)) {
-                alert('Son kullanma tarihini AA/YY formatında giriniz.');
-                return;
-            }
-
-            if (cardCvv.length < 3) {
-                alert('Geçerli bir CVV giriniz.');
-                return;
-            }
         }
 
         setProcessing(true);
@@ -405,10 +375,10 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                     {paymentMethod === 'card' && (
                         <div className="mb-6 bg-green-500/10 border border-green-500/20 p-4 rounded-xl">
                             <h2 className="text-green-500 font-bold flex items-center gap-2">
-                                <Lock size={20} /> Güvenli Ödeme
+                                <Lock size={20} /> PayTR ile Güvenli Ödeme
                             </h2>
                             <p className="text-sm text-muted-foreground mt-2">
-                                Kart bilgileriniz güvenli bir şekilde işlenir. Test amaçlı mock ödeme sistemi aktif.
+                                Ödeme adımında PayTR'nin güvenli ödeme sayfasına yönlendirileceksiniz. Kart bilgileriniz Sivas Etkinlikleri altyapısında saklanmaz.
                             </p>
                         </div>
                     )}
@@ -440,77 +410,6 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                             </div>
                         </div>
 
-                        {/* Kart Bilgileri (Sadece kart ödemesi seçiliyse göster) */}
-                        {paymentMethod === 'card' && (
-                            <>
-                                <div className="border-t border-border pt-4 mt-4">
-                                    <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-                                        <CreditCard size={16} /> Kart Bilgileri
-                                    </h3>
-                                </div>
-                                <div>
-                                    <label className="block text-xs text-muted-foreground mb-1">Kart Üzerindeki İsim</label>
-                                    <input
-                                        type="text"
-                                        value={cardHolder}
-                                        onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
-                                        placeholder="AD SOYAD"
-                                        className="w-full bg-muted/50 border border-border rounded-lg p-3 text-black focus:border-primary outline-none transition-colors"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs text-muted-foreground mb-1">Kart Numarası</label>
-                                    <input
-                                        type="text"
-                                        value={cardNumber}
-                                        onChange={(e) => {
-                                            const value = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
-                                            const formatted = value.match(/.{1,4}/g)?.join(' ') || value;
-                                            setCardNumber(formatted);
-                                        }}
-                                        placeholder="1234 5678 9012 3456"
-                                        maxLength={19}
-                                        className="w-full bg-muted/50 border border-border rounded-lg p-3 text-black focus:border-primary outline-none transition-colors font-mono"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-xs text-muted-foreground mb-1">Son Kullanma</label>
-                                        <input
-                                            type="text"
-                                            value={cardExpiry}
-                                            onChange={(e) => {
-                                                let value = e.target.value.replace(/\D/g, '');
-                                                if (value.length >= 2) {
-                                                    value = value.slice(0, 2) + '/' + value.slice(2, 4);
-                                                }
-                                                setCardExpiry(value);
-                                            }}
-                                            placeholder="AA/YY"
-                                            maxLength={5}
-                                            className="w-full bg-muted/50 border border-border rounded-lg p-3 text-black focus:border-primary outline-none transition-colors font-mono"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs text-muted-foreground mb-1">CVV</label>
-                                        <input
-                                            type="text"
-                                            value={cardCvv}
-                                            onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                                            placeholder="123"
-                                            maxLength={4}
-                                            className="w-full bg-muted/50 border border-border rounded-lg p-3 text-black focus:border-primary outline-none transition-colors font-mono"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="bg-muted/30 border border-border rounded-lg p-3 text-xs text-muted-foreground">
-                                    <p className="flex items-center gap-2">
-                                        <Lock size={14} />
-                                        Kart bilgileriniz şifrelenir ve güvenli bir şekilde işlenir.
-                                    </p>
-                                </div>
-                            </>
-                        )}
                     </div>
                 </div>
                 {/* Sağ: Özet */}
@@ -601,8 +500,8 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                             {/* Toplam */}
                             <div className="border-t border-border pt-3 flex justify-between items-center">
                                 <div className="flex flex-col">
-                                    <span className="text-lg font-bold text-muted-foreground">Kapıda Ödenecek</span>
-                                    <span className="text-xs text-muted-foreground">(Nakit veya Kredi Kartı)</span>
+                                    <span className="text-lg font-bold text-muted-foreground">{paymentMethod === 'card' ? 'Ödenecek Tutar' : 'Kapıda Ödenecek'}</span>
+                                    {paymentMethod === 'door' && <span className="text-xs text-muted-foreground">(Nakit veya Kredi Kartı)</span>}
                                 </div>
                                 <span className="text-2xl font-bold text-primary">
                                     {(() => {
@@ -625,7 +524,7 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                             disabled={processing}
                             className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 rounded-xl transition-all disabled:opacity-50 transform hover:scale-[1.02] active:scale-[0.98]"
                         >
-                            {processing ? 'İşleniyor...' : 'Rezervasyon Oluştur'}
+                            {processing ? 'İşleniyor...' : (paymentMethod === 'card' ? 'PayTR ile Güvenli Öde' : 'Rezervasyon Oluştur')}
                         </button>
                     </div>
                 </div>
