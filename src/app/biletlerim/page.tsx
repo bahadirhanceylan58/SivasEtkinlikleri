@@ -1,17 +1,20 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { QRCodeSVG } from 'qrcode.react';
 import { Calendar, MapPin, X } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import TicketPDFTemplate, { TicketData } from '@/components/TicketPDFTemplate';
+import { createRoot } from 'react-dom/client';
 
 export default function MyTicketsPage() {
     const [tickets, setTickets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [downloadingTicketId, setDownloadingTicketId] = useState<string | null>(null);
     const [selectedQr, setSelectedQr] = useState<string | null>(null);
     const router = useRouter();
 
@@ -39,6 +42,125 @@ export default function MyTicketsPage() {
         return () => unsubscribe();
     }, [router]);
 
+    const handleDownloadPdf = async (ticket: any) => {
+        try {
+            setDownloadingTicketId(ticket.qrCode);
+            // Dynamically import html2pdf only on client side when needed
+            const html2pdf = (await import('html2pdf.js')).default;
+
+            // Create a temporary container
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.top = '-9999px';
+            document.body.appendChild(container);
+
+            // Create a root and render the template
+            const root = createRoot(container);
+
+            const ticketData: TicketData = {
+                eventId: ticket.eventId,
+                eventTitle: ticket.eventTitle,
+                eventDate: ticket.eventDate,
+                eventTime: ticket.eventTime,
+                eventLocation: ticket.eventLocation,
+                eventImage: ticket.eventImage,
+                contactName: ticket.contactName,
+                ticketCount: ticket.ticketCount,
+                totalAmount: ticket.totalAmount,
+                qrCode: ticket.qrCode,
+                seatNames: ticket.seatNames,
+                paymentType: ticket.paymentType,
+                purchaseDate: ticket.purchaseDate || new Date().toISOString()
+            };
+
+            // Wrap in a promise to wait for React to finish rendering
+            await new Promise<void>((resolve) => {
+                root.render(<TicketPDFTemplate ticket={ticketData} />);
+                // Give React a moment to render the DOM
+                setTimeout(resolve, 500);
+            });
+
+            const element = container.querySelector('#pdf-ticket-container') as HTMLElement;
+            if (!element) throw new Error("Template rendered incorrectly");
+
+            const opt = {
+                margin: 10,
+                filename: `bilet-${ticket.qrCode.substring(0, 8)}.pdf`,
+                image: { type: 'jpeg' as const, quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+            };
+
+            await html2pdf().set(opt).from(element as HTMLElement).save();
+
+            // Cleanup
+            setTimeout(() => {
+                root.unmount();
+                document.body.removeChild(container);
+                setDownloadingTicketId(null);
+            }, 500);
+
+        } catch (error) {
+            console.error("PDF oluşturma hatası:", error);
+            alert("PDF oluşturulurken bir hata meydana geldi.");
+            setDownloadingTicketId(null);
+        }
+    };
+
+    const handleRefundRequest = async (ticketToRefund: any) => {
+        const eventDate = new Date(ticketToRefund.eventDate);
+        const now = new Date();
+        const diffHours = (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+        if (diffHours < 48) {
+            alert('İade talebi sadece etkinliğe en az 48 saat kala yapılabilir.');
+            return;
+        }
+
+        const confirmRefund = window.confirm('Biletinizi iade etmek istediğinize emin misiniz?\n\nİade talebiniz incelenecek ve onaylandığında ücret iadesi yapılacaktır. Bu işlem geri alınamaz.');
+
+        if (!confirmRefund) return;
+
+        try {
+            if (!auth.currentUser) return;
+
+            // 1. Update user's ticket array
+            const userRef = doc(db, 'users', auth.currentUser.uid);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                const updatedTickets = userData.tickets.map((t: any) => {
+                    if (t.qrCode === ticketToRefund.qrCode) {
+                        return { ...t, status: 'refund_requested' };
+                    }
+                    return t;
+                });
+
+                await updateDoc(userRef, { tickets: updatedTickets });
+
+                // Update local state without breaking the order
+                // The new fetch logic reverse sorted it initially. Since we preserve array order here,
+                // we should just reverse the original user.tickets array again to match the state.
+                setTickets(updatedTickets.reverse());
+            }
+
+            // 2. Update order document
+            const orderRef = doc(db, 'orders', ticketToRefund.qrCode);
+            await updateDoc(orderRef, {
+                status: 'refund_requested',
+                updatedAt: new Date().toISOString()
+            });
+
+            alert('İade talebiniz başarıyla alındı. Durumu buradan takip edebilirsiniz.');
+
+        } catch (error) {
+            console.error("İade talebi oluşturulurken hata:", error);
+            alert("İade talebi oluşturulamadı, lütfen daha sonra tekrar deneyin.");
+        }
+    };
+
     if (loading) return (
         <div className="min-h-screen bg-black flex items-center justify-center text-white">
             <div className="text-xl animate-pulse">Biletler yükleniyor...</div>
@@ -59,7 +181,7 @@ export default function MyTicketsPage() {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid gap-4 max-w-3xl mx-auto">
+                    <div className="grid gap-4 max-w-4xl mx-auto">
                         {tickets.map((ticket, index) => (
                             <div key={index} className="bg-card border border-border rounded-xl p-4 flex flex-col md:flex-row gap-4 hover:border-primary/50 transition-all group shadow-sm">
 
@@ -74,7 +196,15 @@ export default function MyTicketsPage() {
                                 </div>
                                 {/* Orta: Bilgiler */}
                                 <div className="flex-grow">
-                                    <h3 className="font-bold text-foreground text-lg group-hover:text-primary transition-colors">{ticket.eventTitle}</h3>
+                                    <h3 className="font-bold text-foreground text-lg group-hover:text-primary transition-colors flex items-center gap-2">
+                                        {ticket.eventTitle}
+                                        {ticket.status === 'refund_requested' && (
+                                            <span className="bg-yellow-500/10 text-yellow-500 text-[10px] px-2 py-0.5 rounded border border-yellow-500/20 whitespace-nowrap">İade Bekliyor</span>
+                                        )}
+                                        {ticket.status === 'refunded' && (
+                                            <span className="bg-red-500/10 text-red-500 text-[10px] px-2 py-0.5 rounded border border-red-500/20 whitespace-nowrap">İade Edildi</span>
+                                        )}
+                                    </h3>
                                     <div className="text-sm text-muted-foreground mt-1 flex items-center">
                                         <MapPin className="w-4 h-4 mr-1 text-primary" />
                                         {ticket.eventLocation}
@@ -83,17 +213,48 @@ export default function MyTicketsPage() {
                                         <span className="bg-muted px-2 py-0.5 rounded">{ticket.ticketCount} Adet</span>
                                         <span>•</span>
                                         <span>Toplam {ticket.totalAmount} ₺</span>
+                                        {ticket.seatNames && (
+                                            <>
+                                                <span>•</span>
+                                                <span className="truncate max-w-[150px] sm:max-w-none" title={ticket.seatNames}>
+                                                    Koltuk: {ticket.seatNames}
+                                                </span>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
-                                {/* Sağ: Buton */}
-                                <div className="flex items-center justify-end md:justify-center">
-                                    <button
-                                        onClick={() => setSelectedQr(ticket.qrCode)}
-                                        className="bg-primary hover:bg-primary-hover text-black font-bold px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap shadow-lg shadow-primary/10"
-                                    >
-                                        QR Göster
-                                    </button>
-                                </div>
+                                {/* Sağ: Butonlar */}
+                                {ticket.status !== 'refunded' && ticket.status !== 'refund_requested' ? (
+                                    <div className="flex items-center justify-end md:justify-center gap-2 mt-4 md:mt-0 flex-wrap">
+                                        {((new Date(ticket.eventDate).getTime() - new Date().getTime()) / (1000 * 60 * 60)) >= 48 && (
+                                            <button
+                                                onClick={() => handleRefundRequest(ticket)}
+                                                className="bg-red-500/10 hover:bg-red-500/20 text-red-500 font-semibold px-3 py-2 rounded-lg text-xs transition-colors whitespace-nowrap border border-red-500/20"
+                                            >
+                                                İade Talep Et
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => handleDownloadPdf(ticket)}
+                                            disabled={downloadingTicketId === ticket.qrCode}
+                                            className="bg-muted hover:bg-neutral-200 dark:hover:bg-neutral-800 text-foreground font-semibold px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap disabled:opacity-50"
+                                        >
+                                            {downloadingTicketId === ticket.qrCode ? 'İndiriliyor...' : 'PDF İndir'}
+                                        </button>
+                                        <button
+                                            onClick={() => setSelectedQr(ticket.qrCode)}
+                                            className="bg-primary hover:bg-primary-hover text-black font-bold px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap shadow-lg shadow-primary/10"
+                                        >
+                                            QR Göster
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-end md:justify-center gap-2 mt-4 md:mt-0">
+                                        <span className="text-sm text-muted-foreground italic bg-muted px-3 py-2 rounded-lg border border-border">
+                                            {ticket.status === 'refund_requested' ? 'İade talebiniz değerlendiriliyor.' : 'Biletiniz iptal edilmiştir.'}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

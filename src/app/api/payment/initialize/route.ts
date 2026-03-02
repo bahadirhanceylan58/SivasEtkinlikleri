@@ -35,6 +35,24 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ status: 'failure', errorMessage: 'Event not found' }, { status: 404 });
         }
 
+        const eventData = eventSnap.data();
+        const ownerId = eventData.ownerId;
+
+        // 3. Role-Based Security: Check if event owner is authorized to sell via Credit Card
+        // If the event is set to 'internal' sales, the owner MUST be an 'organizer' or 'admin'.
+        if (eventData.salesType === 'internal' && ownerId) {
+            const ownerDocRef = doc(db, 'users', ownerId);
+            const ownerSnap = await getDoc(ownerDocRef);
+            const ownerData = ownerSnap.data();
+
+            if (!ownerSnap.exists() || (ownerData?.role !== 'organizer' && ownerData?.role !== 'admin')) {
+                return NextResponse.json({
+                    status: 'failure',
+                    errorMessage: 'This organizer is not authorized for credit card payments.'
+                }, { status: 403 });
+            }
+        }
+
         // Convert amount to kuruş
         const amountInKurus = Math.round(Number(amount) * 100);
 
@@ -74,6 +92,7 @@ export async function POST(request: NextRequest) {
             userPhone: user.phoneNumber,
             eventId: event.id,
             eventTitle: event.title,
+            ownerId: ownerId, // Track who earns this money
             amount: amount,
             basketId: basketId,
             status: 'pending',

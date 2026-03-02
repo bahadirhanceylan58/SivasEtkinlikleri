@@ -90,8 +90,9 @@ export default function LoginPage() {
                 }
             }
         } catch (err: any) {
+            console.error('Login Error Full:', err);
+            console.error('Login Error Code:', err.code);
             setError('Giriş başarısız. E-posta veya şifre hatalı.');
-            console.error(err);
         } finally {
             setLoading(false);
         }

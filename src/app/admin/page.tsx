@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, Plus, Calendar, Type, Users, Tag, Settings, CreditCard, Ticket, Shield, Check, X, Search, Edit2, Eye, Globe, MapPin, LayoutDashboard, QrCode, Menu, Archive, GraduationCap } from 'lucide-react';
+import { Trash2, Plus, Calendar, Type, Users, Tag, Settings, CreditCard, Ticket, Shield, Check, X, Search, Edit2, Eye, Globe, MapPin, LayoutDashboard, QrCode, Menu, Archive, GraduationCap, RefreshCcw } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 const MapPicker = dynamic(() => import('@/components/MapPicker'), {
@@ -12,7 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { CATEGORIES } from '@/data/mockData';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, query, orderBy, setDoc, getDoc, where } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 
@@ -22,6 +22,7 @@ import UserManagement from '@/components/admin/UserManagement';
 import TicketValidator from '@/components/admin/TicketValidator';
 import VenueEditor from '@/components/VenueEditor';
 import SponsorManagement from '@/components/admin/SponsorManagement';
+import RefundManagement from '@/components/admin/RefundManagement';
 import { SeatingConfig } from '@/types/seating';
 import { generateSeatsForEvent } from '@/lib/seatUtils';
 import { logAudit } from '@/lib/auditLog';
@@ -80,7 +81,7 @@ interface SidebarButtonProps {
 export default function AdminPage() {
     const { user, loading, isAdmin } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'applications' | 'discounts' | 'users' | 'validator' | 'clubs' | 'sponsors' | 'courses' | 'archive'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'applications' | 'discounts' | 'users' | 'validator' | 'clubs' | 'sponsors' | 'courses' | 'archive' | 'organizer_apps' | 'finances' | 'refunds'>('dashboard');
     const [eventViewMode, setEventViewMode] = useState<'list' | 'form'>('list');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Mobil menü durumu
 
@@ -147,6 +148,12 @@ export default function AdminPage() {
     // Courses State
     const [courses, setCourses] = useState<any[]>([]);
     const [courseFilter, setCourseFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+
+    // Organizer Applications & Finances State
+    const [organizerApplications, setOrganizerApplications] = useState<any[]>([]);
+    const [balances, setBalances] = useState<any[]>([]);
+    const [payoutAmount, setPayoutAmount] = useState<number>(0);
+    const [selectedOrganizerId, setSelectedOrganizerId] = useState<string | null>(null);
 
 
 
@@ -281,6 +288,19 @@ export default function AdminPage() {
         setCourses(coursesList);
     };
 
+    const fetchOrganizerApplications = async () => {
+        const querySnapshot = await getDocs(collection(db, "organizer_applications"));
+        setOrganizerApplications(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    };
+
+    const fetchBalances = async () => {
+        const querySnapshot = await getDocs(collection(db, "balances"));
+        const balancesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Kullanıcı adlarını çekmek için ek işlem (Basitlik için ownerName balances içinde saklanmış olmalı, yoksa buradan query çekilir)
+        setBalances(balancesData);
+    };
+
     const handleUpdateCourseStatus = async (id: string, status: 'approved' | 'rejected') => {
         try {
             await updateDoc(doc(db, "courses", id), {
@@ -398,6 +418,67 @@ export default function AdminPage() {
         }
     };
 
+    const handleApproveOrganizer = async (appId: string, userId: string) => {
+        if (!confirm('Bu kullanıcıyı organizatör olarak onaylamak istiyor musunuz?')) return;
+        try {
+            // 1. Kullanıcı rolünü güncelle
+            await updateDoc(doc(db, "users", userId), { role: 'organizer' });
+
+            // 2. Başvuru durumunu güncelle
+            await updateDoc(doc(db, "organizer_applications", appId), { status: 'approved', updatedAt: new Date() });
+
+            // 3. Bakiye dokümanı oluştur (yoksa)
+            const balanceRef = doc(db, "balances", userId);
+            const balanceSnap = await getDoc(balanceRef);
+            if (!balanceSnap.exists()) {
+                const app = organizerApplications.find(a => a.id === appId);
+                await setDoc(balanceRef, {
+                    ownerId: userId,
+                    ownerName: app?.fullName || 'Bilinmeyen Organizatör',
+                    currentBalance: 0,
+                    totalEarned: 0,
+                    updatedAt: new Date()
+                });
+            }
+
+            alert('Kullanıcı başarıyla organizatör yapıldı!');
+            fetchOrganizerApplications();
+        } catch (error) {
+            console.error("Organizer Approval Error:", error);
+            alert('Hata oluştu.');
+        }
+    };
+
+    const handleRecordPayout = async (ownerId: string, currentBalance: number) => {
+        if (payoutAmount <= 0) { alert('Geçersiz tutar'); return; }
+        if (payoutAmount > currentBalance) { alert('Bakiye yetersiz'); return; }
+
+        if (!confirm(`${payoutAmount} TL ödeme kaydı oluşturulsun mu?`)) return;
+
+        try {
+            // 1. Bakiyeyi düş
+            await updateDoc(doc(db, "balances", ownerId), {
+                currentBalance: currentBalance - payoutAmount,
+                updatedAt: new Date()
+            });
+
+            // 2. Payout kaydı ekle
+            await addDoc(collection(db, "payouts"), {
+                ownerId,
+                amount: payoutAmount,
+                date: new Date(),
+                status: 'completed'
+            });
+
+            alert('Ödeme başarıyla kaydedildi!');
+            setPayoutAmount(0);
+            fetchBalances();
+        } catch (error) {
+            console.error("Payout Error:", error);
+            alert('Ödeme kaydedilirken hata oluştu.');
+        }
+    };
+
 
 
 
@@ -418,6 +499,8 @@ export default function AdminPage() {
         if (tab === 'discounts') fetchDiscountCodes();
         if (tab === 'clubs') fetchClubs();
         if (tab === 'courses') fetchCourses();
+        if (tab === 'organizer_apps') fetchOrganizerApplications();
+        if (tab === 'finances') fetchBalances();
         if (tab === 'users') {
             // User fetch logic if needed
         }
@@ -621,6 +704,20 @@ export default function AdminPage() {
                     onClick={() => { setActiveTab('clubs'); fetchClubs(); setIsMobileMenuOpen(false); }}
                 />
                 <SidebarButton
+                    active={activeTab === 'organizer_apps'}
+                    icon={<Shield className="w-5 h-5" />}
+                    label="Organizatör Başvuruları"
+                    onClick={() => { setActiveTab('organizer_apps'); fetchOrganizerApplications(); setIsMobileMenuOpen(false); }}
+                    notification={organizerApplications.some(a => a.status === 'pending')}
+                    count={organizerApplications.filter(a => a.status === 'pending').length}
+                />
+                <SidebarButton
+                    active={activeTab === 'finances'}
+                    icon={<CreditCard className="w-5 h-5" />}
+                    label="Finansal Takip"
+                    onClick={() => { setActiveTab('finances'); fetchBalances(); setIsMobileMenuOpen(false); }}
+                />
+                <SidebarButton
                     active={activeTab === 'sponsors'}
                     icon={<CreditCard className="w-5 h-5" />}
                     label="Sponsorluklar"
@@ -658,6 +755,12 @@ export default function AdminPage() {
                     icon={<QrCode className="w-5 h-5" />}
                     label="Bilet Doğrulama"
                     onClick={() => { setActiveTab('validator'); setIsMobileMenuOpen(false); }}
+                />
+                <SidebarButton
+                    active={activeTab === 'refunds'}
+                    icon={<RefreshCcw className="w-5 h-5" />}
+                    label="İade Talepleri"
+                    onClick={() => { setActiveTab('refunds'); setIsMobileMenuOpen(false); }}
                 />
                 <SidebarButton
                     active={activeTab === 'archive'}
@@ -729,12 +832,15 @@ export default function AdminPage() {
                             {activeTab === 'dashboard' && 'Genel Bakış'}
                             {activeTab === 'events' && (eventViewMode === 'list' ? 'Etkinlik Listesi' : (editingId ? 'Etkinlik Düzenle' : 'Yeni Etkinlik'))}
                             {activeTab === 'applications' && 'Kulüp Başvuruları'}
+                            {activeTab === 'organizer_apps' && 'Organizatör Başvuruları'}
+                            {activeTab === 'finances' && 'Finansal Takip (Hakedişler)'}
                             {activeTab === 'clubs' && 'Kulüp Yönetimi'}
                             {activeTab === 'discounts' && 'İndirim Kodları'}
                             {activeTab === 'users' && 'Kullanıcı Yönetimi'}
                             {activeTab === 'validator' && 'Bilet Doğrulama'}
                             {activeTab === 'sponsors' && 'Sponsorluk Yönetimi'}
                             {activeTab === 'courses' && 'Kurs Başvuruları'}
+                            {activeTab === 'refunds' && 'İade Talepleri'}
                         </h1>
                     </div>
 
@@ -775,6 +881,8 @@ export default function AdminPage() {
                     {activeTab === 'users' && <UserManagement />}
 
                     {activeTab === 'validator' && <TicketValidator />}
+
+                    {activeTab === 'refunds' && <RefundManagement />}
 
                     {activeTab === 'sponsors' && <SponsorManagement />}
 

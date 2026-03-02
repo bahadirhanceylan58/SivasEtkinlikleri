@@ -6,19 +6,20 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { CalendarPlus, Upload, CheckCircle, AlertCircle, Banknote, Users, Image as ImageIcon, Plus, Trash2, Ticket } from "lucide-react";
+import { CalendarPlus, Upload, CheckCircle, AlertCircle, Banknote, Users, Image as ImageIcon, Plus, Trash2, Ticket, Info } from "lucide-react";
 
 export default function CreateEventPage() {
-    const { user, isAdmin } = useAuth();
+    const { user, isAdmin, role } = useAuth();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-    const [salesType, setSalesType] = useState<'internal' | 'external' | 'free'>('internal');
+    const [salesType, setSalesType] = useState<'internal' | 'external' | 'free' | 'reservation'>('internal');
     const [ticketTypes, setTicketTypes] = useState<{ name: string; price: number; quota: number }[]>([
         { name: 'Genel Giriş', price: 0, quota: 100 }
     ]);
@@ -151,9 +152,11 @@ export default function CreateEventPage() {
             // 2. Etkinliği Kaydet veya Güncelle
             // Calculate starting price for display purposes (lowest price)
             let displayPrice = "0";
-            if (salesType === 'internal' && ticketTypes.length > 0) {
-                const prices = ticketTypes.map(t => Number(t.price));
-                displayPrice = Math.min(...prices).toString();
+            if (salesType === 'internal' || salesType === 'reservation') {
+                if (ticketTypes.length > 0) {
+                    const prices = ticketTypes.map(t => Number(t.price));
+                    displayPrice = Math.min(...prices).toString();
+                }
             } else if (salesType === 'free') {
                 displayPrice = "0";
             }
@@ -172,7 +175,7 @@ export default function CreateEventPage() {
 
                 // Advanced Ticket Data
                 salesType,
-                ticketTypes: salesType === 'internal' ? ticketTypes : [],
+                ticketTypes: (salesType === 'internal' || salesType === 'reservation') ? ticketTypes : [],
                 externalUrl: salesType === 'external' ? externalUrl : null,
                 platformName: salesType === 'external' ? platformName : null,
             };
@@ -339,21 +342,43 @@ export default function CreateEventPage() {
                             </h3>
 
                             {/* Ticket Type Selection */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                                 <button
                                     type="button"
+                                    disabled={role !== 'organizer' && !isAdmin}
                                     onClick={() => setSalesType('internal')}
-                                    className={`p-4 rounded-xl border-2 transition-all text-left group ${salesType === 'internal'
+                                    className={`p-4 rounded-xl border-2 transition-all text-left group relative ${salesType === 'internal'
                                         ? 'border-primary bg-primary/10'
                                         : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-600'
-                                        }`}
+                                        } ${(role !== 'organizer' && !isAdmin) ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                                 >
                                     <div className="flex items-center justify-between mb-2">
                                         <Ticket className={`w-6 h-6 ${salesType === 'internal' ? 'text-primary' : 'text-gray-400'}`} />
                                         {salesType === 'internal' && <div className="w-3 h-3 rounded-full bg-primary shadow-[0_0_10px_rgba(255,215,0,0.5)]"></div>}
                                     </div>
                                     <div className={`font-bold ${salesType === 'internal' ? 'text-white' : 'text-gray-300'}`}>Site İçi Satış</div>
-                                    <div className="text-xs text-gray-500 mt-1">Biletler doğrudan bu site üzerinden satılsın.</div>
+                                    <div className="text-xs text-gray-500 mt-1">PayTR ile Kredi Kartı. (Sadece Organizatörler)</div>
+                                    {(role !== 'organizer' && !isAdmin) && (
+                                        <div className="absolute top-2 right-2 flex items-center gap-1 bg-yellow-500/20 text-yellow-500 text-[10px] px-2 py-0.5 rounded-full border border-yellow-500/30">
+                                            Yetki Gerektirir
+                                        </div>
+                                    )}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setSalesType('reservation')}
+                                    className={`p-4 rounded-xl border-2 transition-all text-left group ${salesType === 'reservation'
+                                        ? 'border-orange-500 bg-orange-500/10'
+                                        : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-600'
+                                        }`}
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <Banknote className={`w-6 h-6 ${salesType === 'reservation' ? 'text-orange-500' : 'text-gray-400'}`} />
+                                        {salesType === 'reservation' && <div className="w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]"></div>}
+                                    </div>
+                                    <div className={`font-bold ${salesType === 'reservation' ? 'text-white' : 'text-gray-300'}`}>Kapıda Ödeme</div>
+                                    <div className="text-xs text-gray-500 mt-1">Biletler siteden rezerve edilir, ödeme alanda yapılır.</div>
                                 </button>
 
                                 <button
@@ -365,9 +390,7 @@ export default function CreateEventPage() {
                                         }`}
                                 >
                                     <div className="flex items-center justify-between mb-2">
-                                        <div className="flex -space-x-2">
-                                            <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px]">🔗</div>
-                                        </div>
+                                        <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px]">🔗</div>
                                         {salesType === 'external' && <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>}
                                     </div>
                                     <div className={`font-bold ${salesType === 'external' ? 'text-white' : 'text-gray-300'}`}>Dış Bağlantı</div>
@@ -378,7 +401,6 @@ export default function CreateEventPage() {
                                     type="button"
                                     onClick={() => {
                                         setSalesType('free');
-                                        // Reset ticket categories to a single free quota if switching to free
                                         if (salesType !== 'free') {
                                             setTicketTypes([{ name: 'Ücretsiz Giriş', price: 0, quota: 100 }]);
                                         }
@@ -392,16 +414,34 @@ export default function CreateEventPage() {
                                         <div className="w-6 h-6 rounded-full border-2 border-current flex items-center justify-center text-xs font-bold text-green-500">₺</div>
                                         {salesType === 'free' && <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>}
                                     </div>
-                                    <div className={`font-bold ${salesType === 'free' ? 'text-white' : 'text-gray-300'}`}>Ücretsiz / Rezervasyon</div>
+                                    <div className={`font-bold ${salesType === 'free' ? 'text-white' : 'text-gray-300'}`}>Ücretsiz</div>
                                     <div className="text-xs text-gray-500 mt-1">Katılım ücretsizdir veya sadece rezervasyon gerekir.</div>
                                 </button>
                             </div>
 
-                            {/* Internal Sales Content */}
-                            {salesType === 'internal' && (
+                            {/* Uyarı Mesajı (Normal Kullanıcılar İçin) */}
+                            {role === 'user' && !isAdmin && (
+                                <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-2xl flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary shrink-0">
+                                            <Info className="w-5 h-5" />
+                                        </div>
+                                        <p className="text-xs text-gray-400">
+                                            <span className="text-white font-bold block mb-0.5">Kredi Kartı ile Satış Yapmak İster Misiniz?</span>
+                                            Biletlerinizi doğrudan site üzerinden kredi kartı ile satmak için organizatör başvurusu yapmalısınız.
+                                        </p>
+                                    </div>
+                                    <Link href="/organizator-basvuru" className="px-4 py-2 bg-primary text-black text-xs font-bold rounded-lg hover:bg-primary/90 transition-all shrink-0">
+                                        Hemen Başvur
+                                    </Link>
+                                </div>
+                            )}
+
+                            {/* Internal or Reservation Sales Content */}
+                            {(salesType === 'internal' || salesType === 'reservation') && (
                                 <div className="space-y-4 animate-fadeIn">
                                     <div className="flex justify-between items-center mb-2">
-                                        <label className="text-sm font-medium text-gray-300">Bilet Kategorileri</label>
+                                        <label className="text-sm font-medium text-gray-300">Bilet Kategorileri ve Ücretler</label>
                                         <button
                                             type="button"
                                             onClick={() => setTicketTypes([...ticketTypes, { name: '', price: 0, quota: 100 }])}

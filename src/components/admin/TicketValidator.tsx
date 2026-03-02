@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { collection, collectionGroup, query, where, getDocs, updateDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Camera, Search, CheckCircle, XCircle, QrCode, AlertTriangle, Loader2 } from 'lucide-react';
+
+import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
 
 export default function TicketValidator() {
     interface ValidatedTicket {
@@ -18,6 +20,7 @@ export default function TicketValidator() {
     }
 
     const [loading, setLoading] = useState(false);
+    const [scanning, setScanning] = useState(false);
     const [scanResult, setScanResult] = useState<{
         status: 'idle' | 'success' | 'error' | 'warning';
         message: string;
@@ -26,6 +29,37 @@ export default function TicketValidator() {
     }>({ status: 'idle', message: '' });
 
     const [manualCode, setManualCode] = useState('');
+
+    useEffect(() => {
+        let html5QrcodeScanner: Html5QrcodeScanner | null = null;
+
+        if (scanning) {
+            html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader",
+                {
+                    fps: 5,
+                    qrbox: { width: 250, height: 250 },
+                    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+                },
+                /* verbose= */ false
+            );
+
+            html5QrcodeScanner.render((decodedText) => {
+                // Success callback
+                html5QrcodeScanner?.clear();
+                setScanning(false);
+                handleValidate(decodedText);
+            }, (errorMessage) => {
+                // Ignore parse errors as it scans every frame
+            });
+        }
+
+        return () => {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().catch(e => console.error("Failed to clear scanner", e));
+            }
+        };
+    }, [scanning]);
 
     const handleValidate = async (code: string) => {
         if (!code) return;
@@ -189,21 +223,32 @@ export default function TicketValidator() {
             {/* Scanner Area */}
             <div className="bg-card border-2 border-dashed border-border rounded-3xl p-8 flex flex-col items-center justify-center min-h-[300px] relative overflow-hidden group shadow-sm transition-colors">
 
-                {scanResult.status === 'idle' && !loading && (
+                {scanResult.status === 'idle' && !loading && !scanning && (
                     <>
                         <div className="w-64 h-64 bg-muted/50 rounded-2xl flex items-center justify-center mb-6 relative">
                             <Camera className="w-16 h-16 text-muted-foreground" />
                             <div className="absolute inset-0 border-2 border-primary/50 animate-pulse rounded-2xl"></div>
-                            {/* Scanning line animation */}
-                            <div className="absolute top-0 left-0 right-0 h-1 bg-primary/80 shadow-[0_0_20px_rgba(250,204,21,0.5)] animate-[scan_2s_ease-in-out_infinite]"></div>
+                            {/* Scanning line animation if we wanted one for idle */}
                         </div>
                         <button
-                            onClick={() => alert("Kamera entegrasyonu şu an devre dışı (HTTPS gerektirir). Lütfen manuel kod girin.")}
+                            onClick={() => setScanning(true)}
                             className="bg-primary hover:bg-primary-hover text-black font-bold py-3 px-8 rounded-xl transition-all shadow-glow hover:shadow-glow-lg"
                         >
                             Kamerayı Başlat
                         </button>
                     </>
+                )}
+
+                {scanning && (
+                    <div className="w-full flex flex-col items-center">
+                        <div id="reader" className="w-full max-w-sm rounded-xl overflow-hidden mb-4 border border-border"></div>
+                        <button
+                            onClick={() => setScanning(false)}
+                            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+                        >
+                            İptal
+                        </button>
+                    </div>
                 )}
 
                 {loading && (

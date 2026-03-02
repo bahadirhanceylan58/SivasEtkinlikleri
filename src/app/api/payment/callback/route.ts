@@ -1,7 +1,8 @@
+import * as React from 'react';
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, updateDoc, doc, getDoc, arrayUnion } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, getDoc, arrayUnion, setDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { sendEmail } from '@/lib/email';
 import { TicketConfirmationEmail } from '@/lib/emailTemplates';
 
@@ -59,6 +60,23 @@ export async function POST(request: NextRequest) {
                     updatedAt: new Date().toISOString()
                 });
 
+                // 2.5 Update Organizer Balance (NEW)
+                if (orderData.ownerId) {
+                    const balanceRef = doc(db, 'balances', orderData.ownerId);
+                    const amountInTL = Number(payment_amount) / 100;
+
+                    // Fetch current to calculate manually or use increment (safer)
+                    const { increment } = await import('firebase/firestore');
+                    await setDoc(balanceRef, {
+                        ownerId: orderData.ownerId,
+                        totalEarnings: increment(amountInTL),
+                        currentBalance: increment(amountInTL),
+                        lastUpdatedAt: serverTimestamp()
+                    }, { merge: true });
+
+                    console.log(`Balance updated for organizer: ${orderData.ownerId}, Amount: ${amountInTL} TL`);
+                }
+
                 // 3. Update the ticket status in user's profile and event reservations
                 // We find them by qrCode (which is merchant_oid)
 
@@ -94,7 +112,7 @@ export async function POST(request: NextRequest) {
                     await sendEmail({
                         to: orderData.userEmail,
                         subject: `Biletiniz Hazır! - ${orderData.eventTitle}`,
-                        react: TicketConfirmationEmail({
+                        react: React.createElement(TicketConfirmationEmail, {
                             userName: orderData.userName || 'Değerli Misafirimiz',
                             eventTitle: orderData.eventTitle,
                             eventDate: orderData.body?.event?.date || 'Etkinlik Tarihi',
