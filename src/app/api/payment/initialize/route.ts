@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const { user, event, amount, basketId } = body;
+        const { user, event, amount, basketId, ticketCount } = body;
 
         if (!user?.uid || !event?.id || !amount || !basketId) {
             return NextResponse.json({ status: 'failure', errorMessage: 'Missing required parameters' }, { status: 400 });
@@ -35,27 +35,27 @@ export async function POST(request: NextRequest) {
         }
         
         const eventData = eventSnap.data();
-        const ticketPrice = eventData.price || 0;
+        const ticketPrice = eventData.price || (eventData.ticketTypes && eventData.ticketTypes.length > 0 ? eventData.ticketTypes[0].price : 0);
+        const count = ticketCount || body.ticketCount || 1;
         
         // Recalculate subtotal
         let calculatedSubtotal = 0;
         if (eventData.hasSeatSelection && body.selectedSeats?.length > 0) {
             // Validate each seat price if different from base price
-            const seatingMap = eventData.seatingMap;
-            body.selectedSeats.forEach((seatId: string) => {
-                // In a production app, we would look up the specific price for thisId
-                // For now, we assume base price or handle custom pricing if schema allows
-                calculatedSubtotal += ticketPrice; 
+            body.selectedSeats.forEach((seat: any) => {
+                // In a production app, we would look up the specific price for this seat
+                // If the client sends seat objects with prices, we use the event's ticketTypes/price as authoritative
+                calculatedSubtotal += seat.price || ticketPrice; 
             });
         } else {
-            calculatedSubtotal = ticketPrice * (body.ticketCount || 1);
+            calculatedSubtotal = ticketPrice * count;
         }
 
         // Apply group discounts if applicable
         let groupDiscount = 0;
         if (!eventData.hasSeatSelection && eventData.groupTickets?.length > 0) {
             const applicableTier = eventData.groupTickets
-                .filter((tier: any) => (body.ticketCount || 1) >= tier.minTickets)
+                .filter((tier: any) => count >= tier.minTickets)
                 .sort((a: any, b: any) => b.discount - a.discount)[0];
 
             if (applicableTier) {

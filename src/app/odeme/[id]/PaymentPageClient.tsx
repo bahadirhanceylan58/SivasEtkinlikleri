@@ -186,6 +186,7 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                         user: { uid: user.uid, email: user.email, displayName: user.displayName, phoneNumber: phoneNumber },
                         event: { id: event.id, title: event.title },
                         amount: totalAmount,
+                        ticketCount: event.hasSeating ? selectedSeats.length : ticketCount,
                         basketId: uniqueQrCode
                     })
                 });
