@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthContext';
 import { RefreshCcw, Check, X, Loader2 } from 'lucide-react';
 
 export default function RefundManagement() {
+    const { user: authUser } = useAuth();
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -29,6 +31,7 @@ export default function RefundManagement() {
     };
 
     const handleApprove = async (orderId: string, eventId: string, userUid: string) => {
+        if (!authUser) return;
         const confirm = window.confirm("İadeyi onaylamak istediğinize emin misiniz? Tutar kullanıcıya iade edilecek ve bilet iptal edilecektir.");
         if (!confirm) return;
 
@@ -37,7 +40,12 @@ export default function RefundManagement() {
             const response = await fetch('/api/payment/refund', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ merchant_oid: orderId, eventId, userUid })
+                body: JSON.stringify({ 
+                    merchant_oid: orderId, 
+                    eventId, 
+                    userUid,
+                    adminUid: authUser.uid
+                })
             });
 
             if (!response.ok) {

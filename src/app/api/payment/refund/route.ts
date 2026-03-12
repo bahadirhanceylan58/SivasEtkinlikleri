@@ -6,10 +6,18 @@ import { releaseSeats, generateSeatId } from '@/lib/seatUtils';
 
 export async function POST(req: Request) {
     try {
-        const { merchant_oid, eventId, userUid } = await req.json();
+        const { merchant_oid, eventId, userUid, adminUid } = await req.json();
 
-        if (!merchant_oid || !eventId || !userUid) {
+        if (!merchant_oid || !eventId || !userUid || !adminUid) {
             return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+        }
+
+        // 0. Security Check: Verify if the requester is actually an admin
+        const adminDocRef = doc(db, 'users', adminUid);
+        const adminSnap = await getDoc(adminDocRef);
+        if (!adminSnap.exists() || adminSnap.data()?.role !== 'admin') {
+            console.error('Unauthorized Refund Attempt!', { adminUid });
+            return NextResponse.json({ error: 'Unauthorized: Admin access required for refunds.' }, { status: 403 });
         }
 
         // 1. Get real order details from Firestore

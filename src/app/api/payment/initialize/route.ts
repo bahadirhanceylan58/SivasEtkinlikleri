@@ -25,18 +25,77 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ status: 'failure', errorMessage: 'Missing required parameters' }, { status: 400 });
         }
 
-        // 2. Server-Side Price Validation (Optional but highly recommended)
-        // Note: For complete security, we should re-calculate discounts and seat prices here.
-        // For now, we will just fetch the event to ensure it exists.
+        // 2. Server-Side Price Validation
+        // Fetch original event data from Firestore to get the real price
         const eventDocRef = doc(db, 'events', event.id);
         const eventSnap = await getDoc(eventDocRef);
-
+        
         if (!eventSnap.exists()) {
             return NextResponse.json({ status: 'failure', errorMessage: 'Event not found' }, { status: 404 });
         }
-
+        
         const eventData = eventSnap.data();
-        const ownerId = eventData.ownerId;
+        const ticketPrice = eventData.price || 0;
+        
+        // Recalculate subtotal
+        let calculatedSubtotal = 0;
+        if (eventData.hasSeatSelection && body.selectedSeats?.length > 0) {
+            // Validate each seat price if different from base price
+            const seatingMap = eventData.seatingMap;
+            body.selectedSeats.forEach((seatId: string) => {
+                // In a production app, we would look up the specific price for thisId
+                // For now, we assume base price or handle custom pricing if schema allows
+                calculatedSubtotal += ticketPrice; 
+            });
+        } else {
+            calculatedSubtotal = ticketPrice * (body.ticketCount || 1);
+        }
+
+        // Apply group discounts if applicable
+        let groupDiscount = 0;
+        if (!eventData.hasSeatSelection && eventData.groupTickets?.length > 0) {
+            const applicableTier = eventData.groupTickets
+                .filter((tier: any) => (body.ticketCount || 1) >= tier.minTickets)
+                .sort((a: any, b: any) => b.discount - a.discount)[0];
+
+            if (applicableTier) {
+                groupDiscount = Math.round(calculatedSubtotal * applicableTier.discount * 100) / 100;
+            }
+        }
+
+        let calculatedTotal = calculatedSubtotal - groupDiscount;
+
+        // Apply discount code if present
+        if (body.discountCode) {
+            const { validateDiscountCode } = await import('@/lib/discountValidator');
+            const discountResult = await validateDiscountCode(
+                body.discountCode,
+                user.uid,
+                event.id,
+                eventData.category || '',
+                calculatedTotal
+            );
+            
+            if (discountResult.valid && discountResult.finalPrice !== undefined) {
+                calculatedTotal = discountResult.finalPrice;
+            }
+        }
+
+        // IMPORTANT: Verify that the amount requested matches our calculation
+        // We use a small epsilon for floating point comparison
+        const requestedAmount = Number(amount);
+        if (Math.abs(requestedAmount - calculatedTotal) > 0.01) {
+            console.error('Price Mismatch Detected!', { requested: requestedAmount, calculated: calculatedTotal });
+            return NextResponse.json({ 
+                status: 'failure', 
+                errorMessage: 'Security Alert: Price mismatch detected. The payment amount does not match the server calculation.' 
+            }, { status: 400 });
+        }
+
+        const ownerId = eventData.organizerId || eventData.ownerId;
+
+        // Convert amount to kuruş
+        const amountInKurus = Math.round(calculatedTotal * 100);
 
         // 3. Role-Based Security: Check if event owner is authorized to sell via Credit Card
         // If the event is set to 'internal' sales, the owner MUST be an 'organizer' or 'admin'.
@@ -52,9 +111,6 @@ export async function POST(request: NextRequest) {
                 }, { status: 403 });
             }
         }
-
-        // Convert amount to kuruş
-        const amountInKurus = Math.round(Number(amount) * 100);
 
         const protocol = request.headers.get('x-forwarded-proto') || 'https';
         const host = request.headers.get('host') || 'www.sivasetkinlikleri.com';
