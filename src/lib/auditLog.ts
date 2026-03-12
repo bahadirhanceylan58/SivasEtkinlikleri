@@ -1,7 +1,17 @@
 import { db } from './firebase';
-import * as admin from 'firebase-admin';
 
-// ... (interfaces)
+export interface AuditLogEntry {
+    userId: string;
+    userEmail?: string;
+    action: string;
+    resource: string;
+    resourceId?: string;
+    details?: Record<string, any>;
+    ipAddress?: string;
+    userAgent?: string;
+    status: 'success' | 'failure';
+    errorMessage?: string;
+}
 
 /**
  * Log an action to the audit trail
@@ -10,6 +20,7 @@ export async function logAudit(entry: AuditLogEntry): Promise<void> {
     try {
         if (typeof window === 'undefined') {
             // Server side - use Admin SDK
+            const admin = await import('firebase-admin');
             const { adminDb } = await import('./firebaseAdmin');
             await adminDb.collection('auditLogs').add({
                 ...entry,

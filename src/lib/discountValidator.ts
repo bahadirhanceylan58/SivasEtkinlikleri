@@ -1,4 +1,3 @@
-import { collection, query, where, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from './firebase';
 import { DiscountCode, DiscountValidationResult, UserCodeUsage } from '@/types/ticketing';
 
@@ -13,17 +12,40 @@ export async function validateDiscountCode(
     purchaseAmount: number
 ): Promise<DiscountValidationResult> {
     try {
-        // 1. Kodu bul (case-insensitive)
-        const codesRef = collection(db, 'discountCodes');
-        const q = query(codesRef, where('code', '==', code.toUpperCase()));
-        const querySnapshot = await getDocs(q);
+        let discount: DiscountCode | null = null;
+        let discountId: string = '';
 
-        if (querySnapshot.empty) {
-            return { valid: false, error: 'Geçersiz indirim kodu.' };
+        if (typeof window === 'undefined') {
+            // Server side - use Admin SDK
+            const { adminDb } = await import('./firebaseAdmin');
+            const querySnapshot = await adminDb.collection('discountCodes')
+                .where('code', '==', code.toUpperCase())
+                .get();
+
+            if (querySnapshot.empty) {
+                return { valid: false, error: 'Geçersiz indirim kodu.' };
+            }
+
+            const doc = querySnapshot.docs[0];
+            discountId = doc.id;
+            discount = { id: doc.id, ...doc.data() } as DiscountCode;
+        } else {
+            // Client side - standard SDK
+            const { collection, query, where, getDocs } = await import('firebase/firestore');
+            const codesRef = collection(db, 'discountCodes');
+            const q = query(codesRef, where('code', '==', code.toUpperCase()));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                return { valid: false, error: 'Geçersiz indirim kodu.' };
+            }
+
+            const doc = querySnapshot.docs[0];
+            discountId = doc.id;
+            discount = { id: doc.id, ...doc.data() } as DiscountCode;
         }
 
-        const discountDoc = querySnapshot.docs[0];
-        const discount = { id: discountDoc.id, ...discountDoc.data() } as DiscountCode;
+        if (!discount) return { valid: false, error: 'Kod bulunamadı.' };
 
         // 2. Aktif mi kontrol et
         if (!discount.isActive) {
@@ -32,12 +54,15 @@ export async function validateDiscountCode(
 
         // 3. Tarih kontrolü
         const now = new Date();
-        const validFrom = discount.validFrom instanceof Timestamp
-            ? discount.validFrom.toDate()
-            : new Date(discount.validFrom);
-        const validUntil = discount.validUntil instanceof Timestamp
-            ? discount.validUntil.toDate()
-            : new Date(discount.validUntil);
+        const parseDate = (val: any) => {
+            if (!val) return new Date(0);
+            if (typeof val.toDate === 'function') return val.toDate();
+            if (val._seconds !== undefined) return new Date(val._seconds * 1000);
+            return new Date(val);
+        };
+
+        const validFrom = parseDate(discount.validFrom);
+        const validUntil = parseDate(discount.validUntil);
 
         if (now < validFrom) {
             return { valid: false, error: 'Bu kod henüz geçerli değil.' };
@@ -54,19 +79,29 @@ export async function validateDiscountCode(
 
         // 5. Kullanıcı başına kullanım kontrolü
         if (discount.maxUsagePerUser > 0) {
-            const usageRef = collection(db, 'discountCodeUsage');
-            const usageQuery = query(
-                usageRef,
-                where('userId', '==', userId),
-                where('codeId', '==', discount.id)
-            );
-            const usageSnapshot = await getDocs(usageQuery);
+            if (typeof window === 'undefined') {
+                const { adminDb } = await import('./firebaseAdmin');
+                const usageSnapshot = await adminDb.collection('discountCodeUsage')
+                    .where('userId', '==', userId)
+                    .where('codeId', '==', discountId)
+                    .get();
 
-            if (usageSnapshot.size >= discount.maxUsagePerUser) {
-                return {
-                    valid: false,
-                    error: 'Bu kodu zaten kullandınız.'
-                };
+                if (usageSnapshot.size >= discount.maxUsagePerUser) {
+                    return { valid: false, error: 'Bu kodu zaten kullandınız.' };
+                }
+            } else {
+                const { collection, query, where, getDocs } = await import('firebase/firestore');
+                const usageRef = collection(db, 'discountCodeUsage');
+                const usageQuery = query(
+                    usageRef,
+                    where('userId', '==', userId),
+                    where('codeId', '==', discountId)
+                );
+                const usageSnapshot = await getDocs(usageQuery);
+
+                if (usageSnapshot.size >= discount.maxUsagePerUser) {
+                    return { valid: false, error: 'Bu kodu zaten kullandınız.' };
+                }
             }
         }
 
@@ -110,6 +145,7 @@ export async function validateDiscountCode(
 
         return {
             valid: true,
+            discountId: discountId,
             discountAmount: Math.round(discountAmount * 100) / 100,
             finalPrice: Math.round(finalPrice * 100) / 100
         };
@@ -131,34 +167,40 @@ export async function markCodeAsUsed(
     discountAmount: number
 ): Promise<void> {
     try {
-        // Kullanım kaydı ekle
-        await getDocs(collection(db, 'discountCodeUsage')).then(async (snapshot) => {
-            const usageRef = collection(db, 'discountCodeUsage');
-            await getDocs(query(usageRef)).then(async () => {
-                // Manuel ID oluşturma yerine Firestore'un otomatik ID'sini kullan
-                const newUsageRef = doc(collection(db, 'discountCodeUsage'));
-                const usageData: UserCodeUsage = {
-                    codeId,
-                    code,
-                    userId,
-                    eventId,
-                    discountAmount,
-                    usedAt: new Date().toISOString()
-                };
+        if (typeof window === 'undefined') {
+            const admin = await import('firebase-admin');
+            const { adminDb } = await import('./firebaseAdmin');
+            const batch = adminDb.batch();
 
-                // setDoc ile kaydet
-                await getDocs(query(collection(db, 'discountCodeUsage'))).catch(() => { });
+            const usageRef = adminDb.collection('discountCodeUsage').doc();
+            batch.set(usageRef, {
+                codeId,
+                code,
+                userId,
+                eventId,
+                discountAmount,
+                usedAt: new Date().toISOString()
             });
-        });
 
-        // Kod kullanım sayısını artır
-        const codeRef = doc(db, 'discountCodes', codeId);
-        const codeDoc = await getDoc(codeRef);
-        if (codeDoc.exists()) {
-            const currentCount = codeDoc.data().usedCount || 0;
-            // updateDoc yerine manuel güncelleme
-            await getDoc(codeRef).then(() => {
-                // Güncelleme işlemi için ayrı bir fonksiyon gerekecek
+            const codeRef = adminDb.collection('discountCodes').doc(codeId);
+            batch.update(codeRef, {
+                usedCount: admin.firestore.FieldValue.increment(1)
+            });
+
+            await batch.commit();
+        } else {
+            const { collection, doc, addDoc, updateDoc, increment } = await import('firebase/firestore');
+            const usageData: UserCodeUsage = {
+                codeId,
+                code,
+                userId,
+                eventId,
+                discountAmount,
+                usedAt: new Date().toISOString()
+            };
+            await addDoc(collection(db, 'discountCodeUsage'), usageData);
+            await updateDoc(doc(db, 'discountCodes', codeId), {
+                usedCount: increment(1)
             });
         }
     } catch (error) {
@@ -172,12 +214,22 @@ export async function markCodeAsUsed(
  */
 export async function getAllDiscountCodes(): Promise<DiscountCode[]> {
     try {
-        const codesRef = collection(db, 'discountCodes');
-        const snapshot = await getDocs(codesRef);
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        })) as DiscountCode[];
+        if (typeof window === 'undefined') {
+            const { adminDb } = await import('./firebaseAdmin');
+            const snapshot = await adminDb.collection('discountCodes').get();
+            return snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })) as DiscountCode[];
+        } else {
+            const { collection, getDocs } = await import('firebase/firestore');
+            const codesRef = collection(db, 'discountCodes');
+            const snapshot = await getDocs(codesRef);
+            return snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })) as DiscountCode[];
+        }
     } catch (error) {
         console.error('Error fetching discount codes:', error);
         return [];
@@ -193,21 +245,41 @@ export async function getCodeUsageStats(codeId: string): Promise<{
     totalDiscountGiven: number;
 }> {
     try {
-        const usageRef = collection(db, 'discountCodeUsage');
-        const q = query(usageRef, where('codeId', '==', codeId));
-        const snapshot = await getDocs(q);
+        if (typeof window === 'undefined') {
+            const { adminDb } = await import('./firebaseAdmin');
+            const snapshot = await adminDb.collection('discountCodeUsage')
+                .where('codeId', '==', codeId)
+                .get();
 
-        const uniqueUsers = new Set(snapshot.docs.map(doc => doc.data().userId)).size;
-        const totalDiscountGiven = snapshot.docs.reduce(
-            (sum, doc) => sum + (doc.data().discountAmount || 0),
-            0
-        );
+            const uniqueUsers = new Set(snapshot.docs.map(doc => doc.data().userId)).size;
+            const totalDiscountGiven = snapshot.docs.reduce(
+                (sum, doc) => sum + (doc.data().discountAmount || 0),
+                0
+            );
 
-        return {
-            totalUsage: snapshot.size,
-            uniqueUsers,
-            totalDiscountGiven: Math.round(totalDiscountGiven * 100) / 100
-        };
+            return {
+                totalUsage: snapshot.size,
+                uniqueUsers,
+                totalDiscountGiven: Math.round(totalDiscountGiven * 100) / 100
+            };
+        } else {
+            const { collection, query, where, getDocs } = await import('firebase/firestore');
+            const usageRef = collection(db, 'discountCodeUsage');
+            const q = query(usageRef, where('codeId', '==', codeId));
+            const snapshot = await getDocs(q);
+
+            const uniqueUsers = new Set(snapshot.docs.map(doc => doc.data().userId)).size;
+            const totalDiscountGiven = snapshot.docs.reduce(
+                (sum, doc) => sum + (doc.data().discountAmount || 0),
+                0
+            );
+
+            return {
+                totalUsage: snapshot.size,
+                uniqueUsers,
+                totalDiscountGiven: Math.round(totalDiscountGiven * 100) / 100
+            };
+        }
     } catch (error) {
         console.error('Error fetching usage stats:', error);
         return { totalUsage: 0, uniqueUsers: 0, totalDiscountGiven: 0 };

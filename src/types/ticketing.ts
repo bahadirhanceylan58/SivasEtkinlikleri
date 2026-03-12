@@ -40,6 +40,7 @@ export interface UserCodeUsage {
 export interface DiscountValidationResult {
     valid: boolean;
     error?: string;
+    discountId?: string;
     discountAmount?: number;
     finalPrice?: number;
 }
