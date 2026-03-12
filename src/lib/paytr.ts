@@ -91,16 +91,24 @@ export async function generatePaytrToken(params: PaytrTokenParams): Promise<stri
             body: formData
         });
 
-        const result = await response.json();
+        const resultText = await response.text();
+        let result;
+        
+        try {
+            result = JSON.parse(resultText);
+        } catch (parseError) {
+            console.error('PayTR API Response is not JSON:', resultText);
+            throw new Error('PayTR geçersiz yanıt döndürdü (JSON parse hatası).');
+        }
 
         if (result.status === 'success') {
             return result.token;
         } else {
-            console.error('PayTR API Error:', result.reason);
-            throw new Error(`PayTR API Error: ${result.reason}`);
+            console.error('PayTR API Error:', result.reason || result);
+            throw new Error(`PayTR Hatası: ${result.reason || 'Bilinmeyen hata'}`);
         }
     } catch (error) {
-        console.error('Fetch error to PayTR API:', error);
+        console.error('PayTR Token Generation Error:', error);
         throw error;
     }
 }

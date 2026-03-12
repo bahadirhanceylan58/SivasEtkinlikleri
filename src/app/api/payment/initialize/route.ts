@@ -20,7 +20,12 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const body = await request.json();
+        let body;
+        try {
+            body = await request.json();
+        } catch (e) {
+            return NextResponse.json({ status: 'failure', errorMessage: 'Invalid request body' }, { status: 400 });
+        }
         const { user, event, amount, basketId, ticketCount } = body;
 
         if (!user?.uid || !event?.id || !amount || !basketId) {

@@ -49,7 +49,13 @@ export default function RefundManagement() {
             });
 
             if (!response.ok) {
-                const err = await response.json();
+                const responseText = await response.text();
+                let err;
+                try {
+                    err = JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error('Sunucu hatası (Geçersiz yanıt).');
+                }
                 throw new Error(err.error || 'Refund failed');
             }
 

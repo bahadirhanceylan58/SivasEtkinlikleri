@@ -188,18 +188,28 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                         event: { id: event.id, title: event.title },
                         amount: totalAmount,
                         ticketCount: event.hasSeating ? selectedSeats.length : ticketCount,
-                        basketId: uniqueQrCode
+                        basketId: uniqueQrCode,
+                        selectedSeats: selectedSeats, // Pass seats to server for verification
+                        discountCode: appliedDiscountCode
                     })
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.errorMessage || errorData.error || 'Ödeme başlatılamadı');
+                const responseText = await response.text();
+                let paymentResult;
+
+                try {
+                    paymentResult = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('Server response is not JSON:', responseText);
+                    throw new Error('Sunucudan geçersiz yanıt geldi. Lütfen daha sonra tekrar deneyiniz.');
                 }
 
-                const paymentResult = await response.json();
+                if (!response.ok) {
+                    throw new Error(paymentResult.errorMessage || paymentResult.error || 'Ödeme başlatılamadı');
+                }
+
                 if (paymentResult.status !== 'success' || !paymentResult.iframeUrl) {
-                    throw new Error('Ödeme başarısız');
+                    throw new Error('Ödeme başlatma başarısız: ' + (paymentResult.errorMessage || 'Bilinmeyen hata'));
                 }
 
                 paytrUrl = paymentResult.iframeUrl;

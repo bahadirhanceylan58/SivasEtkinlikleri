@@ -23,7 +23,14 @@ export async function verifyCaptcha(token: string): Promise<{ success: boolean; 
             }
         );
 
-        const data = await response.json();
+        const responseText = await response.text();
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            console.error('reCAPTCHA Response is not JSON:', responseText);
+            return { success: false, error: 'Google reCAPTCHA servisi geçersiz yanıt döndürdü.' };
+        }
 
         if (!data.success) {
             return {
