@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generatePaytrToken } from '@/lib/paytr';
 import { rateLimiter, RATE_LIMITS, getClientIdentifier } from '@/lib/rateLimit';
 import { logAudit, getClientInfo } from '@/lib/auditLog';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase'; // Note: Client SDK used in Edge/Node runtime, ensure it works or use admin SDK. Here we use what is available.
+import { adminDb } from '@/lib/firebaseAdmin';
+import * as admin from 'firebase-admin';
 
 export async function POST(request: NextRequest) {
     // 1. Rate Limiting
@@ -27,14 +27,13 @@ export async function POST(request: NextRequest) {
 
         // 2. Server-Side Price Validation
         // Fetch original event data from Firestore to get the real price
-        const eventDocRef = doc(db, 'events', event.id);
-        const eventSnap = await getDoc(eventDocRef);
+        const eventSnap = await adminDb.collection('events').doc(event.id).get();
         
-        if (!eventSnap.exists()) {
+        if (!eventSnap.exists) {
             return NextResponse.json({ status: 'failure', errorMessage: 'Event not found' }, { status: 404 });
         }
         
-        const eventData = eventSnap.data();
+        const eventData = eventSnap.data() || {};
         
         // Define authoritative price picking logic (should match client)
         const ticketPrice = (eventData.ticketTypes && eventData.ticketTypes.length > 0)
@@ -47,8 +46,6 @@ export async function POST(request: NextRequest) {
         if (eventData.hasSeatSelection && body.selectedSeats?.length > 0) {
             // Validate each seat price if different from base price
             body.selectedSeats.forEach((seat: any) => {
-                // In a production app, we would look up the specific price for this seat
-                // If the client sends seat objects with prices, we use the event's ticketTypes/price as authoritative
                 calculatedSubtotal += seat.price || ticketPrice; 
             });
         } else {
@@ -113,14 +110,12 @@ export async function POST(request: NextRequest) {
         const amountInKurus = Math.round(calculatedTotal * 100);
 
         // 3. Role-Based Security: Check if event owner is authorized to sell via Credit Card
-        // If the event is set to 'internal' sales, the owner MUST be an 'organizer' or 'admin'.
         // Bypass check for system events (ownerId === 'admin')
         if (eventData.salesType === 'internal' && ownerId && ownerId !== 'admin') {
-            const ownerDocRef = doc(db, 'users', ownerId);
-            const ownerSnap = await getDoc(ownerDocRef);
+            const ownerSnap = await adminDb.collection('users').doc(ownerId).get();
             const ownerData = ownerSnap.data();
 
-            if (!ownerSnap.exists() || (ownerData?.role !== 'organizer' && ownerData?.role !== 'admin')) {
+            if (!ownerSnap.exists || (ownerData?.role !== 'organizer' && ownerData?.role !== 'admin')) {
                 return NextResponse.json({
                     status: 'failure',
                     errorMessage: 'This organizer is not authorized for credit card payments.'
@@ -156,8 +151,7 @@ export async function POST(request: NextRequest) {
         const paytrTokenValue = await generatePaytrToken(paytrParams);
 
         // 4. Save pending order to Firestore for callback processing
-        const orderRef = doc(db, 'orders', basketId);
-        await setDoc(orderRef, {
+        await adminDb.collection('orders').doc(basketId).set({
             userId: user.uid,
             userEmail: user.email || null,
             userName: user.displayName || null,
@@ -171,7 +165,7 @@ export async function POST(request: NextRequest) {
             vatAmount: Math.round((calculatedTotal - (calculatedTotal / (1 + (eventData.vatRate || 10) / 100))) * 100) / 100,
             basketId: basketId,
             status: 'pending',
-            createdAt: serverTimestamp(),
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
             // Store raw body for reconstruction if needed
             body: body
         });

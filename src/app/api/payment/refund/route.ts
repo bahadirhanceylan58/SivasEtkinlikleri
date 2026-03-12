@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebaseAdmin';
 import { releaseSeats, generateSeatId } from '@/lib/seatUtils';
 
 export async function POST(req: Request) {
@@ -13,22 +12,21 @@ export async function POST(req: Request) {
         }
 
         // 0. Security Check: Verify if the requester is actually an admin
-        const adminDocRef = doc(db, 'users', adminUid);
-        const adminSnap = await getDoc(adminDocRef);
-        if (!adminSnap.exists() || adminSnap.data()?.role !== 'admin') {
+        const adminSnap = await adminDb.collection('users').doc(adminUid).get();
+        if (!adminSnap.exists || adminSnap.data()?.role !== 'admin') {
             console.error('Unauthorized Refund Attempt!', { adminUid });
             return NextResponse.json({ error: 'Unauthorized: Admin access required for refunds.' }, { status: 403 });
         }
 
         // 1. Get real order details from Firestore
-        const orderRef = doc(db, 'orders', merchant_oid);
-        const orderSnap = await getDoc(orderRef);
+        const orderDocRef = adminDb.collection('orders').doc(merchant_oid);
+        const orderSnap = await orderDocRef.get();
 
-        if (!orderSnap.exists()) {
+        if (!orderSnap.exists) {
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         }
 
-        const orderData = orderSnap.data();
+        const orderData = orderSnap.data() || {};
 
         // Let's protect against double refunds
         if (orderData.status === 'refunded') {
@@ -89,23 +87,23 @@ export async function POST(req: Request) {
         }
 
         // 4. Update Firestore Order
-        await updateDoc(orderRef, {
+        await orderDocRef.update({
             status: 'refunded',
             refundedAt: new Date().toISOString()
         });
 
         // 5. Update User Document
-        const userRef = doc(db, 'users', userUid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-            const userData = userSnap.data();
-            const updatedTickets = userData.tickets.map((t: any) => {
+        const userRef = adminDb.collection('users').doc(userUid);
+        const userSnap = await userRef.get();
+        if (userSnap.exists) {
+            const userData = userSnap.data() || {};
+            const updatedTickets = (userData.tickets || []).map((t: any) => {
                 if (t.qrCode === merchant_oid) {
                     return { ...t, status: 'refunded' };
                 }
                 return t;
             });
-            await updateDoc(userRef, { tickets: updatedTickets });
+            await userRef.update({ tickets: updatedTickets });
         }
 
         // 6. Release seats if there were any

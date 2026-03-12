@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, updateDoc, doc, getDoc, arrayUnion, setDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebaseAdmin';
+import * as admin from 'firebase-admin';
 import { sendEmail } from '@/lib/email';
 import { TicketConfirmationEmail } from '@/lib/emailTemplates';
 
@@ -46,62 +46,60 @@ export async function POST(request: NextRequest) {
             console.log(`Payment successful for order: ${merchant_oid}`);
 
             // 1. Get the order from Firestore
-            const orderDocRef = doc(db, 'orders', merchant_oid);
-            const orderSnap = await getDoc(orderDocRef);
+            const orderDocRef = adminDb.collection('orders').doc(merchant_oid);
+            const orderSnap = await orderDocRef.get();
 
-            if (orderSnap.exists()) {
-                const orderData = orderSnap.data();
+            if (orderSnap.exists) {
+                const orderData = orderSnap.data() || {};
 
                 // 2. Update order status
-                await updateDoc(orderDocRef, {
+                await orderDocRef.update({
                     status: 'paid',
                     paytrStatus: status,
                     paymentAmount: payment_amount,
                     updatedAt: new Date().toISOString()
                 });
 
-                // 2.5 Update Organizer Balance (NEW)
+                // 2.5 Update Organizer Balance
                 if (orderData.ownerId) {
-                    const balanceRef = doc(db, 'balances', orderData.ownerId);
+                    const balanceRef = adminDb.collection('balances').doc(orderData.ownerId);
                     const amountInTL = Number(payment_amount) / 100;
 
-                    // Fetch current to calculate manually or use increment (safer)
-                    const { increment } = await import('firebase/firestore');
-                    await setDoc(balanceRef, {
+                    await balanceRef.set({
                         ownerId: orderData.ownerId,
-                        totalEarnings: increment(amountInTL),
-                        currentBalance: increment(amountInTL),
-                        lastUpdatedAt: serverTimestamp()
+                        totalEarnings: admin.firestore.FieldValue.increment(amountInTL),
+                        currentBalance: admin.firestore.FieldValue.increment(amountInTL),
+                        lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
                     }, { merge: true });
 
                     console.log(`Balance updated for organizer: ${orderData.ownerId}, Amount: ${amountInTL} TL`);
                 }
 
                 // 3. Update the ticket status in user's profile and event reservations
-                // We find them by qrCode (which is merchant_oid)
-
                 // Update User's Ticket
-                const userRef = doc(db, 'users', orderData.userId);
-                const userSnap = await getDoc(userRef);
-                if (userSnap.exists()) {
-                    const userData = userSnap.data();
+                const userRef = adminDb.collection('users').doc(orderData.userId);
+                const userSnap = await userRef.get();
+                if (userSnap.exists) {
+                    const userData = userSnap.data() || {};
                     const updatedTickets = (userData.tickets || []).map((t: any) => {
                         if (t.qrCode === merchant_oid) {
                             return { ...t, status: 'valid', paymentStatus: 'paid' };
                         }
                         return t;
                     });
-                    await updateDoc(userRef, { tickets: updatedTickets });
+                    await userRef.update({ tickets: updatedTickets });
                 }
 
                 // Update Event Reservation
-                const reservationQuery = query(
-                    collection(db, 'events', orderData.eventId, 'reservations'),
-                    where('qrCode', '==', merchant_oid)
-                );
-                const reservationSnap = await getDocs(reservationQuery);
+                const reservationSnap = await adminDb
+                    .collection('events')
+                    .doc(orderData.eventId)
+                    .collection('reservations')
+                    .where('qrCode', '==', merchant_oid)
+                    .get();
+
                 for (const resDoc of reservationSnap.docs) {
-                    await updateDoc(resDoc.ref, {
+                    await resDoc.ref.update({
                         paymentStatus: 'paid',
                         status: 'valid'
                     });
@@ -115,8 +113,8 @@ export async function POST(request: NextRequest) {
                         react: React.createElement(TicketConfirmationEmail, {
                             userName: orderData.userName || 'Değerli Misafirimiz',
                             eventTitle: orderData.eventTitle,
-                            eventDate: orderData.body?.event?.date || 'Etkinlik Tarihi',
-                            eventLocation: orderData.body?.event?.location || 'Etkinlik Alanı',
+                            eventDate: orderData.body?.event?.date || orderData.body?.eventDate || 'Etkinlik Tarihi',
+                            eventLocation: orderData.body?.event?.location || orderData.body?.eventLocation || 'Etkinlik Alanı',
                             qrCode: merchant_oid,
                             ticketCount: orderData.body?.ticketCount || 1,
                             totalAmount: Number(payment_amount) / 100, // PayTR sends amount in kuruş
@@ -136,8 +134,8 @@ export async function POST(request: NextRequest) {
             console.error(`Payment failed for order ${merchant_oid}: ${failed_reason_msg}`);
 
             // Mark order as failed
-            const orderDocRef = doc(db, 'orders', merchant_oid);
-            await updateDoc(orderDocRef, {
+            const orderDocRef = adminDb.collection('orders').doc(merchant_oid);
+            await orderDocRef.update({
                 status: 'failed',
                 failedReason: failed_reason_msg,
                 updatedAt: new Date().toISOString()

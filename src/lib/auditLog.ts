@@ -1,28 +1,28 @@
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
+import * as admin from 'firebase-admin';
 
-export interface AuditLogEntry {
-    userId: string;
-    userEmail?: string;
-    action: string;
-    resource: string;
-    resourceId?: string;
-    details?: Record<string, any>;
-    ipAddress?: string;
-    userAgent?: string;
-    status: 'success' | 'failure';
-    errorMessage?: string;
-}
+// ... (interfaces)
 
 /**
  * Log an action to the audit trail
  */
 export async function logAudit(entry: AuditLogEntry): Promise<void> {
     try {
-        await addDoc(collection(db, 'auditLogs'), {
-            ...entry,
-            timestamp: serverTimestamp(),
-        });
+        if (typeof window === 'undefined') {
+            // Server side - use Admin SDK
+            const { adminDb } = await import('./firebaseAdmin');
+            await adminDb.collection('auditLogs').add({
+                ...entry,
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            });
+        } else {
+            // Client side - use standard SDK
+            const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+            await addDoc(collection(db, 'auditLogs'), {
+                ...entry,
+                timestamp: serverTimestamp(),
+            });
+        }
     } catch (error) {
         console.error('Failed to write audit log:', error);
         // Don't throw - audit logging should never break the main flow
