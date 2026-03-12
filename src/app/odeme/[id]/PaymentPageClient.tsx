@@ -88,13 +88,14 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
 
                     // Fiyat belirleme mantığı: 
                     // 1. Eğer 'price' alanı varsa (sayı veya string), onu kullan
-                    // 2. Eğer 'ticketTypes' dizisi varsa ve en az bir elemanı varsa, ilk elemanın fiyatını kullan
+                    // 1. Eğer 'ticketTypes' dizisi varsa ve en az bir elemanı varsa, ilk elemanın fiyatını kullan
+                    // 2. Eğer 'price' alanı varsa (sayı veya string), onu kullan
                     // 3. Hiçbiri yoksa 0 kullan
                     let defaultPrice = 0;
-                    if (parsedEvent.price !== undefined && parsedEvent.price !== null) {
-                        defaultPrice = Number(parsedEvent.price);
-                    } else if (parsedEvent.ticketTypes && parsedEvent.ticketTypes.length > 0) {
+                    if (parsedEvent.ticketTypes && parsedEvent.ticketTypes.length > 0) {
                         defaultPrice = Number(parsedEvent.ticketTypes[0].price);
+                    } else if (parsedEvent.price !== undefined && parsedEvent.price !== null) {
+                        defaultPrice = Number(parsedEvent.price);
                     }
 
                     setTicketPrice(isNaN(defaultPrice) ? 0 : defaultPrice);

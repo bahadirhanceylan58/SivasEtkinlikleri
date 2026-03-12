@@ -35,7 +35,11 @@ export async function POST(request: NextRequest) {
         }
         
         const eventData = eventSnap.data();
-        const ticketPrice = eventData.price || (eventData.ticketTypes && eventData.ticketTypes.length > 0 ? eventData.ticketTypes[0].price : 0);
+        
+        // Define authoritative price picking logic (should match client)
+        const ticketPrice = (eventData.ticketTypes && eventData.ticketTypes.length > 0)
+            ? eventData.ticketTypes[0].price
+            : (eventData.price || 0);
         const count = ticketCount || body.ticketCount || 1;
         
         // Recalculate subtotal
@@ -82,13 +86,24 @@ export async function POST(request: NextRequest) {
         }
 
         // IMPORTANT: Verify that the amount requested matches our calculation
-        // We use a small epsilon for floating point comparison
         const requestedAmount = Number(amount);
-        if (Math.abs(requestedAmount - calculatedTotal) > 0.01) {
-            console.error('Price Mismatch Detected!', { requested: requestedAmount, calculated: calculatedTotal });
+        const diff = Math.abs(requestedAmount - calculatedTotal);
+        
+        if (diff > 0.01) {
+            console.error('Price Mismatch Detected!', { 
+                requested: requestedAmount, 
+                calculated: calculatedTotal,
+                diff: diff,
+                details: {
+                    basePrice: ticketPrice,
+                    count: count,
+                    groupDisc: groupDiscount,
+                    hasSeats: eventData.hasSeatSelection
+                }
+            });
             return NextResponse.json({ 
                 status: 'failure', 
-                errorMessage: 'Security Alert: Price mismatch detected. The payment amount does not match the server calculation.' 
+                errorMessage: `Güvenlik Uyarısı: Fiyat eşleşmedi. (R:${requestedAmount} vs C:${calculatedTotal})`
             }, { status: 400 });
         }
 
@@ -150,6 +165,9 @@ export async function POST(request: NextRequest) {
             eventTitle: event.title,
             ownerId: ownerId, // Track who earns this money
             amount: amount,
+            vatRate: eventData.vatRate || 10,
+            taxBase: Math.round((calculatedTotal / (1 + (eventData.vatRate || 10) / 100)) * 100) / 100,
+            vatAmount: Math.round((calculatedTotal - (calculatedTotal / (1 + (eventData.vatRate || 10) / 100))) * 100) / 100,
             basketId: basketId,
             status: 'pending',
             createdAt: serverTimestamp(),
