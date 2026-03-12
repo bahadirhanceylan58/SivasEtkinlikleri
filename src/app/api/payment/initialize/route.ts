@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        const ownerId = eventData.organizerId || eventData.ownerId;
+        const ownerId = eventData.organizerId || eventData.ownerId || 'admin';
 
         // Convert amount to kuruş
         const amountInKurus = Math.round(calculatedTotal * 100);
@@ -158,9 +158,9 @@ export async function POST(request: NextRequest) {
         const orderRef = doc(db, 'orders', basketId);
         await setDoc(orderRef, {
             userId: user.uid,
-            userEmail: user.email,
-            userName: user.displayName,
-            userPhone: user.phoneNumber,
+            userEmail: user.email || null,
+            userName: user.displayName || null,
+            userPhone: user.phoneNumber || null,
             eventId: event.id,
             eventTitle: event.title,
             ownerId: ownerId, // Track who earns this money

@@ -611,6 +611,7 @@ export default function AdminPage() {
                 alert('Etkinlik güncellendi!');
             } else {
                 eventData.status = 'pending'; // Yeni etkinlikler pending olarak başlar
+                eventData.organizerId = user?.uid || 'admin';
                 const docRef = await addDoc(collection(db, "events"), { ...eventData, createdAt: new Date() });
 
                 // Generate seats if seating system is enabled
