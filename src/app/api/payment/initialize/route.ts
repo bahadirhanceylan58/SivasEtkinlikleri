@@ -114,7 +114,8 @@ export async function POST(request: NextRequest) {
 
         // 3. Role-Based Security: Check if event owner is authorized to sell via Credit Card
         // If the event is set to 'internal' sales, the owner MUST be an 'organizer' or 'admin'.
-        if (eventData.salesType === 'internal' && ownerId) {
+        // Bypass check for system events (ownerId === 'admin')
+        if (eventData.salesType === 'internal' && ownerId && ownerId !== 'admin') {
             const ownerDocRef = doc(db, 'users', ownerId);
             const ownerSnap = await getDoc(ownerDocRef);
             const ownerData = ownerSnap.data();
