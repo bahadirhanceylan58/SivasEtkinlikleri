@@ -42,6 +42,7 @@ interface Event {
     status?: 'pending' | 'approved' | 'rejected';
     archived?: boolean;
     archivedAt?: any;
+    vatRate?: number;
 }
 
 interface Application {
