@@ -1,13 +1,15 @@
 import * as React from 'react';
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { adminDb } from '@/lib/firebaseAdmin';
-import * as admin from 'firebase-admin';
+import { getAdminDb } from '@/lib/firebaseAdmin';
 import { sendEmail } from '@/lib/email';
 import { TicketConfirmationEmail } from '@/lib/emailTemplates';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
     try {
+        const adminDb = await getAdminDb();
         // PayTR sends data as application/x-www-form-urlencoded
         const formData = await request.formData();
 
@@ -62,6 +64,7 @@ export async function POST(request: NextRequest) {
 
                 // 2.5 Update Organizer Balance
                 if (orderData.ownerId) {
+                    const admin = await import('firebase-admin');
                     const balanceRef = adminDb.collection('balances').doc(orderData.ownerId);
                     const amountInTL = Number(payment_amount) / 100;
 

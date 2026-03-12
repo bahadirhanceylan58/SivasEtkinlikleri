@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generatePaytrToken } from '@/lib/paytr';
 import { rateLimiter, RATE_LIMITS, getClientIdentifier } from '@/lib/rateLimit';
 import { logAudit, getClientInfo } from '@/lib/auditLog';
-import { adminDb } from '@/lib/firebaseAdmin';
-import * as admin from 'firebase-admin';
+import { getAdminDb } from '@/lib/firebaseAdmin';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
     // 1. Rate Limiting
+    const adminDb = await getAdminDb();
     const identifier = getClientIdentifier(request);
     const { limit, windowMs } = RATE_LIMITS.api;
 
@@ -165,7 +167,7 @@ export async function POST(request: NextRequest) {
             vatAmount: Math.round((calculatedTotal - (calculatedTotal / (1 + (eventData.vatRate || 10) / 100))) * 100) / 100,
             basketId: basketId,
             status: 'pending',
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: (await import('firebase-admin')).firestore.FieldValue.serverTimestamp(),
             // Store raw body for reconstruction if needed
             body: body
         });

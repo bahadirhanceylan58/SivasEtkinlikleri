@@ -21,7 +21,8 @@ export async function logAudit(entry: AuditLogEntry): Promise<void> {
         if (typeof window === 'undefined') {
             // Server side - use Admin SDK
             const admin = await import('firebase-admin');
-            const { adminDb } = await import('./firebaseAdmin');
+            const { getAdminDb } = await import('./firebaseAdmin');
+            const adminDb = await getAdminDb();
             await adminDb.collection('auditLogs').add({
                 ...entry,
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),

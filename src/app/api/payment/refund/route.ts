@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { adminDb } from '@/lib/firebaseAdmin';
+import { getAdminDb } from '@/lib/firebaseAdmin';
 import { releaseSeats, generateSeatId } from '@/lib/seatUtils';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
     try {
+        const adminDb = await getAdminDb();
         const { merchant_oid, eventId, userUid, adminUid } = await req.json();
 
         if (!merchant_oid || !eventId || !userUid || !adminUid) {

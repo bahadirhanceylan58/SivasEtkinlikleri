@@ -17,7 +17,8 @@ export async function validateDiscountCode(
 
         if (typeof window === 'undefined') {
             // Server side - use Admin SDK
-            const { adminDb } = await import('./firebaseAdmin');
+            const { getAdminDb } = await import('./firebaseAdmin');
+            const adminDb = await getAdminDb();
             const querySnapshot = await adminDb.collection('discountCodes')
                 .where('code', '==', code.toUpperCase())
                 .get();
@@ -80,7 +81,8 @@ export async function validateDiscountCode(
         // 5. Kullanıcı başına kullanım kontrolü
         if (discount.maxUsagePerUser > 0) {
             if (typeof window === 'undefined') {
-                const { adminDb } = await import('./firebaseAdmin');
+                const { getAdminDb } = await import('./firebaseAdmin');
+                const adminDb = await getAdminDb();
                 const usageSnapshot = await adminDb.collection('discountCodeUsage')
                     .where('userId', '==', userId)
                     .where('codeId', '==', discountId)
@@ -169,7 +171,8 @@ export async function markCodeAsUsed(
     try {
         if (typeof window === 'undefined') {
             const admin = await import('firebase-admin');
-            const { adminDb } = await import('./firebaseAdmin');
+            const { getAdminDb } = await import('./firebaseAdmin');
+            const adminDb = await getAdminDb();
             const batch = adminDb.batch();
 
             const usageRef = adminDb.collection('discountCodeUsage').doc();
@@ -215,7 +218,8 @@ export async function markCodeAsUsed(
 export async function getAllDiscountCodes(): Promise<DiscountCode[]> {
     try {
         if (typeof window === 'undefined') {
-            const { adminDb } = await import('./firebaseAdmin');
+            const { getAdminDb } = await import('./firebaseAdmin');
+            const adminDb = await getAdminDb();
             const snapshot = await adminDb.collection('discountCodes').get();
             return snapshot.docs.map(doc => ({
                 id: doc.id,
@@ -246,7 +250,8 @@ export async function getCodeUsageStats(codeId: string): Promise<{
 }> {
     try {
         if (typeof window === 'undefined') {
-            const { adminDb } = await import('./firebaseAdmin');
+            const { getAdminDb } = await import('./firebaseAdmin');
+            const adminDb = await getAdminDb();
             const snapshot = await adminDb.collection('discountCodeUsage')
                 .where('codeId', '==', codeId)
                 .get();
