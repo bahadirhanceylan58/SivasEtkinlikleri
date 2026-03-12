@@ -97,6 +97,7 @@ export default function AdminPage() {
     const [externalUrl, setExternalUrl] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imageUrl, setImageUrl] = useState('');
+    const [vatRate, setVatRate] = useState(10);
     const [submitting, setSubmitting] = useState(false);
 
     // Seating System States
@@ -598,6 +599,7 @@ export default function AdminPage() {
                 externalUrl: salesType === 'external' ? externalUrl : null,
                 hasSeating,
                 seatingConfig: hasSeating ? seatingConfig : null,
+                vatRate: Number(vatRate) || 10,
                 updatedAt: new Date()
             };
 
@@ -638,6 +640,7 @@ export default function AdminPage() {
         setEditingId(event.id); setTitle(event.title); setDescription(event.description || ''); setSubCategory(event.subCategory || allSubCategories[0].name);
         setDate(event.date); setLocation(event.location); setCoordinates(event.coordinates || null); setTicketTypes(event.ticketTypes || [{ name: 'Standart', price: 0 }]);
         setSalesType(event.salesType || 'internal'); setExternalUrl(event.externalUrl || ''); setImageUrl(event.imageUrl);
+        setVatRate(event.vatRate || 10);
         setActiveTab('events'); setEventViewMode('form');
     };
 
@@ -654,6 +657,7 @@ export default function AdminPage() {
         setLocation(''); setCoordinates(null); setTicketTypes([{ name: 'Genel Giriş', price: 0 }]); setSalesType('internal');
         setExternalUrl(''); setImageFile(null); setImageUrl('');
         setHasSeating(false); setSeatingConfig(null);
+        setVatRate(10);
     };
 
     const handleTicketChange = (index: number, field: 'name' | 'price', value: any) => {
@@ -1113,6 +1117,23 @@ export default function AdminPage() {
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium text-foreground">Tarih & Saat</label>
                                         <input type="datetime-local" required value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-neutral-50 dark:bg-zinc-900 border border-border rounded-xl p-3 text-foreground focus:ring-1 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all [color-scheme:dark] dark:[color-scheme:dark] light:[color-scheme:light]" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-foreground">KDV Oranı (%)</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                required
+                                                value={vatRate}
+                                                onChange={(e) => setVatRate(Number(e.target.value))}
+                                                className="w-full bg-neutral-50 dark:bg-zinc-900 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
+                                                placeholder="Örn: 10"
+                                                min="0"
+                                                max="100"
+                                            />
+                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground px-1">Tiyatro: %10, Konser: %20 önerilir.</p>
                                     </div>
                                 </div>
                                 <div className="space-y-2">

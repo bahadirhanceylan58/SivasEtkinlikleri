@@ -113,6 +113,9 @@ export interface CartItem {
     seats?: string[]; // Koltuk seçimi varsa ["A1", "A2"]
     sectionId?: string;
     basePrice: number;
+    vatRate: number; // e.g., 10 or 20
+    taxBase: number; // Matrah
+    vatAmount: number; // KDV Tutarı
     discounts: {
         group?: number;
         code?: number;
@@ -146,4 +149,5 @@ export interface EnhancedEvent {
     acceptDonations?: boolean;
     suggestedDonations?: number[]; // [50, 100, 250, 500]
     ticketTypes?: TicketType[];
+    vatRate?: number; // 10, 20 etc.
 }

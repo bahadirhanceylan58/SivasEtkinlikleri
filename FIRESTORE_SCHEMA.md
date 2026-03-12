@@ -48,6 +48,8 @@ firestore/
     minTickets: number,
     discount: number             // 0.10 = %10
   }[],
+  ticketTypes?: { name: string; price: number }[],
+  vatRate: number,               // %10 veya %20 (Default: 10)
   
   createdAt: Timestamp,
   updatedAt: Timestamp
@@ -87,6 +89,11 @@ firestore/
   
   // Koltuk Seçimi
   selectedSeats?: string[],      // ['A1', 'A2']
+  
+  // Vergi Detayları (KDV)
+  vatRate: number,               // Uygulanan KDV oranı
+  taxBase: number,               // Matrah (KDV'siz tutar)
+  vatAmount: number,             // KDV Tutarı
   
   totalAmount: number,
   

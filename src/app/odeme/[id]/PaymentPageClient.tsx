@@ -28,6 +28,7 @@ interface Event {
     hasSeating?: boolean;
     seatingConfig?: any;
     ticketTypes?: Array<{ name: string; price: number }>;
+    vatRate?: number;
 }
 
 interface PaymentPageClientProps {
@@ -170,6 +171,11 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
             const discountAmount = appliedDiscount?.discountAmount || 0;
             const totalAmount = Math.max(0, subtotal - discountAmount);
 
+            // KDV ve Matrah hesaplama
+            const currentVatRate = event.vatRate || 10;
+            const taxBase = totalAmount / (1 + (currentVatRate / 100));
+            const vatAmount = totalAmount - taxBase;
+
             // 1. ÖNCE ÖDEME (API Call)
             let paytrUrl = '';
             if (paymentMethod === 'card') {
@@ -226,6 +232,9 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                 discountAmount: discountAmount,
                 discountCode: appliedDiscountCode || null,
                 totalAmount: totalAmount,
+                vatRate: currentVatRate,
+                taxBase: Math.round(taxBase * 100) / 100,
+                vatAmount: Math.round(vatAmount * 100) / 100,
                 purchaseDate: new Date().toISOString(),
                 qrCode: uniqueQrCode,
                 status: paymentMethod === 'card' ? 'pending_payment' : 'reserved',
@@ -260,6 +269,9 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                 discountCode: appliedDiscountCode || null,
                 discountAmount: discountAmount,
                 totalAmount: totalAmount,
+                vatRate: currentVatRate,
+                taxBase: Math.round(taxBase * 100) / 100,
+                vatAmount: Math.round(vatAmount * 100) / 100,
                 purchaseDate: new Date().toISOString(),
                 qrCode: uniqueQrCode,
                 status: 'valid',
@@ -509,6 +521,32 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                                     <span className="text-green-500 font-medium">-{appliedDiscount.discountAmount} ₺</span>
                                 </div>
                             )}
+
+                            {/* KDV Detayları */}
+                            {(() => {
+                                const groupDiscount = calculateGroupDiscount(ticketPrice, ticketCount, groupTiers);
+                                let currentTotal = groupDiscount.finalPrice;
+                                if (appliedDiscount?.finalPrice !== undefined) {
+                                    currentTotal = appliedDiscount.finalPrice;
+                                }
+
+                                const rate = event.vatRate || 10;
+                                const matrah = currentTotal / (1 + (rate / 100));
+                                const kdv = currentTotal - matrah;
+
+                                return (
+                                    <div className="border-t border-border/50 pt-3 space-y-2 animate-fadeIn">
+                                        <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                            <span>Matrah (KDV Hariç)</span>
+                                            <span>{Math.round(matrah * 100) / 100} ₺</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                            <span>KDV (%{rate})</span>
+                                            <span>{Math.round(kdv * 100) / 100} ₺</span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Toplam */}
                             <div className="border-t border-border pt-3 flex justify-between items-center">
