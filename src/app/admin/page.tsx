@@ -12,17 +12,17 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { CATEGORIES } from '@/data/mockData';
-import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, query, orderBy, setDoc, getDoc, where } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, query, orderBy, setDoc, getDoc, where, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 
 // New Components
-import AdminDashboard from '@/components/admin/AdminDashboard';
-import UserManagement from '@/components/admin/UserManagement';
-import TicketValidator from '@/components/admin/TicketValidator';
-import VenueEditor from '@/components/VenueEditor';
-import SponsorManagement from '@/components/admin/SponsorManagement';
-import RefundManagement from '@/components/admin/RefundManagement';
+const AdminDashboard = dynamic(() => import('@/components/admin/AdminDashboard'), { ssr: false });
+const UserManagement = dynamic(() => import('@/components/admin/UserManagement'), { ssr: false });
+const TicketValidator = dynamic(() => import('@/components/admin/TicketValidator'), { ssr: false });
+const VenueEditor = dynamic(() => import('@/components/VenueEditor'), { ssr: false });
+const SponsorManagement = dynamic(() => import('@/components/admin/SponsorManagement'), { ssr: false });
+const RefundManagement = dynamic(() => import('@/components/admin/RefundManagement'), { ssr: false });
 import { SeatingConfig } from '@/types/seating';
 import { generateSeatsForEvent } from '@/lib/seatUtils';
 import { logAudit } from '@/lib/auditLog';
@@ -197,7 +197,10 @@ export default function AdminPage() {
         const activeEventsList: Event[] = [];
         const archivedEventsList: Event[] = [];
 
-        // Auto-archive and auto-delete logic
+        // Batch all writes to avoid N+1 round-trips
+        const batch = writeBatch(db);
+        let hasBatchOps = false;
+
         for (const eventDoc of querySnapshot.docs) {
             const eventData = eventDoc.data();
             const event = { id: eventDoc.id, ...eventData } as Event;
@@ -207,17 +210,19 @@ export default function AdminPage() {
             if (eventData.archived && eventData.archivedAt) {
                 const archivedDate = new Date(eventData.archivedAt.seconds * 1000);
                 if (archivedDate < oneMonthAgo) {
-                    await deleteDoc(doc(db, "events", eventDoc.id));
-                    continue; // Skip this event
+                    batch.delete(doc(db, "events", eventDoc.id));
+                    hasBatchOps = true;
+                    continue;
                 }
             }
 
             // Auto-archive: If date has passed and not already archived
             if (eventDate < now && !eventData.archived) {
-                await updateDoc(doc(db, "events", eventDoc.id), {
+                batch.update(doc(db, "events", eventDoc.id), {
                     archived: true,
                     archivedAt: new Date()
                 });
+                hasBatchOps = true;
                 event.archived = true;
                 event.archivedAt = new Date();
             }
@@ -229,6 +234,8 @@ export default function AdminPage() {
                 activeEventsList.push(event);
             }
         }
+
+        if (hasBatchOps) await batch.commit();
 
         setEvents(activeEventsList);
         setArchivedEvents(archivedEventsList);

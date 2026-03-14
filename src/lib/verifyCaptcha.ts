@@ -7,8 +7,11 @@ export async function verifyCaptcha(token: string): Promise<{ success: boolean; 
     const secretKey = process.env.RECAPTCHA_SECRET_KEY;
 
     if (!secretKey) {
-        console.warn('RECAPTCHA_SECRET_KEY not configured, skipping verification');
-        return { success: true }; // Allow in development
+        if (process.env.NODE_ENV === 'development') {
+            console.warn('RECAPTCHA_SECRET_KEY not configured, skipping in development');
+            return { success: true };
+        }
+        return { success: false, error: 'reCAPTCHA yapılandırılmamış.' };
     }
 
     try {

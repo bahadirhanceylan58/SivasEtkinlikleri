@@ -50,7 +50,7 @@ export async function validateDiscountCode(
 
         // 2. Aktif mi kontrol et
         if (!discount.isActive) {
-            return { valid: false, error: 'Bu kod artık geçerli değil.' };
+            return { valid: false, error: 'Geçersiz indirim kodu.' };
         }
 
         // 3. Tarih kontrolü
@@ -65,17 +65,13 @@ export async function validateDiscountCode(
         const validFrom = parseDate(discount.validFrom);
         const validUntil = parseDate(discount.validUntil);
 
-        if (now < validFrom) {
-            return { valid: false, error: 'Bu kod henüz geçerli değil.' };
-        }
-
-        if (now > validUntil) {
-            return { valid: false, error: 'Bu kodun geçerlilik süresi dolmuş.' };
+        if (now < validFrom || now > validUntil) {
+            return { valid: false, error: 'Geçersiz indirim kodu.' };
         }
 
         // 4. Toplam kullanım limiti kontrolü
         if (discount.maxUsage > 0 && discount.usedCount >= discount.maxUsage) {
-            return { valid: false, error: 'Bu kod maksimum kullanım sayısına ulaşmış.' };
+            return { valid: false, error: 'Geçersiz indirim kodu.' };
         }
 
         // 5. Kullanıcı başına kullanım kontrolü
