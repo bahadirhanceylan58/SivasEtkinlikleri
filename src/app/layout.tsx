@@ -21,9 +21,32 @@ const outfit = Outfit({
   variable: "--font-outfit",
 });
 
+const BASE_URL = 'https://sivasetkinlikleri.vercel.app';
+
 export const metadata: Metadata = {
-  title: "Sivas Etkinlikleri",
-  description: "Sivas'taki en güncel etkinlikler, konserler ve topluluklar.",
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: "Sivas Etkinlikleri",
+    template: "%s | Sivas Etkinlikleri",
+  },
+  description: "Sivas'taki en güncel etkinlikler, konserler, kurslar ve topluluklar. Şehrin sosyal rehberi.",
+  keywords: ["sivas", "etkinlik", "konser", "tiyatro", "kurs", "kulüp", "bilet"],
+  authors: [{ name: "Sivas Etkinlikleri" }],
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: BASE_URL,
+    siteName: "Sivas Etkinlikleri",
+    title: "Sivas Etkinlikleri",
+    description: "Sivas'taki en güncel etkinlikler, konserler, kurslar ve topluluklar.",
+    images: [{ url: "/icon-512x512.png", width: 512, height: 512, alt: "Sivas Etkinlikleri" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sivas Etkinlikleri",
+    description: "Sivas'taki en güncel etkinlikler, konserler ve topluluklar.",
+    images: ["/icon-512x512.png"],
+  },
   icons: {
     icon: "/icon-192x192.png",
     apple: "/icon-192x192.png",
