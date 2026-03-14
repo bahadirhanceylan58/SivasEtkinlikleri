@@ -8,7 +8,6 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
     // 1. Rate Limiting
-    const adminDb = await getAdminDb();
     const identifier = getClientIdentifier(request);
     const { limit, windowMs } = RATE_LIMITS.api;
 
@@ -20,6 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+        const adminDb = await getAdminDb();
         let body;
         try {
             body = await request.json();
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
             ] as Array<[string, string, number]>,
             merchantOkUrl: okUrl,
             merchantFailUrl: failUrl,
-            testMode: 1 as const // Enable test mode by default
+            testMode: (process.env.PAYTR_TEST_MODE === '1' ? 1 : 0) as 0 | 1
         };
 
         const paytrTokenValue = await generatePaytrToken(paytrParams);
@@ -203,17 +203,21 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error('Payment Init Error:', error);
 
-        const clientInfo = getClientInfo(request.headers);
-        await logAudit({
-            userId: 'unknown',
-            userEmail: '',
-            action: 'payment_initialize_failed',
-            resource: 'payment',
-            details: {},
-            status: 'failure',
-            errorMessage: (error as Error).message,
-            ...clientInfo,
-        });
+        try {
+            const clientInfo = getClientInfo(request.headers);
+            await logAudit({
+                userId: 'unknown',
+                userEmail: '',
+                action: 'payment_initialize_failed',
+                resource: 'payment',
+                details: {},
+                status: 'failure',
+                errorMessage: (error as Error).message,
+                ...clientInfo,
+            });
+        } catch (logError) {
+            console.error('Audit log error:', logError);
+        }
 
         return NextResponse.json({ status: 'error', errorMessage: (error as Error).message }, { status: 500 });
     }
