@@ -7,7 +7,7 @@ async function getEvent(id: string) {
     try {
         const adminDb = await getAdminDb();
         const docSnap = await adminDb.collection('events').doc(id).get();
-        if (!docSnap.exists()) return null;
+        if (!docSnap.exists) return null;
         return { id: docSnap.id, ...docSnap.data() } as any;
     } catch {
         return null;
