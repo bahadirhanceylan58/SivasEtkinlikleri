@@ -193,10 +193,10 @@ export default function EventDetailClient() {
                     <ArrowLeft className="w-4 h-4" /> Geri Dön
                 </Link>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
 
-                    {/* --- SOL KOLON --- */}
-                    <div className="lg:col-span-1 space-y-6">
+                    {/* --- SOL KOLON (Afiş) --- */}
+                    <div className="lg:col-span-1">
 
                         {/* Afiş */}
                         <div
@@ -216,150 +216,9 @@ export default function EventDetailClient() {
                             </div>
                         </div>
 
-                        {/* Bilet Kartı */}
-                        <div className="bg-card border border-border p-6 rounded-2xl shadow-lg sticky top-24">
-                            <div className="flex justify-between items-end mb-4">
-                                <div>
-                                    <span className="text-sm text-muted-foreground block mb-1">Bilet Fiyatı</span>
-                                    <span className="text-3xl font-bold text-primary">
-                                        {event.ticketTypes && event.ticketTypes.length > 0 && event.ticketTypes[0].price > 0
-                                            ? `${event.ticketTypes[0].price} ₺`
-                                            : (event.price && event.price !== "0" ? `${event.price} ₺` : "Ücretsiz")}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {(event.salesType === 'external' && event.externalUrl) || event.ticketUrl || event.link || event.website ? (
-                                <a
-                                    href={event.externalUrl || event.ticketUrl || event.link || event.website}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block w-full"
-                                >
-                                    <button className="w-full py-3.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-glow mb-4">
-                                        Bilet Al
-                                    </button>
-                                </a>
-                            ) : (
-                                <Link
-                                    href={event.hasSeating ? `/etkinlik/${event.id}/koltuk-sec` : `/odeme/${event.id}`}
-                                    className="block w-full"
-                                >
-                                    {/* 3 Durum Kontrolü */}
-                                    {(() => {
-                                        // Fiyat Belirleme
-                                        let price = 0;
-                                        if (event.ticketTypes && event.ticketTypes.length > 0) {
-                                            price = event.ticketTypes[0].price;
-                                        } else if (event.price) {
-                                            price = Number(event.price);
-                                        }
-
-                                        // Durum 1: Ücretsiz
-                                        if (price === 0 || event.salesType === 'free') {
-                                            return (
-                                                <button className="w-full py-3.5 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 hover:scale-[1.02] transition-all shadow-glow mb-4">
-                                                    Ücretsiz (Rezervasyon)
-                                                </button>
-                                            );
-                                        }
-
-                                        // Durum 2: Rezervasyon (Ücretli - Kapıda ödeme vs.)
-                                        if (event.salesType === 'reservation') {
-                                            return (
-                                                <button className="w-full py-3.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-glow mb-4">
-                                                    Rezervasyon Yap - {price} ₺
-                                                </button>
-                                            );
-                                        }
-
-                                        // Durum 3: Bilet Al (Varsayılan Ücretli)
-                                        return (
-                                            <button className="w-full py-3.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-glow mb-4">
-                                                {event.hasSeating ? 'Koltuk Seç / Bilet Al' : `Bilet Al - ${price} ₺`}
-                                            </button>
-                                        );
-                                    })()}
-                                </Link>
-                            )}
-
-                            <div className="text-xs text-muted-foreground text-center mb-4">
-                                Güvenli ödeme ve anında bilet teslimi.
-                            </div>
-
-                            <div className="border-t border-border pt-4">
-                                <p className="text-xs text-muted-foreground font-medium mb-3 text-center">Etkinliği Paylaş</p>
-                                <div className="flex gap-2 justify-center">
-                                    <button
-                                        onClick={() => {
-                                            if (navigator.share) {
-                                                navigator.share({
-                                                    title: event.title,
-                                                    text: `${event.title} - Sivas Etkinlikleri`,
-                                                    url: window.location.href,
-                                                }).catch(console.error);
-                                            } else {
-                                                navigator.clipboard.writeText(window.location.href);
-                                                alert("Bağlantı kopyalandı!");
-                                            }
-                                        }}
-                                        className="flex-1 flex items-center justify-center gap-2 text-sm bg-muted/50 hover:bg-muted text-foreground py-2.5 rounded-xl transition-all active:scale-95"
-                                    >
-                                        <Share2 className="w-4 h-4" />
-                                        <span>Genel</span>
-                                    </button>
-
-                                    <button
-                                        onClick={() => {
-                                            const text = encodeURIComponent(`${event.title} etkinliğini kaçırma!`);
-                                            const url = encodeURIComponent(window.location.href);
-                                            window.open(`https://wa.me/?text=${text}%20${url}`, '_blank');
-                                        }}
-                                        className="w-10 h-10 flex items-center justify-center bg-green-500/10 text-green-600 hover:bg-green-500/20 rounded-xl transition-all active:scale-95"
-                                        title="WhatsApp'ta Paylaş"
-                                    >
-                                        <Phone className="w-4 h-4" />
-                                    </button>
-
-                                    <button
-                                        onClick={() => {
-                                            const text = encodeURIComponent(`${event.title} etkinliğini inceliyorum! @SivasEtkinlik`);
-                                            const url = encodeURIComponent(window.location.href);
-                                            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
-                                        }}
-                                        className="w-10 h-10 flex items-center justify-center bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 rounded-xl transition-all active:scale-95"
-                                        title="Twitter'da Paylaş"
-                                    >
-                                        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
-                                    </button>
-
-                                    <button
-                                        onClick={() => {
-                                            const url = encodeURIComponent(window.location.href);
-                                            window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
-                                        }}
-                                        className="w-10 h-10 flex items-center justify-center bg-blue-600/10 text-blue-600 hover:bg-blue-600/20 rounded-xl transition-all active:scale-95"
-                                        title="Facebook'ta Paylaş"
-                                    >
-                                        <Facebook className="w-4 h-4" />
-                                    </button>
-
-                                    <button
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(window.location.href);
-                                            alert("Bağlantı kopyalandı! Instagram'da hikaye veya gönderi olarak paylaşabilirsiniz.");
-                                        }}
-                                        className="w-10 h-10 flex items-center justify-center bg-pink-600/10 text-pink-600 hover:bg-pink-600/20 rounded-xl transition-all active:scale-95"
-                                        title="Instagram'da Paylaş"
-                                    >
-                                        <InstagramIcon className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
-                    {/* --- SAĞ KOLON --- */}
+                    {/* --- ORTA KOLON (Etkinlik Detayları) --- */}
                     <div className="lg:col-span-2 space-y-8">
                         {/* ... Mevcut Header ve Detay Kısımları Aynı ... */}
                         <div>
@@ -539,6 +398,121 @@ export default function EventDetailClient() {
                         </div>
 
                     </div>
+
+                    {/* --- SAĞ KOLON (Bilet Kartı) --- */}
+                    <div className="lg:col-span-1">
+                        <div className="bg-card border border-border p-6 rounded-2xl shadow-lg sticky top-24">
+                            <div className="flex justify-between items-end mb-4">
+                                <div>
+                                    <span className="text-sm text-muted-foreground block mb-1">Bilet Fiyatı</span>
+                                    <span className="text-3xl font-bold text-primary">
+                                        {event.ticketTypes && event.ticketTypes.length > 0 && event.ticketTypes[0].price > 0
+                                            ? `${event.ticketTypes[0].price} ₺`
+                                            : (event.price && event.price !== "0" ? `${event.price} ₺` : "Ücretsiz")}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {(event.salesType === 'external' && event.externalUrl) || event.ticketUrl || event.link || event.website ? (
+                                <a
+                                    href={event.externalUrl || event.ticketUrl || event.link || event.website}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-full"
+                                >
+                                    <button className="w-full py-3.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-glow mb-4">
+                                        Bilet Al
+                                    </button>
+                                </a>
+                            ) : (
+                                <Link
+                                    href={event.hasSeating ? `/etkinlik/${event.id}/koltuk-sec` : `/odeme/${event.id}`}
+                                    className="block w-full"
+                                >
+                                    {(() => {
+                                        let price = 0;
+                                        if (event.ticketTypes && event.ticketTypes.length > 0) {
+                                            price = event.ticketTypes[0].price;
+                                        } else if (event.price) {
+                                            price = Number(event.price);
+                                        }
+                                        if (price === 0 || event.salesType === 'free') {
+                                            return (
+                                                <button className="w-full py-3.5 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 hover:scale-[1.02] transition-all shadow-glow mb-4">
+                                                    Ücretsiz (Rezervasyon)
+                                                </button>
+                                            );
+                                        }
+                                        if (event.salesType === 'reservation') {
+                                            return (
+                                                <button className="w-full py-3.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-glow mb-4">
+                                                    Rezervasyon Yap - {price} ₺
+                                                </button>
+                                            );
+                                        }
+                                        return (
+                                            <button className="w-full py-3.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-glow mb-4">
+                                                {event.hasSeating ? 'Koltuk Seç / Bilet Al' : `Bilet Al - ${price} ₺`}
+                                            </button>
+                                        );
+                                    })()}
+                                </Link>
+                            )}
+
+                            <div className="text-xs text-muted-foreground text-center mb-4">
+                                Güvenli ödeme ve anında bilet teslimi.
+                            </div>
+
+                            <div className="border-t border-border pt-4">
+                                <p className="text-xs text-muted-foreground font-medium mb-3 text-center">Etkinliği Paylaş</p>
+                                <div className="flex gap-2 justify-center">
+                                    <button
+                                        onClick={() => {
+                                            if (navigator.share) {
+                                                navigator.share({ title: event.title, text: `${event.title} - Sivas Etkinlikleri`, url: window.location.href }).catch(console.error);
+                                            } else {
+                                                navigator.clipboard.writeText(window.location.href);
+                                                alert("Bağlantı kopyalandı!");
+                                            }
+                                        }}
+                                        className="flex-1 flex items-center justify-center gap-2 text-sm bg-muted/50 hover:bg-muted text-foreground py-2.5 rounded-xl transition-all active:scale-95"
+                                    >
+                                        <Share2 className="w-4 h-4" />
+                                        <span>Genel</span>
+                                    </button>
+                                    <button
+                                        onClick={() => { const text = encodeURIComponent(`${event.title} etkinliğini kaçırma!`); const url = encodeURIComponent(window.location.href); window.open(`https://wa.me/?text=${text}%20${url}`, '_blank'); }}
+                                        className="w-10 h-10 flex items-center justify-center bg-green-500/10 text-green-600 hover:bg-green-500/20 rounded-xl transition-all active:scale-95"
+                                        title="WhatsApp'ta Paylaş"
+                                    >
+                                        <Phone className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => { const text = encodeURIComponent(`${event.title} etkinliğini inceliyorum! @SivasEtkinlik`); const url = encodeURIComponent(window.location.href); window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank'); }}
+                                        className="w-10 h-10 flex items-center justify-center bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 rounded-xl transition-all active:scale-95"
+                                        title="Twitter'da Paylaş"
+                                    >
+                                        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
+                                    </button>
+                                    <button
+                                        onClick={() => { const url = encodeURIComponent(window.location.href); window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank'); }}
+                                        className="w-10 h-10 flex items-center justify-center bg-blue-600/10 text-blue-600 hover:bg-blue-600/20 rounded-xl transition-all active:scale-95"
+                                        title="Facebook'ta Paylaş"
+                                    >
+                                        <Facebook className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => { navigator.clipboard.writeText(window.location.href); alert("Bağlantı kopyalandı! Instagram'da hikaye veya gönderi olarak paylaşabilirsiniz."); }}
+                                        className="w-10 h-10 flex items-center justify-center bg-pink-600/10 text-pink-600 hover:bg-pink-600/20 rounded-xl transition-all active:scale-95"
+                                        title="Instagram'da Paylaş"
+                                    >
+                                        <InstagramIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
             <Footer />
