@@ -13,7 +13,10 @@ service cloud.firestore {
     }
 
     function userRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      // Kullanıcı dokümanı henüz yoksa (yeni kayıt) 'user' döndür
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : 'user';
     }
 
     function isAdmin() {
@@ -26,21 +29,21 @@ service cloud.firestore {
 
     // ── EVENTS ────────────────────────────────────────────────────────────────
     match /events/{eventId} {
-      // Herkes onaylı ve arşivlenmemiş etkinlikleri okuyabilir
-      allow read: if resource.data.status == 'approved' && resource.data.archived != true
+      // Herkese açık okuma — approved events (arşiv filtresi client-side yapılır)
+      allow read: if resource.data.status == 'approved'
                   || isAdmin()
                   || (isOrganizer() && resource.data.organizerId == request.auth.uid);
 
-      // Organizatörler beklemede (pending) etkinlik oluşturabilir
+      // Organizatörler pending etkinlik oluşturabilir
       allow create: if isOrganizer()
                     && request.resource.data.status == 'pending'
                     && request.resource.data.organizerId == request.auth.uid;
 
-      // Organizatör kendi etkinliğini güncelleyebilir (rol değişikliği hariç)
-      // Herhangi bir kullanıcı sadece viewCount alanını artırabilir
+      // Admin veya kendi etkinliğini güncelleyen organizatör
+      // Herhangi bir kullanıcı sadece viewCount artırabilir
       allow update: if isAdmin()
                     || (isOrganizer() && resource.data.organizerId == request.auth.uid)
-                    || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']));
+                    || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']);
 
       allow delete: if isAdmin();
 
@@ -52,7 +55,7 @@ service cloud.firestore {
                               || isAdmin();
       }
 
-      // Reservations alt koleksiyonu (koltuk seçimi için)
+      // Reservations alt koleksiyonu (koltuk seçimi)
       match /reservations/{reservationId} {
         allow read: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
         allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
@@ -65,7 +68,7 @@ service cloud.firestore {
       allow read: if isAuth() && (isOwner(userId) || isAdmin());
       allow create: if isAuth() && isOwner(userId);
 
-      // Kullanıcı kendi profilini güncelleyebilir, AMA rol alanını değiştiremez
+      // Kullanıcı kendi profilini güncelleyebilir, AMA 'role' alanını değiştiremez
       allow update: if isAuth() && isOwner(userId)
                       && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
                     || isAdmin();
@@ -75,11 +78,12 @@ service cloud.firestore {
 
     // ── CLUBS ─────────────────────────────────────────────────────────────────
     match /clubs/{clubId} {
+      // Approved kulüpler herkese açık — query'de where("status","==","approved") olduğu için
       allow read: if resource.data.status == 'approved' || isAdmin();
       allow create: if isAuth() && request.resource.data.status == 'pending';
 
       allow update: if isAdmin()
-                    || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']));
+                    || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']);
 
       allow delete: if isAdmin();
     }
@@ -105,8 +109,6 @@ service cloud.firestore {
     }
 
     // ── ORDERS ────────────────────────────────────────────────────────────────
-    // Siparişler sunucu tarafında (Admin SDK) oluşturulur.
-    // Kullanıcılar yalnızca kendi siparişlerini okuyabilir.
     match /orders/{orderId} {
       allow read: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if false; // Yalnızca Admin SDK
@@ -133,26 +135,25 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // ── STATS (ViewTracker için) ──────────────────────────────────────────────
+    // ── STATS (ViewTracker) ───────────────────────────────────────────────────
     match /stats/{statId} {
       allow read: if true;
-      allow write: if isAuth(); // ViewTracker authenticated kullanıcıdan yazıyor
+      allow write: if isAuth();
     }
 
-    // ── BALANCES (Organizatör bakiyeleri) ─────────────────────────────────────
+    // ── BALANCES ──────────────────────────────────────────────────────────────
     match /balances/{userId} {
       allow read: if isAuth() && (isOwner(userId) || isAdmin());
-      allow write: if false; // Yalnızca Admin SDK
+      allow write: if false;
     }
 
     // ── PAYOUTS ───────────────────────────────────────────────────────────────
     match /payouts/{payoutId} {
       allow read: if isAuth() && (resource.data.organizerId == request.auth.uid || isAdmin());
-      allow write: if false; // Yalnızca Admin SDK
+      allow write: if false;
     }
 
     // ── DISCOUNT CODES ────────────────────────────────────────────────────────
-    // İndirim kodları doğrulaması sunucu tarafında yapılır, client erişimi yok
     match /discountCodes/{codeId} {
       allow read, write: if false;
     }
@@ -164,7 +165,7 @@ service cloud.firestore {
     // ── AUDIT LOGS ────────────────────────────────────────────────────────────
     match /auditLogs/{logId} {
       allow read: if isAdmin();
-      allow write: if false; // Yalnızca Admin SDK
+      allow write: if false;
     }
 
     // ── ORGANIZER APPLICATIONS ────────────────────────────────────────────────
