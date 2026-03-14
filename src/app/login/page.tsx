@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { Mail, Lock, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+
+declare global { interface Window { grecaptcha: any; } }
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -17,6 +19,16 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+
+    useEffect(() => {
+        if (!siteKey) return;
+        const script = document.createElement('script');
+        script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
+        script.async = true;
+        document.head.appendChild(script);
+        return () => { document.head.contains(script) && document.head.removeChild(script); };
+    }, [siteKey]);
 
     const validateEmail = () => {
         if (!email.trim()) {
@@ -66,6 +78,22 @@ export default function LoginPage() {
 
         setLoading(true);
         try {
+            // reCAPTCHA v3 doğrulaması
+            if (siteKey && window.grecaptcha) {
+                const token = await window.grecaptcha.execute(siteKey, { action: 'login' });
+                const captchaRes = await fetch('/api/verify-captcha', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token }),
+                });
+                const captchaData = await captchaRes.json();
+                if (!captchaData.success) {
+                    setError('Bot doğrulaması başarısız. Lütfen tekrar deneyin.');
+                    setLoading(false);
+                    return;
+                }
+            }
+
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 

@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { User, Mail, Lock, ArrowRight, Eye, EyeOff, AlertCircle, Check } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+
+declare global { interface Window { grecaptcha: any; } }
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -25,6 +27,16 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
+  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+
+  useEffect(() => {
+    if (!siteKey) return;
+    const script = document.createElement('script');
+    script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
+    script.async = true;
+    document.head.appendChild(script);
+    return () => { document.head.contains(script) && document.head.removeChild(script); };
+  }, [siteKey]);
 
   // Password strength calculator
   const getPasswordStrength = () => {
@@ -127,6 +139,22 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
+      // reCAPTCHA v3 doğrulaması
+      if (siteKey && window.grecaptcha) {
+        const token = await window.grecaptcha.execute(siteKey, { action: 'register' });
+        const captchaRes = await fetch('/api/verify-captcha', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        });
+        const captchaData = await captchaRes.json();
+        if (!captchaData.success) {
+          setError('Bot doğrulaması başarısız. Lütfen tekrar deneyin.');
+          setLoading(false);
+          return;
+        }
+      }
+
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, {
         displayName: name
