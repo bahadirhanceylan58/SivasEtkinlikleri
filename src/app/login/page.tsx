@@ -118,8 +118,7 @@ export default function LoginPage() {
                 }
             }
         } catch (err: any) {
-            console.error('Login Error Full:', err);
-            console.error('Login Error Code:', err.code);
+            if (process.env.NODE_ENV === 'development') console.error('Login Error:', err.code, err);
             setError('Giriş başarısız. E-posta veya şifre hatalı.');
         } finally {
             setLoading(false);

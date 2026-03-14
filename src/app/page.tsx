@@ -46,28 +46,16 @@ function HomeContent() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        // Fetch events
-        const q = query(collection(db, "events"), where("status", "==", "approved"), orderBy("createdAt", "desc"));
-        const querySnapshot = await getDocs(q);
-        const firebaseEvents = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Event[];
+        const eventsQuery = query(collection(db, "events"), where("status", "==", "approved"), orderBy("createdAt", "desc"));
+        const coursesQuery = query(collection(db, "courses"), where("status", "==", "approved"));
 
+        // Paralel fetch — sıralı yerine aynı anda
+        const [eventsSnap, coursesSnap] = await Promise.all([getDocs(eventsQuery), getDocs(coursesQuery)]);
+
+        const firebaseEvents = eventsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Event[];
         setAllEvents(firebaseEvents);
 
-        // Fetch approved courses for homepage (simplified query to avoid index)
-        const coursesQuery = query(
-          collection(db, "courses"),
-          where("status", "==", "approved")
-        );
-        const coursesSnapshot = await getDocs(coursesQuery);
-        let coursesData = coursesSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Course[];
-
-        // Sort in memory and take first 3
+        let coursesData = coursesSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Course[];
         coursesData = coursesData
           .sort((a, b) => {
             const aTime = a.createdAt?.toDate?.() || a.createdAt || new Date(0);
@@ -75,10 +63,9 @@ function HomeContent() {
             return new Date(bTime).getTime() - new Date(aTime).getTime();
           })
           .slice(0, 3);
-
         setCourses(coursesData);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        if (process.env.NODE_ENV === 'development') console.error("Error fetching data:", error);
         setAllEvents([]);
       } finally {
         setLoading(false);

@@ -10,7 +10,7 @@ const MapPicker = dynamic(() => import('@/components/MapPicker'), {
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { CATEGORIES } from '@/data/mockData';
 import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, query, orderBy, setDoc, getDoc, where, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -164,6 +164,17 @@ export default function AdminPage() {
         cat.sub.map(sub => ({ name: sub, parentId: cat.id, parentName: cat.name }))
     );
 
+    // Memoized filtered lists — render'da tekrar hesaplanmaz
+    const filteredEvents = useMemo(() => events.filter(e => eventFilter === 'all' || e.status === eventFilter), [events, eventFilter]);
+    const filteredClubs = useMemo(() => clubs.filter(c => clubFilter === 'all' || c.status === clubFilter), [clubs, clubFilter]);
+    const filteredCourses = useMemo(() => courses.filter(c => courseFilter === 'all' || c.status === courseFilter), [courses, courseFilter]);
+    const pendingApplications = useMemo(() => applications.filter(a => a.status === 'pending'), [applications]);
+    const pendingOrganizerApps = useMemo(() => organizerApplications.filter(a => a.status === 'pending'), [organizerApplications]);
+    const pendingCourses = useMemo(() => courses.filter(c => c.status === 'pending'), [courses]);
+    const approvedCourses = useMemo(() => courses.filter(c => c.status === 'approved'), [courses]);
+    const rejectedCourses = useMemo(() => courses.filter(c => c.status === 'rejected'), [courses]);
+    const activeDiscountCodes = useMemo(() => discountCodes.filter(c => c.isActive), [discountCodes]);
+
     useEffect(() => {
         if (allSubCategories.length > 0 && !subCategory) {
             setSubCategory(allSubCategories[0].name);
@@ -207,7 +218,7 @@ export default function AdminPage() {
             const eventDate = new Date(eventData.date);
 
             // Auto-delete: If archived for more than 1 month
-            if (eventData.archived && eventData.archivedAt) {
+            if (eventData.archived && eventData.archivedAt?.seconds) {
                 const archivedDate = new Date(eventData.archivedAt.seconds * 1000);
                 if (archivedDate < oneMonthAgo) {
                     batch.delete(doc(db, "events", eventDoc.id));
@@ -722,7 +733,7 @@ export default function AdminPage() {
                     label="Organizatör Başvuruları"
                     onClick={() => { setActiveTab('organizer_apps'); fetchOrganizerApplications(); setIsMobileMenuOpen(false); }}
                     notification={organizerApplications.some(a => a.status === 'pending')}
-                    count={organizerApplications.filter(a => a.status === 'pending').length}
+                    count={pendingOrganizerApps.length}
                 />
                 <SidebarButton
                     active={activeTab === 'finances'}
@@ -742,7 +753,7 @@ export default function AdminPage() {
                     label="Kurs Başvuruları"
                     onClick={() => { setActiveTab('courses'); fetchCourses(); setIsMobileMenuOpen(false); }}
                     notification={courses.some(c => c.status === 'pending')}
-                    count={courses.filter(c => c.status === 'pending').length}
+                    count={pendingCourses.length}
                 />
                 <SidebarButton
                     active={false}
@@ -755,7 +766,7 @@ export default function AdminPage() {
                     icon={<Tag className="w-5 h-5" />}
                     label="İndirim Kodları"
                     onClick={() => { setActiveTab('discounts'); fetchDiscountCodes(); setIsMobileMenuOpen(false); }}
-                    count={discountCodes.filter(c => c.isActive).length}
+                    count={activeDiscountCodes.length}
                 />
                 <SidebarButton
                     active={activeTab === 'users'}
@@ -909,13 +920,13 @@ export default function AdminPage() {
                                     </h2>
                                     <div className="flex gap-2 text-sm">
                                         <button onClick={() => setCourseFilter('all')} className={`px-3 py-1.5 rounded-lg transition-colors ${courseFilter === 'all' ? 'bg-primary text-black font-medium' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>Tümü ({courses.length})</button>
-                                        <button onClick={() => setCourseFilter('pending')} className={`px-3 py-1.5 rounded-lg transition-colors ${courseFilter === 'pending' ? 'bg-yellow-500 text-black font-medium' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>Bekleyen ({courses.filter(c => c.status === 'pending').length})</button>
-                                        <button onClick={() => setCourseFilter('approved')} className={`px-3 py-1.5 rounded-lg transition-colors ${courseFilter === 'approved' ? 'bg-green-500 text-black font-medium' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>Onaylandı ({courses.filter(c => c.status === 'approved').length})</button>
-                                        <button onClick={() => setCourseFilter('rejected')} className={`px-3 py-1.5 rounded-lg transition-colors ${courseFilter === 'rejected' ? 'bg-red-500 text-white font-medium' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>Reddedildi ({courses.filter(c => c.status === 'rejected').length})</button>
+                                        <button onClick={() => setCourseFilter('pending')} className={`px-3 py-1.5 rounded-lg transition-colors ${courseFilter === 'pending' ? 'bg-yellow-500 text-black font-medium' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>Bekleyen ({pendingCourses.length})</button>
+                                        <button onClick={() => setCourseFilter('approved')} className={`px-3 py-1.5 rounded-lg transition-colors ${courseFilter === 'approved' ? 'bg-green-500 text-black font-medium' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>Onaylandı ({approvedCourses.length})</button>
+                                        <button onClick={() => setCourseFilter('rejected')} className={`px-3 py-1.5 rounded-lg transition-colors ${courseFilter === 'rejected' ? 'bg-red-500 text-white font-medium' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>Reddedildi ({rejectedCourses.length})</button>
                                     </div>
                                 </div>
                             </div>
-                            {courses.filter(c => courseFilter === 'all' || c.status === courseFilter).length === 0 ? (
+                            {filteredCourses.length === 0 ? (
                                 <div className="p-8 text-center text-muted-foreground">
                                     {courseFilter === 'all' ? 'Henüz kurs başvurusu yok.' : `${courseFilter === 'pending' ? 'Bekleyen' : courseFilter === 'approved' ? 'Onaylandı' : 'Reddedilen'} kurs yok.`}
                                 </div>
@@ -933,7 +944,7 @@ export default function AdminPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-border">
-                                            {courses.filter(c => courseFilter === 'all' || c.status === courseFilter).map((course) => (
+                                            {filteredCourses.map((course) => (
                                                 <tr key={course.id} className="hover:bg-neutral-50 dark:bg-zinc-900 transition-colors group">
                                                     <td className="px-6 py-4 font-medium text-foreground max-w-xs truncate">{course.title}</td>
                                                     <td className="px-6 py-4 text-muted-foreground">{course.instructorName}</td>
@@ -1060,7 +1071,7 @@ export default function AdminPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
-                                        {events.filter(e => eventFilter === 'all' || e.status === eventFilter).map((event) => (
+                                        {filteredEvents.map((event) => (
                                             <tr key={event.id} className="hover:bg-neutral-50 dark:bg-zinc-900 transition-colors group">
                                                 <td className="px-6 py-4 font-medium text-foreground">{event.title}</td>
                                                 <td className="px-6 py-4 text-muted-foreground">{event.date?.toString().replace('T', ' ')}</td>
@@ -1267,7 +1278,7 @@ export default function AdminPage() {
                                             <tr><th className="px-6 py-4">Topluluk Adı</th><th className="px-6 py-4">Başvuran</th><th className="px-6 py-4">Kategori</th><th className="px-6 py-4">Durum</th><th className="px-6 py-4 text-right">İşlemler</th></tr>
                                         </thead>
                                         <tbody className="divide-y divide-border">
-                                            {applications.filter(a => a.status === 'pending').map((app) => (
+                                            {pendingApplications.map((app) => (
                                                 <tr key={app.id} className="hover:bg-neutral-50 dark:bg-zinc-900 transition-colors">
                                                     <td className="px-6 py-4 font-medium text-foreground">{app.name}</td>
                                                     <td className="px-6 py-4 text-muted-foreground"><div>{app.userName}</div><div className="text-xs text-muted-foreground/80">{app.userEmail}</div></td>
@@ -1358,7 +1369,7 @@ export default function AdminPage() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-border">
-                                                {clubs.filter(c => clubFilter === 'all' || c.status === clubFilter).map((club) => (
+                                                {filteredClubs.map((club) => (
                                                     <tr key={club.id} className="hover:bg-neutral-50 dark:bg-zinc-900 transition-colors">
                                                         <td className="px-6 py-4 font-medium text-foreground">{club.name}</td>
                                                         <td className="px-6 py-4 text-muted-foreground capitalize">{club.category}</td>

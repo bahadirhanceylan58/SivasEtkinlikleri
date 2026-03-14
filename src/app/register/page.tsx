@@ -8,8 +8,6 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
-declare global { interface Window { grecaptcha: any; } }
-
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -175,7 +173,7 @@ export default function RegisterPage() {
       } else {
         setError('Kayıt başarısız. Lütfen bilgilerinizi kontrol edin.');
       }
-      console.error(err);
+      if (process.env.NODE_ENV === 'development') console.error('Register Error:', err);
     } finally {
       setLoading(false);
     }

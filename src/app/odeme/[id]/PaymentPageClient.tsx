@@ -110,25 +110,21 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
         return () => unsubscribe();
     }, [id, router]);
 
-    // Load selected seats from sessionStorage
+    // Load selected seats from sessionStorage — sadece bir kez, event ilk yüklendiğinde
     useEffect(() => {
-        if (event?.hasSeating) {
-            const storedSeats = sessionStorage.getItem('selectedSeats');
-            if (storedSeats) {
-                try {
-                    const seats: Seat[] = JSON.parse(storedSeats);
-                    setSelectedSeats(seats);
-
-                    // Calculate total from seats
-                    const total = seats.reduce((sum, seat) => sum + seat.price, 0);
-                    setSeatTotalPrice(total);
-                    setTicketCount(seats.length);
-                } catch (error) {
-                    console.error('Error parsing seats:', error);
-                }
-            }
+        if (!event?.hasSeating) return;
+        const storedSeats = sessionStorage.getItem('selectedSeats');
+        if (!storedSeats) return;
+        try {
+            const seats: Seat[] = JSON.parse(storedSeats);
+            setSelectedSeats(seats);
+            setSeatTotalPrice(seats.reduce((sum, seat) => sum + seat.price, 0));
+            setTicketCount(seats.length);
+        } catch {
+            // malformed JSON — ignore
         }
-    }, [event]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [event?.id]);
 
     const handleReservation = async () => {
         if (!user || !event) return;
@@ -454,7 +450,7 @@ export default function PaymentPageClient({ id }: PaymentPageClientProps) {
                     <div className="bg-card p-6 rounded-2xl border border-border">
                         <div className="flex gap-4 mb-4">
                             <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                                <Image src={event.imageUrl || '/placeholder.jpg'} alt="event" fill className="object-cover" unoptimized />
+                                <Image src={event.imageUrl || '/placeholder.jpg'} alt="event" fill className="object-cover"  />
                             </div>
                             <div>
                                 <h3 className="font-bold text-foreground line-clamp-2">{event.title}</h3>

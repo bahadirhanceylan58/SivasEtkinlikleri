@@ -210,8 +210,8 @@ export default function ClubsPage() {
                                                                 src={club.logo || club.imageUrl}
                                                                 alt={club.name}
                                                                 fill
+                                                                sizes="80px"
                                                                 className="object-cover"
-                                                                unoptimized
                                                             />
                                                         ) : (
                                                             <Icon className="w-8 h-8" />
