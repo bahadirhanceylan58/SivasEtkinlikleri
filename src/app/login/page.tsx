@@ -79,19 +79,23 @@ export default function LoginPage() {
         setLoading(true);
         try {
             // reCAPTCHA v3 doğrulaması
-            if (siteKey && window.grecaptcha) {
-                const token = await window.grecaptcha.execute(siteKey, { action: 'login' });
-                const captchaRes = await fetch('/api/verify-captcha', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token }),
-                });
-                const captchaData = await captchaRes.json();
-                if (!captchaData.success) {
-                    setError('Bot doğrulaması başarısız. Lütfen tekrar deneyin.');
-                    setLoading(false);
-                    return;
+            try {
+                if (siteKey && window.grecaptcha) {
+                    const token = await window.grecaptcha.execute(siteKey, { action: 'login' });
+                    const captchaRes = await fetch('/api/verify-captcha', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token }),
+                    });
+                    const captchaData = await captchaRes.json();
+                    if (!captchaData.success) {
+                        setError('Bot doğrulaması başarısız. Lütfen tekrar deneyin.');
+                        setLoading(false);
+                        return;
+                    }
                 }
+            } catch {
+                // reCAPTCHA yüklenemedi (PWA, offline vb.) — giriş devam eder
             }
 
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
